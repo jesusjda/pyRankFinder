@@ -1,55 +1,47 @@
 #!/bin/bash
 
 getGitDependencies(){
-    BASEDIR=$1
-    NAME=$2
-    GITURL=$3
-    echo "Checking git $NAME"
-    if [ ! -d $BASEDIR/$NAME ]; then
-	if [ -d $BASEDIR/../$NAME ]; then
-	    ln -s $BASEDIR/../$NAME $BASEDIR/$NAME
+    echo "Checking git $2"
+    if [ ! -d $1/$2 ]; then
+	if [ -d $1/../$2 ]; then
+	    ln -s $1/../$2 $1/$2
 	else
-	    git clone $GITURL $BASEDIR/$NAME
+	    git clone $3 $1/$2
 	fi
     else
-	cd $BASEDIR/$NAME
+	cd $1/$2
 	git pull
-	cd $BASEDIR
+	cd $1
     fi
+    installDependencies $1/$2
 }
 
 checkAndInstall(){
-    for PKG in "$@"
-    do
-	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $PKG|grep "install ok installed")
-	echo Checking for $PKG: $PKG_OK
-	if [ "" == "$PKG_OK" ]; then
-	    echo "No $PKG. Setting up $PKG."
-	    sudo apt-get --force-yes --yes install $PKG
-	fi
-    done
+    PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $PKG|grep "install ok installed")
+    echo Checking for $PKG: $PKG_OK
+    if [ "" == "$PKG_OK" ]; then
+	echo "No $PKG. Setting up $PKG."
+	sudo apt-get --force-yes --yes install $PKG
+    fi
 }
 
 installDependencies(){
-    BASEDIR=$1
-    NAME=$2
-    if [ -f $BASEDIR/$NAME/requirements.apt ]; then
-	checkAndInstall $(<$BASEDIR/$NAME/requirements.apt)
+    if [ -f $1/requirements.apt ]; then
+	for PKG in $(<$1/requirements.apt) ; do
+	    checkAndInstall $PKG
+	done
     fi
 
-    if [ -f $BASEDIR/$NAME/requirements.pip ]; then
-	sudo -H pip2.7 install -r $BASEDIR/$NAME/requirements.pip
+    if [ -f $1/requirements.pip ]; then
+	sudo -H pip2.7 install -r $1/requirements.pip
+    fi
+
+    if [ -f $1/requirements.git ]; then
+	while read GIT; do
+	    getGitDependencies $1 $GIT
+	done <$1/requirements.git
     fi
 }
 
-# echo "pwd: `pwd`"
-# echo "\$0: $0"
-# echo "basename: `basename $0`"
-# echo "dirname: `dirname $0`"
-# echo "dirname/readlink: $(dirname $(readlink -f $0))"
-BASEDIR=$(dirname $(readlink -f $0))
-getGitDependencies $BASEDIR "pyLPi" "https://github.com/jesusjda/pyLPi"
-getGitDependencies $BASEDIR "pyParser" "https://github.com/jesusjda/pyParser"
+installDependencies $(dirname $(readlink -f $0))
 
-installDependencies $BASEDIR "pyLPi"
-installDependencies $BASEDIR "pyParser"
