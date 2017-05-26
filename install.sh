@@ -2,18 +2,18 @@
 
 getGitDependencies(){
     echo "Checking git $2"
-    if [ ! -d $1/$2 ]; then
+    if [ ! -d $1/lib/$2 ]; then
 	if [ -d $1/../$2 ]; then
-	    ln -s $1/../$2 $1/$2
+	    ln -s $1/../$2 $1/lib/$2
 	else
-	    git clone $3 $1/$2
+	    git clone $3 $1/lib/$2
 	fi
     else
-	cd $1/$2
+	cd $1/lib/$2
 	git pull
 	cd $1
     fi
-    installDependencies $1/$2
+    installDependencies $1/lib/$2
 }
 
 checkAndInstall(){
