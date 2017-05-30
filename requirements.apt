@@ -1,2 +1,6 @@
 python2.7
+pip2 pip2.7
 python-tk
+cython
+libgmp-dev
+libppl-dev
