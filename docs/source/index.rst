@@ -8,13 +8,9 @@ Some text::
     print "hello"
     >> hello
 
-
-Guide
-^^^^^
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+>>> from RankFinder import *
+.. autosummary::
+    RankFinder
 
 Indices and tables
 ==================
