@@ -8,9 +8,7 @@ Some text::
     print "hello"
     >> hello
 
-.. currentmodule:: RankFinder
-
-.. autoclass:: RankFinder
+.. automodule:: RankFinder
     :members:
     :undoc-members:
     :show-inheritance:
