@@ -8,8 +8,13 @@ Some text::
     print "hello"
     >> hello
 
-.. autosummary::
-    RankFinder
+.. currentmodule:: RankFinder
+
+.. autoclass:: RankFinder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Indices and tables
 ==================
