@@ -8,7 +8,6 @@ Some text::
     print "hello"
     >> hello
 
->>> from RankFinder import *
 .. autosummary::
     RankFinder
 
