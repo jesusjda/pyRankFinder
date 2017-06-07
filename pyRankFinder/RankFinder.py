@@ -2,17 +2,20 @@ import os
 import sys
 import getopt
 import argparse
+from rfalgs import AlgLRF
+
+_version = "0.0.0.1"
+_name = "pyRankFinder"
 
 
 def setArgumentParser():
     algorithms = ["prlrf", "bgllrf", "adfglrf", "nlrf", "bmsnlrf"]
     scc_strategies = ["global", "local", "incremental"]
-    desc = "pyRankFinder: a Ranking Function finder on python."
+    desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 4),
                            help="increase output verbosity", default=0)
-    argParser.add_argument("--dotProgram", type=argparse.FileType('w'),
-                           required=False,
+    argParser.add_argument("--dotProgram", required=False,
                            help="Outfile to show the program as dot graph.")
     argParser.add_argument("-dt", "--different_template", action='store_true',
                            help="Use different templates on each node")
@@ -21,8 +24,8 @@ def setArgumentParser():
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-ver", "--version", required=False,
                            action='store_true', help="Shows the version.")
-    argParser.add_argument("-f", "--file", type=argparse.FileType('r'),
-                           required=True, help="File to be analysed.")
+    argParser.add_argument("-f", "--file", required=True,
+                           help="File to be analysed.")
     argParser.add_argument("-a", "--algorithm", choices=algorithms,
                            required=True, help="Algorithm to be apply.")
     return argParser
@@ -31,21 +34,28 @@ def setArgumentParser():
 def Main(argv):
     argParser = setArgumentParser()
     args = argParser.parse_args(argv)
-    print args
-    return
+    if args.version:
+        print _name+" version: "+_version
+        return
+    prs = pyParser.GenericParser()
     try:
-        opts, args = getopt.getopt(argv, "", [])
-    except getopt.GetoptError:
-        print(help())
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print(help())
-            sys.exit(0)
-        elif opt in ("-a", "--algorithm"):
-            print("To be done..")
-    print("BYE")
+        if args.dotProgram:
+            cfg = prs.parse(args.file, dot=args.dotProgram)
+        else:
+            cfg = prs.parse(args.file)
+    except Exception as e:
+        print(e)
+        exit(-2)
+    print(cfg)
+    alg = None
+    if args.algorithm == "prlrf":
+        alg = AlgLRF.AlgLRF(args.scc_strategy, args.different_template)
+
+    alg.ranking(cfg)
+    alg.print_result()
 
 if __name__ == "__main__":
+    sys.path.append("../lib/pyParser/pyParser/")
+    sys.path.append("../lib/pyLPi/pyLPi/")
+    globals()["pyParser"] = __import__("GenericParser")
     Main(sys.argv[1:])
-
