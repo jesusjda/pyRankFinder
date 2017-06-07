@@ -2,7 +2,7 @@ import os
 import sys
 import getopt
 import argparse
-from rfalgs import AlgLRF
+from TerminationAlgorithms import LRFAlgorithm
 
 _version = "0.0.0.1"
 _name = "pyRankFinder"
@@ -49,10 +49,12 @@ def Main(argv):
     print(cfg)
     alg = None
     if args.algorithm == "prlrf":
-        alg = AlgLRF.AlgLRF(args.scc_strategy, args.different_template)
+        alg = LRFAlgorithm.LRFAlgorithm()
 
-    alg.ranking(cfg)
-    alg.print_result()
+    config = args
+    config["cfg"] = cfg
+
+    alg.print_result(alg.ranking(config))
 
 if __name__ == "__main__":
     sys.path.append("../lib/pyParser/pyParser/")
