@@ -1,8 +1,9 @@
 import os
 import sys
 import getopt
-import GeneralParser as Parser
-from LP import *
+
+def test():
+    return 
 
 def Main(argv):
     try:
@@ -13,11 +14,12 @@ def Main(argv):
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print(help())
+            sys.exit(0)
         elif opt in ("-a", "--algorithm"):
             print("To be done..")
     print("BYE")
 
 if __name__ == "__main__":
     # Main(sys.argv[1:])
-    x = Variable(0)
-    x._dont
+    a, b,c = test()
+    print(a)
