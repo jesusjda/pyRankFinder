@@ -34,7 +34,7 @@ installDependencies(){
 
     if [ -f $1/requirements.pip ]; then
 	sudo -H pip2 install -r $1/requirements.pip
-	sudo -H pip3 install -r $1/requirements.pip
+	sudo -H pip2.7 install -r $1/requirements.pip
     fi
 
     if [ -f $1/requirements.git ]; then
