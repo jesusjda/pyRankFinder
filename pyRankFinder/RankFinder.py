@@ -2,7 +2,7 @@ import os
 import sys
 import getopt
 import argparse
-from TerminationAlgorithms import LRFAlgorithm
+from TerminationAlgorithm import LRFAlgorithm
 
 _version = "0.0.0.1"
 _name = "pyRankFinder"
@@ -51,7 +51,7 @@ def Main(argv):
     if args.algorithm == "prlrf":
         alg = LRFAlgorithm.LRFAlgorithm()
 
-    config = args
+    config = vars(args)
     config["cfg"] = cfg
 
     alg.print_result(alg.ranking(config))
