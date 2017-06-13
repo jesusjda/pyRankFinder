@@ -8,6 +8,7 @@ from LPi import C_Polyhedron
 
 
 class LRFAlgorithm(TerminationAlgorithm):
+
     _data = {}
 
     def ranking(self, data):
@@ -37,7 +38,7 @@ class LRFAlgorithm(TerminationAlgorithm):
             return {'done': False, 'error': "who knows"}
         return {'done': True,
                 'point': point,
-                'Nvars': Nvars,
+                'nvars': Nvars,
                 'cfg': cfg}
 
     def _max_dim(self, polys):
