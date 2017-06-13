@@ -17,17 +17,28 @@ class LRFAlgorithm(TerminationAlgorithm):
         cfg = self._data["cfg"]
         polys = [e["tr_polyhedron"] for e in cfg.get_edges()]
         dim = self._max_dim(polys)
-        list_constraints = [c for p in polys for c in p.get_constraints()]
-        num_constraints = len(list_constraints)
-        lambdas = [Variable(dim+i) for i in range(0, num_constraints)]
-        poly = C_Polyhedron(list_constraints)
-        i = 0
-        for c in list_constraints:
-            if c.is_nonstrict_inequality():
-                poly.add_constraint(lambdas[i] >= 0)
-            i++
-        
-        print(poly)
+        Nvars = dim / 2
+        rfvars = [Variable(i) for i in range(dim)]
+        list_constraints = [p.get_constraints() for p in polys]
+        num_constraints = [len(cs) for cs in list_constraints]
+        lambdas = []
+        # different template??
+        shift = dim + 1
+        for Mcons in num_constraints:
+            lambdas.append([Variable(shift+k) for k in range(Mcons)])
+            shift = shift + Mcons + 1
+        farkas = []
+        for i in range(len(polys)):
+            farkas = farkas + self._farkas(polys[i], lambdas[i], rfvars, 1)
+        print(farkas)
+        poly = C_Polyhedron(Constraint_System(farkas))
+        point = poly.get_point()
+        if point is None:
+            return {'done': False, 'error': "who knows"}
+        return {'done': True,
+                'point': point,
+                'Nvars': Nvars,
+                'cfg': cfg}
 
     def _max_dim(self, polys):
         maximum = 0
@@ -38,4 +49,9 @@ class LRFAlgorithm(TerminationAlgorithm):
         return maximum
 
     def print_result(self, result):
-        print(resutl)
+        if result['done']:
+            V = [Variable(i) for i in range(result['Nvars'])]
+            coeffs = [cf for cf in result['point'].coefficients()]
+            self._print_function("f", V, coeffs, result['Nvars'])
+        else:
+            print("ERROR?")
