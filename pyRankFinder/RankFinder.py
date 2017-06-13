@@ -6,6 +6,12 @@ from TerminationAlgorithm import LRFAlgorithm
 
 _version = "0.0.0.1"
 _name = "pyRankFinder"
+_verbosity = 0
+
+
+def echo(verbosity, msg):
+    if _verbosity >= verbosity:
+        print(msg)
 
 
 def setArgumentParser():
@@ -32,6 +38,7 @@ def setArgumentParser():
 
 
 def Main(argv):
+    global _verbosity
     argParser = setArgumentParser()
     args = argParser.parse_args(argv)
     if args.version:
@@ -52,6 +59,8 @@ def Main(argv):
         alg = LRFAlgorithm.LRFAlgorithm()
 
     config = vars(args)
+    _verbosity = config["verbosity"]
+    echo(3, config)
     config["cfg"] = cfg
 
     alg.print_result(alg.ranking(config))

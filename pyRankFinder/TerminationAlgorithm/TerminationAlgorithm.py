@@ -13,21 +13,28 @@ class TerminationAlgorithm:
     def print_result(self, result):
         raise Exception("Not implemented yet!")
 
-    def _df_(self, polyhedron, lambdas, vf1, v0f1, vf2=None, v0f2=0):
+    def _df(self, polyhedron, lambdas,
+            f1vars, f1inhomogeneous,
+            f2vars, f2inhomogeneous,
+            inhomogeneous):
         """
         """
+        f2vars = [-v for v in f2vars]
+        exp = f1vars + f2vars
+        inh = f1inhomogeneous - f2inhomogeneous + inhomogeneous
+        return self._farkas(polyhedron, lambdas, exp, inh)
 
-        if vf2 is None:
-            vf2 = vf1
-        vf2 = [-v for v in vf2]
-        exp = vf1 + vf2
-        return self._farkas(polyhedron, lambdas, exp, v0f1 - v0f2)
+    def _f(self, polyhedron, lambdas, fvars, finhomogeneous, inhomogeneous):
+        exp = fvars + [0 for v in fvars]
+        inh = finhomogeneous + inhomogeneous
+        return self._farkas(polyhedron, lambdas, exp, inh)
 
     def _farkas(self, polyhedron, lambdas, expressions, inhomogeneous):
         """Returns a list of Constraints, corresponding with the farkas
         constraints for the expressions in `expr`.
         polyhedron of (dimension <= n) with its variables (x1,...,xn)
         polyhedron ==> (e1 x1 + ... + en xn + e0 >= 0)
+
         :param polyhedron: Polyhedron
         :type polyhedron: `LPi.C_polyhedron`
         :param expressions: [e1,...,en] where ei is a linear expression
@@ -37,6 +44,7 @@ class TerminationAlgorithm:
         :param lambdas: List of lambdas
         :type lambdas: `list` of `ppl.Variable`
         """
+        print(expressions, inhomogeneous)
         dim = len(expressions)
         cs = polyhedron.get_constraints()
         num_constraints = len(cs)
@@ -53,7 +61,7 @@ class TerminationAlgorithm:
         exp = 0
         for j in range(num_constraints):
             exp = exp + cs[j].inhomogeneous_term() * lambdas[j]
-        constraint_list.append(exp + inhomogeneous >= 0)
+        constraint_list.append(exp - inhomogeneous <= 0)
 
         # lambda >= 0 restrictions if is inequality
         for j in range(num_constraints):
@@ -66,8 +74,8 @@ class TerminationAlgorithm:
         try:
             sr = name + " ( x ) = "
             for i in range(size):
-                sr += "" + str(coeffs[i]) + " * " + str(Vars[i]) + " + "
-            sr += "" + str(coeffs[size])
+                sr += "" + str(coeffs[1+i]) + " * " + str(Vars[i]) + " + "
+            sr += "" + str(coeffs[0])
             print(sr)
         except Exception as e:
             print("m")
