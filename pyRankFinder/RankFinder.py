@@ -57,7 +57,8 @@ def Main(argv):
     alg.print_result(alg.ranking(config))
 
 if __name__ == "__main__":
-    sys.path.append("../lib/pyParser/pyParser/")
-    sys.path.append("../lib/pyLPi/pyLPi/")
+    projectPath = "/home/friker/Systems/pyRankFinder/"
+    sys.path.append(projectPath+"lib/pyParser/pyParser/")
+    sys.path.append(projectPath+"lib/pyLPi/pyLPi/")
     globals()["pyParser"] = __import__("GenericParser")
     Main(sys.argv[1:])
