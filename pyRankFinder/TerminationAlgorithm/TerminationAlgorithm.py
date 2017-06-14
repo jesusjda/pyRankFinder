@@ -70,12 +70,12 @@ class TerminationAlgorithm:
 
         return constraint_list
 
-    def _print_function(self, name, Vars, coeffs, size):
+    def _print_function(self, name, Vars, coeffs, inh):
         try:
             sr = name + " ( x ) = "
-            for i in range(size):
-                sr += "" + str(coeffs[1+i]) + " * " + str(Vars[i]) + " + "
-            sr += "" + str(coeffs[0])
+            for i in range(len(coeffs)):
+                sr += "" + str(coeffs[i]) + " * " + str(Vars[i]) + " + "
+            sr += "" + str(inh)
             print(sr)
         except Exception as e:
-            print("m")
+            print(e)

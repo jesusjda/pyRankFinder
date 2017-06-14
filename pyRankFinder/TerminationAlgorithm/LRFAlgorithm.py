@@ -23,6 +23,7 @@ class LRFAlgorithm(TerminationAlgorithm):
         shifter = 0
         if ("different_template" in self._data and
             self._data["different_template"]):
+
             shifter = Nvars + 1
         # Calculate rfs vars
         rfvars = {}
@@ -67,16 +68,20 @@ class LRFAlgorithm(TerminationAlgorithm):
                                        rf_t[1::], rf_t[0],
                                        -1)
             it += 1
-        for f in farkas:
-            print(f)
         poly = C_Polyhedron(Constraint_System(farkas))
         point = poly.get_point()
         if point is None:
             return {'done': False, 'error': "who knows"}
+        rfs = {}
+        print(point)
+
+        for node in rfvars:
+            rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
+                         point.coefficient(rfvars[node][0]))
         return {'done': True,
-                'rfs': point,
+                'rfs': rfs,
                 'nvars': Nvars,
-                'cfg': cfg}
+                'vars_name': cfg.get_var_name()}
 
     def _max_dim(self, edges):
         maximum = 0
@@ -89,8 +94,10 @@ class LRFAlgorithm(TerminationAlgorithm):
     def print_result(self, result):
         if result['done']:
             print(result['rfs'])
-            V = [Variable(i) for i in range(result['nvars'])]
-            coeffs = [cf for cf in result['rfs'].coefficients()]
-            self._print_function("f", V, coeffs, result['nvars'])
+            for node in result['rfs']:
+                coeffs = result['rfs'][node][0]
+                inh = result['rfs'][node][1]
+                self._print_function("f_"+node, result['vars_name'],
+                                     coeffs, inh)
         else:
             print("ERROR?")
