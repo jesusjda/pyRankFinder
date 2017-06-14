@@ -3,6 +3,7 @@ import sys
 import getopt
 import argparse
 from TerminationAlgorithm import LRFAlgorithm
+from TerminationAlgorithm import LexAlgorithm
 
 _version = "0.0.0.1"
 _name = "pyRankFinder"
@@ -43,7 +44,7 @@ def Main(argv):
     args = argParser.parse_args(argv)
     if args.version:
         print _name+" version: "+_version
-        return
+        exit(0)
     prs = pyParser.GenericParser()
     try:
         if args.dotProgram:
@@ -57,6 +58,8 @@ def Main(argv):
     alg = None
     if args.algorithm == "prlrf":
         alg = LRFAlgorithm.LRFAlgorithm()
+    elif args.algorithm == "adfglrf":
+        alg = LexAlgorithm.LexAlgorithm()
 
     config = vars(args)
     _verbosity = config["verbosity"]
@@ -64,6 +67,7 @@ def Main(argv):
     config["cfg"] = cfg
 
     alg.print_result(alg.ranking(config))
+    exit(0)
 
 if __name__ == "__main__":
     projectPath = "/home/friker/Systems/pyRankFinder/"

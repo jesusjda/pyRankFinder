@@ -7,7 +7,7 @@ from ppl import Constraint
 from LPi import C_Polyhedron
 
 
-class LRFAlgorithm(TerminationAlgorithm):
+class LexAlgorithm(TerminationAlgorithm):
 
     _data = {}
 
@@ -17,23 +17,47 @@ class LRFAlgorithm(TerminationAlgorithm):
             raise Exception(self.__class__+" needs a ControlFlowGraph.")
         cfg = self._data["cfg"]
         transitions = cfg.get_edges()
+        rfs = {}
+        no_ranked_trs = list(transitions)
+        while no_ranked_trs:  # while not empty
+            result = self.compute(no_ranked_trs)
+            if result['status'] == "noRanked":
+                return {'status': "noRanked",
+                        'error': "A set of transitions cannot be ranked",
+                        'rfs': rfs,
+                        'trs': no_ranked_trs}
+            elif result['status'] == "Fail":
+                pass  # return irrecuperable error
+            elif result['status'] == "Ranked":
+                no_ranked_trs = result['no_ranked_tr']
+                for node in result['rfs']:
+                    if not(node in rfs):
+                        rfs[node] = []
+                    rfs[node].append(result['rfs'][node])
 
+        return {'status': "Ranked",
+                'rfs': rfs,
+                'vars_name': cfg.get_var_name()}
+
+    def compute(self, transitions):
         dim = self._max_dim(transitions)
         Nvars = dim / 2
         shifter = 0
         if ("different_template" in self._data and
             self._data["different_template"]):
-
             shifter = Nvars + 1
         # farkas Variables
         rfvars = {}
+        deltas = []
         # farkas constraints
         farkas_constraints = []
-        # rfs coefficients (result)
-        rfs = {}
+        # return objects
+        rfs = {}  # rfs coefficients (result)
+        no_ranked = []  # transitions sets no ranked by rfs
         # other stuff
         nodeList = {}
         countVar = 0
+        # 1.1 - store rfs variables
         for tr in transitions:
             if not(tr["source"] in nodeList):
                 f = [Variable(i)
@@ -47,9 +71,11 @@ class LRFAlgorithm(TerminationAlgorithm):
                 countVar += shifter
         countVar += Nvars + 1
 
-        num_constraints = [len(e["tr_polyhedron"].get_constraints())
-                           for e in edges]
-
+        # 1.2 - store delta variables
+        deltas = {transitions[i]["name"]: Variable(countVar + i)
+                  for i in range(len(transitions))}
+        countVar += len(transitions) + 1
+        print("deltas", deltas)
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
             rf_t = rfvars[tr["target"]]
@@ -61,24 +87,36 @@ class LRFAlgorithm(TerminationAlgorithm):
             farkas_constraints += self._f(tr["tr_polyhedron"], lambdas,
                                           rf_s, 0)
 
-            # f_s - f_t >= 1
+            # f_s - f_t >= delta[tr]
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
             countVar += Mcons + 1
             farkas_constraints += self._df(tr["tr_polyhedron"], lambdas,
-                                           rf_s, rf_t, 1)
+                                           rf_s, rf_t, deltas[tr["name"]])
 
+            # 0 <= delta[tr] <= 1
+            farkas_constraints += [0 <= deltas[tr["name"]],
+                                   deltas[tr["name"]] <= 1]
+        print("farkas constraints")
         poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        point = poly.get_point()
+        exp = sum([deltas[tr] for tr in deltas])
+        print(poly.get_constraints())
+        print(exp)
+        result = poly.maximize(exp)
+        if not result['bounded']:
+            return {'status': "noRanked", 'error': "Unbounded"}
+        point = resutl["generator"]
         if point is None:
             return {'status': "noRanked", 'error': "who knows"}
 
         for node in rfvars:
             rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
                          point.coefficient(rfvars[node][0]))
+
+            no_ranked = [tr for tr in transitions
+                         if point.coefficient(deltas[tr["name"]]) == 0]
         return {'status': "Ranked",
                 'rfs': rfs,
-                'nvars': Nvars,
-                'vars_name': cfg.get_var_name()}
+                'no_ranked_tr': no_ranked}
 
     def _max_dim(self, edges):
         maximum = 0
@@ -92,10 +130,12 @@ class LRFAlgorithm(TerminationAlgorithm):
         if result['status'] == "Ranked":
             print(result['rfs'])
             for node in result['rfs']:
-                coeffs = result['rfs'][node][0]
-                inh = result['rfs'][node][1]
-                self._print_function("f_"+node, result['vars_name'],
-                                     coeffs, inh)
+                for i in range(len(result['rfs'][node])):
+                    coeffs = result['rfs'][node][i][0]
+                    inh = result['rfs'][node][i][1]
+                    self._print_function("f_"+node+"_"+str(i),
+                                         result['vars_name'],
+                                         coeffs, inh)
         else:
             print("Response: "+result['status'])
             print(result)
