@@ -59,26 +59,25 @@ class LRFAlgorithm(TerminationAlgorithm):
         for e in edges:
             rf_s = rfvars[e["source"]]
             rf_t = rfvars[e["target"]]
+            print(e["tr_polyhedron"].get_constraints())
             farkas = farkas + self._f(e["tr_polyhedron"], lambdas[it],
-                                      rf_s[1::], rf_s[0],
-                                      0)
+                                      rf_s, 0)
             it += 1
             farkas = farkas + self._df(e["tr_polyhedron"], lambdas[it],
-                                       rf_s[1::], rf_s[0],
-                                       rf_t[1::], rf_t[0],
-                                       -1)
+                                       rf_s, rf_t, 1)
             it += 1
         poly = C_Polyhedron(Constraint_System(farkas))
+        print(poly)
         point = poly.get_point()
         if point is None:
-            return {'done': False, 'error': "who knows"}
+            return {'status': False, 'error': "who knows"}
         rfs = {}
         print(point)
 
         for node in rfvars:
             rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
                          point.coefficient(rfvars[node][0]))
-        return {'done': True,
+        return {'status': True,
                 'rfs': rfs,
                 'nvars': Nvars,
                 'vars_name': cfg.get_var_name()}
@@ -92,7 +91,7 @@ class LRFAlgorithm(TerminationAlgorithm):
         return maximum
 
     def print_result(self, result):
-        if result['done']:
+        if result['status']:
             print(result['rfs'])
             for node in result['rfs']:
                 coeffs = result['rfs'][node][0]

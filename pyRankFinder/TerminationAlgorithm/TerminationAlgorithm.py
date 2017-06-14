@@ -14,19 +14,21 @@ class TerminationAlgorithm:
         raise Exception("Not implemented yet!")
 
     def _df(self, polyhedron, lambdas,
-            f1vars, f1inhomogeneous,
-            f2vars, f2inhomogeneous,
-            inhomogeneous):
+            f1, f2, delta):
         """
+        f1 - f2 >= delta
         """
-        f2vars = [-v for v in f2vars]
-        exp = f1vars + f2vars
-        inh = f1inhomogeneous - f2inhomogeneous + inhomogeneous
+        f2vars = [-v for v in f2[1::]]
+        exp = f1[1::] + f2vars
+        inh = f1[0] - f2[0] - delta
         return self._farkas(polyhedron, lambdas, exp, inh)
 
-    def _f(self, polyhedron, lambdas, fvars, finhomogeneous, inhomogeneous):
-        exp = fvars + [0 for v in fvars]
-        inh = finhomogeneous + inhomogeneous
+    def _f(self, polyhedron, lambdas, f, delta):
+        """
+        f >= delta
+        """
+        exp = f[1::] + [0 for v in f[1::]]
+        inh = f[0] - delta
         return self._farkas(polyhedron, lambdas, exp, inh)
 
     def _farkas(self, polyhedron, lambdas, expressions, inhomogeneous):
@@ -44,7 +46,6 @@ class TerminationAlgorithm:
         :param lambdas: List of lambdas
         :type lambdas: `list` of `ppl.Variable`
         """
-        print(expressions, inhomogeneous)
         dim = len(expressions)
         cs = polyhedron.get_constraints()
         num_constraints = len(cs)
