@@ -54,7 +54,6 @@ def Main(argv):
     except Exception as e:
         print(e)
         exit(-2)
-    print(cfg)
     alg = None
     if args.algorithm == "prlrf":
         alg = LRFAlgorithm.LRFAlgorithm()

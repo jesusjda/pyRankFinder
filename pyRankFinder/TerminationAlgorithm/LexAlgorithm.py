@@ -19,16 +19,23 @@ class LexAlgorithm(TerminationAlgorithm):
         transitions = cfg.get_edges()
         rfs = {}
         no_ranked_trs = list(transitions)
+        i = 0
         while no_ranked_trs:  # while not empty
+            i += 1
             result = self.compute(no_ranked_trs)
             if result['status'] == "noRanked":
-                return {'status': "noRanked",
+                return {'status': "noRanked1",
                         'error': "A set of transitions cannot be ranked",
                         'rfs': rfs,
                         'trs': no_ranked_trs}
             elif result['status'] == "Fail":
                 pass  # return irrecuperable error
             elif result['status'] == "Ranked":
+                if len(no_ranked_trs) <= len(result['no_ranked_tr']):
+                    return {'status': "noRanked2",
+                            'error': "A set of transitions cannot be ranked",
+                            'rfs': rfs,
+                            'trs': no_ranked_trs}
                 no_ranked_trs = result['no_ranked_tr']
                 for node in result['rfs']:
                     if not(node in rfs):
@@ -70,12 +77,12 @@ class LexAlgorithm(TerminationAlgorithm):
                 rfvars[tr["target"]] = f
                 countVar += shifter
         countVar += Nvars + 1
-
+        print("rfs", rfvars, countVar)
         # 1.2 - store delta variables
         deltas = {transitions[i]["name"]: Variable(countVar + i)
                   for i in range(len(transitions))}
-        countVar += len(transitions) + 1
-        print("deltas", deltas)
+        countVar += len(transitions)
+        print("deltas", deltas, countVar)
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
             rf_t = rfvars[tr["target"]]
@@ -83,29 +90,33 @@ class LexAlgorithm(TerminationAlgorithm):
 
             # f_s >= 0
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
+            countVar += Mcons
+            print("lambdas", lambdas, countVar)
             farkas_constraints += self._f(tr["tr_polyhedron"], lambdas,
                                           rf_s, 0)
 
             # f_s - f_t >= delta[tr]
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
+            countVar += Mcons
             farkas_constraints += self._df(tr["tr_polyhedron"], lambdas,
                                            rf_s, rf_t, deltas[tr["name"]])
 
             # 0 <= delta[tr] <= 1
             farkas_constraints += [0 <= deltas[tr["name"]],
                                    deltas[tr["name"]] <= 1]
-        print("farkas constraints")
+
         poly = C_Polyhedron(Constraint_System(farkas_constraints))
         exp = sum([deltas[tr] for tr in deltas])
         print(poly.get_constraints())
         print(exp)
         result = poly.maximize(exp)
+        print(result)
         if not result['bounded']:
+            print("unbo")
             return {'status': "noRanked", 'error': "Unbounded"}
-        point = resutl["generator"]
+        point = result["generator"]
         if point is None:
+            print("is none")
             return {'status': "noRanked", 'error': "who knows"}
 
         for node in rfvars:
