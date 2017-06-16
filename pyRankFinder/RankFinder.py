@@ -69,8 +69,8 @@ def Main(argv):
     exit(0)
 
 if __name__ == "__main__":
-    projectPath = "/home/friker/Systems/pyRankFinder/"
-    sys.path.append(projectPath+"lib/pyParser/pyParser/")
-    sys.path.append(projectPath+"lib/pyLPi/pyLPi/")
+    projectPath = os.path.join(os.path.dirname(__file__), "..")
+    sys.path.append(os.path.join(projectPath, "lib/pyParser/pyParser/"))
+    sys.path.append(os.path.join(projectPath, "lib/pyLPi/pyLPi/"))
     globals()["pyParser"] = __import__("GenericParser")
     Main(sys.argv[1:])

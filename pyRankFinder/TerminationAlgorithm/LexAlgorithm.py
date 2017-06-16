@@ -24,24 +24,23 @@ class LexAlgorithm(TerminationAlgorithm):
             i += 1
             result = self.compute(no_ranked_trs)
             if result['status'] == "noRanked":
-                return {'status': "noRanked1",
+                return {'status': "noRanked",
                         'error': "A set of transitions cannot be ranked",
                         'rfs': rfs,
                         'trs': no_ranked_trs}
-            elif result['status'] == "Fail":
-                pass  # return irrecuperable error
+            elif len(no_ranked_trs) <= len(result['no_ranked_tr']):
+                return {'status': "noRanked",
+                        'error': "A set of transitions cannot be ranked",
+                        'rfs': rfs,
+                        'trs': no_ranked_trs}
             elif result['status'] == "Ranked":
-                if len(no_ranked_trs) <= len(result['no_ranked_tr']):
-                    return {'status': "noRanked2",
-                            'error': "A set of transitions cannot be ranked",
-                            'rfs': rfs,
-                            'trs': no_ranked_trs}
                 no_ranked_trs = result['no_ranked_tr']
                 for node in result['rfs']:
                     if not(node in rfs):
                         rfs[node] = []
                     rfs[node].append(result['rfs'][node])
-
+            else:
+                return {'status': "Error"}
         return {'status': "Ranked",
                 'rfs': rfs,
                 'vars_name': cfg.get_var_name()}
@@ -107,16 +106,15 @@ class LexAlgorithm(TerminationAlgorithm):
 
         poly = C_Polyhedron(Constraint_System(farkas_constraints))
         exp = sum([deltas[tr] for tr in deltas])
-        print(poly.get_constraints())
-        print(exp)
         result = poly.maximize(exp)
-        print(result)
         if not result['bounded']:
-            print("unbo")
             return {'status': "noRanked", 'error': "Unbounded"}
         point = result["generator"]
-        if point is None:
-            print("is none")
+        zeros = True
+        for c in point.coefficients():
+            if c != 0:
+                zeros = False
+        if point is None or zeros:
             return {'status': "noRanked", 'error': "who knows"}
 
         for node in rfvars:
