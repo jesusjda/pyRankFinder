@@ -21,9 +21,8 @@ class LRFAlgorithm(TerminationAlgorithm):
         dim = self._max_dim(transitions)
         Nvars = dim / 2
         shifter = 0
-        if ("different_template" in self._data and
-            self._data["different_template"]):
-
+        if("different_template" in self._data and
+           self._data["different_template"]):
             shifter = Nvars + 1
         # farkas Variables
         rfvars = {}
@@ -48,7 +47,7 @@ class LRFAlgorithm(TerminationAlgorithm):
         countVar += Nvars + 1
 
         num_constraints = [len(e["tr_polyhedron"].get_constraints())
-                           for e in edges]
+                           for e in transitions]
 
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
@@ -90,12 +89,13 @@ class LRFAlgorithm(TerminationAlgorithm):
 
     def print_result(self, result):
         if result['status'] == "Ranked":
-            print(result['rfs'])
             for node in result['rfs']:
                 coeffs = result['rfs'][node][0]
                 inh = result['rfs'][node][1]
                 self._print_function("f_"+node, result['vars_name'],
                                      coeffs, inh)
+        elif result['status'] == "noRanked":
+            print("No Found: "+result['status'])
+            print(result)
         else:
-            print("Response: "+result['status'])
             print(result)

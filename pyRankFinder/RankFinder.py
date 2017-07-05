@@ -59,7 +59,10 @@ def Main(argv):
         alg = LRFAlgorithm.LRFAlgorithm()
     elif args.algorithm == "adfglrf":
         alg = LexAlgorithm.LexAlgorithm()
-
+    else:
+        print("ERROR")
+        exit(-1)
+    
     config = vars(args)
     _verbosity = config["verbosity"]
     echo(3, config)

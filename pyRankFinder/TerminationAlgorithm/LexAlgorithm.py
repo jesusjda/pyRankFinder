@@ -49,8 +49,8 @@ class LexAlgorithm(TerminationAlgorithm):
         dim = self._max_dim(transitions)
         Nvars = dim / 2
         shifter = 0
-        if ("different_template" in self._data and
-            self._data["different_template"]):
+        if("different_template" in self._data and
+           self._data["different_template"]):
             shifter = Nvars + 1
         # farkas Variables
         rfvars = {}
@@ -76,12 +76,12 @@ class LexAlgorithm(TerminationAlgorithm):
                 rfvars[tr["target"]] = f
                 countVar += shifter
         countVar += Nvars + 1
-        print("rfs", rfvars, countVar)
+        # print("rfs", rfvars, countVar)
         # 1.2 - store delta variables
         deltas = {transitions[i]["name"]: Variable(countVar + i)
                   for i in range(len(transitions))}
         countVar += len(transitions)
-        print("deltas", deltas, countVar)
+        # print("deltas", deltas, countVar)
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
             rf_t = rfvars[tr["target"]]
@@ -90,7 +90,7 @@ class LexAlgorithm(TerminationAlgorithm):
             # f_s >= 0
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
             countVar += Mcons
-            print("lambdas", lambdas, countVar)
+            # print("lambdas", lambdas, countVar)
             farkas_constraints += self._f(tr["tr_polyhedron"], lambdas,
                                           rf_s, 0)
 
@@ -137,7 +137,6 @@ class LexAlgorithm(TerminationAlgorithm):
 
     def print_result(self, result):
         if result['status'] == "Ranked":
-            print(result['rfs'])
             for node in result['rfs']:
                 for i in range(len(result['rfs'][node])):
                     coeffs = result['rfs'][node][i][0]
@@ -145,6 +144,8 @@ class LexAlgorithm(TerminationAlgorithm):
                     self._print_function("f_"+node+"_"+str(i),
                                          result['vars_name'],
                                          coeffs, inh)
+        elif result['status'] == "noRanked":
+            print("No Found: "+result['status'])
+            print(result)
         else:
-            print("Response: "+result['status'])
             print(result)
