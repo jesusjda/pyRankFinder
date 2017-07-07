@@ -52,7 +52,7 @@ def Main(argv):
 
     Configuration = Config.the()
     Configuration.set_properties(config)
-    
+
     alg = None
     if args.algorithm == "prlrf":
         alg = LRFAlgorithm.LRFAlgorithm()
@@ -61,9 +61,7 @@ def Main(argv):
     else:
         print("ERROR")
         exit(-1)
-    
 
-    _verbosity = config["verbosity"]
     Configuration.echo(3, config)
 
     alg.print_result(alg.ranking(cfg))
@@ -78,10 +76,8 @@ class Config:
         if hasattr(self.__class__, 'instance'):
             raise Exception()
         self.__class__.instance = self
-        # initialisation code...
         self.props = {}
-        self.set_defaults()
-        
+
     @staticmethod
     def the():
         if hasattr(Config, 'instance'):
@@ -99,10 +95,10 @@ class Config:
         return self.props[key]
 
     def echo(self, verbosity, msg):
-        if Config.the().get("verbosity") >= verbosity:
+        if self.get("verbosity") >= verbosity:
             print(msg)
-        
-    
+
+
 if __name__ == "__main__":
     projectPath = os.path.join(os.path.dirname(__file__), "..")
     sys.path.append(os.path.join(projectPath, "lib/pyParser/pyParser/"))
