@@ -9,9 +9,8 @@ from LPi import C_Polyhedron
 
 class LRFAlgorithm(TerminationAlgorithm):
 
-    _data = {}
 
-    def ranking(self, data):
+    def ranking(self, cfg):
         self._data = data.copy()
         if not("cfg" in self._data):
             raise Exception(self.__class__+" needs a ControlFlowGraph.")

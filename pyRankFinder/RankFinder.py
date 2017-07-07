@@ -7,12 +7,6 @@ from TerminationAlgorithm import LexAlgorithm
 
 _version = "0.0.0.1"
 _name = "pyRankFinder"
-_verbosity = 0
-
-
-def echo(verbosity, msg):
-    if _verbosity >= verbosity:
-        print(msg)
 
 
 def setArgumentParser():
@@ -42,6 +36,7 @@ def Main(argv):
     global _verbosity
     argParser = setArgumentParser()
     args = argParser.parse_args(argv)
+    config = vars(args)
     if args.version:
         print _name+" version: "+_version
         exit(0)
@@ -54,6 +49,10 @@ def Main(argv):
     except Exception as e:
         print(e)
         exit(-2)
+
+    Configuration = Config.the()
+    Configuration.set_properties(config)
+    
     alg = None
     if args.algorithm == "prlrf":
         alg = LRFAlgorithm.LRFAlgorithm()
@@ -63,14 +62,47 @@ def Main(argv):
         print("ERROR")
         exit(-1)
     
-    config = vars(args)
-    _verbosity = config["verbosity"]
-    echo(3, config)
-    config["cfg"] = cfg
 
-    alg.print_result(alg.ranking(config))
+    _verbosity = config["verbosity"]
+    Configuration.echo(3, config)
+
+    alg.print_result(alg.ranking(cfg))
     exit(0)
 
+
+class Config:
+
+    props = {}
+
+    def __init__(self):
+        if hasattr(self.__class__, 'instance'):
+            raise Exception()
+        self.__class__.instance = self
+        # initialisation code...
+        self.props = {}
+        self.set_defaults()
+        
+    @staticmethod
+    def the():
+        if hasattr(Config, 'instance'):
+            return Config.instance
+        return Config()
+
+    def set_properties(self, properties_dict):
+        for k, v in properties_dict:
+            self.props[k] = v
+
+    def set_property(self, key, value):
+        self.props[key] = value
+
+    def get(self, key):
+        return self.props[key]
+
+    def echo(self, verbosity, msg):
+        if Config.the().get("verbosity") >= verbosity:
+            print(msg)
+        
+    
 if __name__ == "__main__":
     projectPath = os.path.join(os.path.dirname(__file__), "..")
     sys.path.append(os.path.join(projectPath, "lib/pyParser/pyParser/"))
