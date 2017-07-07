@@ -14,5 +14,6 @@ installDependencies(){
 	done <$1/requirements.git
     fi
 }
+echo "Checking git pyRankFinder"
 git pull
 installDependencies $(dirname $(readlink -f $0))
