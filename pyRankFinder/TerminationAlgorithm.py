@@ -4,116 +4,214 @@ from ppl import Constraint_System
 from ppl import Constraint
 from LPi import C_Polyhedron
 import Farkas
+import Termination
 
 
-class TerminationAlgorithm:
-
-    def description(self):
-        raise Exception("Not implemented yet!")
-
-    def ranking(self, data):
-        raise Exception("Not implemented yet!")
-
-    def print_result(self, result):
-        raise Exception("Not implemented yet!")
-
-    def _print_function(self, name, Vars, coeffs, inh):
-        try:
-            sr = name + " ( x ) = "
-            for i in range(len(coeffs)):
-                sr += "" + str(coeffs[i]) + " * " + str(Vars[i]) + " + "
-            sr += "" + str(inh)
-            print(sr)
-        except Exception as e:
-            print(e)
+def _max_dim(edges):
+    maximum = 0
+    for e in edges:
+        d = e["tr_polyhedron"].get_dimension()
+        if d > maximum:
+            maximum = d
+    return maximum
 
 
-class LRFAlgorithm(TerminationAlgorithm):
+def LinearRF(data):
+    transitions = data["transitions"]
 
-    def ranking(self, cfg):
-        Config = Config.the()
-        if cfg is None:
-            raise Exception(self.__class__+" needs a ControlFlowGraph.")
+    dim = _max_dim(transitions)
+    Nvars = dim / 2
+    response = Termination.Result(vars_name=data["vars_name"])
 
-        transitions = cfg.get_edges()
+    shifter = 0
+    if "different_template" in data and data["different_template"]:
+        shifter = Nvars + 1
+    # farkas Variables
+    rfvars = {}
+    # farkas constraints
+    farkas_constraints = []
+    # rfs coefficients (result)
+    rfs = {}
+    # other stuff
+    nodeList = {}
+    countVar = 0
+    for tr in transitions:
+        if not(tr["source"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["source"]] = f
+            countVar += shifter
+        if not(tr["target"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["target"]] = f
+            countVar += shifter
+            countVar += Nvars + 1
 
-        dim = self._max_dim(transitions)
-        Nvars = dim / 2
-        shifter = 0
-        if Config.get("different_template"):
-            shifter = Nvars + 1
-        # farkas Variables
-        rfvars = {}
-        # farkas constraints
-        farkas_constraints = []
-        # rfs coefficients (result)
-        rfs = {}
-        # other stuff
-        nodeList = {}
-        countVar = 0
-        for tr in transitions:
-            if not(tr["source"] in nodeList):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["source"]] = f
-                countVar += shifter
-            if not(tr["target"] in nodeList):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["target"]] = f
-                countVar += shifter
-        countVar += Nvars + 1
+    num_constraints = [len(e["tr_polyhedron"].get_constraints())
+                       for e in transitions]
 
-        num_constraints = [len(e["tr_polyhedron"].get_constraints())
-                           for e in transitions]
+    for tr in transitions:
+        rf_s = rfvars[tr["source"]]
+        rf_t = rfvars[tr["target"]]
+        Mcons = len(tr["tr_polyhedron"].get_constraints())
 
-        for tr in transitions:
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
-            Mcons = len(tr["tr_polyhedron"].get_constraints())
+        # f_s >= 0
+        lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
+        countVar += Mcons + 1
+        farkas_constraints += Farkas.f(tr["tr_polyhedron"], lambdas,
+                                       rf_s, 0)
 
-            # f_s >= 0
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
-            farkas_constraints += Farkas.f(tr["tr_polyhedron"], lambdas,
-                                           rf_s, 0)
+        # f_s - f_t >= 1
+        lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
+        countVar += Mcons + 1
+        farkas_constraints += Farkas.df(tr["tr_polyhedron"], lambdas,
+                                        rf_s, rf_t, 1)
 
-            # f_s - f_t >= 1
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
-            farkas_constraints += Farkas.df(tr["tr_polyhedron"], lambdas,
-                                            rf_s, rf_t, 1)
+    poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    point = poly.get_point()
+    if point is None:
+        response.set_response(found=False,
+                              info="Farkas Polyhedron is empty.")
+        return response
 
-        poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        point = poly.get_point()
-        if point is None:
-            return {'status': "noRanked", 'error': "who knows"}
+    for node in rfvars:
+        rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
+                     point.coefficient(rfvars[node][0]))
 
-        for node in rfvars:
-            rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
-                         point.coefficient(rfvars[node][0]))
-        return {'status': "Ranked",
-                'rfs': rfs,
-                'nvars': Nvars,
-                'vars_name': cfg.get_var_name()}
+    response.set_response(found=True,
+                          rfs=rfs)
+    return response
 
-    def _max_dim(self, edges):
-        maximum = 0
-        for e in edges:
-            d = e["tr_polyhedron"].get_dimension()
-            if d > maximum:
-                maximum = d
-        return maximum
 
-    def print_result(self, result):
-        if result['status'] == "Ranked":
-            for node in result['rfs']:
-                coeffs = result['rfs'][node][0]
-                inh = result['rfs'][node][1]
-                self._print_function("f_"+node, result['vars_name'],
-                                     coeffs, inh)
-        elif result['status'] == "noRanked":
-            print("No Found: "+result['status'])
-            print(result)
+def LexicographicRF(data):
+    response = Termination.Result(vars_name=data["vars_name"])
+    transitions = data["transitions"]
+    # print(transitions)
+    rfs = {}
+    no_ranked_trs = transitions
+    i = 0
+    config = data["inner_alg"].copy()
+    config["vars_name"] = data["vars_name"]
+
+    while no_ranked_trs:  # while not empty
+        i += 1
+        config["transitions"] = [tr.copy() for tr in no_ranked_trs]
+        result = Termination.run(config)
+        if result.error():
+            return result
+        elif not result.found():
+            response.set_response(found=False,
+                                  info=result.get("info"),
+                                  rfs=rfs,
+                                  pending_trs=no_ranked_trs)
+            return response
         else:
-            print(result)
+            pending_trs = result.get("pending_trs")
+            if len(no_ranked_trs) <= len(pending_trs):
+                response.set_response(found=False,
+                                      info="No decreasing",
+                                      rfs=rfs,
+                                      pending_trs=no_ranked_trs)
+                return response
+            res_rfs = result.get("rfs")
+            for node in res_rfs:
+                if not(node in rfs):
+                    rfs[node] = []
+                rfs[node].append(res_rfs[node])
+            no_ranked_trs = pending_trs
+
+    response.set_response(found=True,
+                          rfs=rfs)
+    return response
+
+
+def compute_adfg_QLRF(data):
+    response = Termination.Result(vars_name=data["vars_name"])
+    transitions = data["transitions"]
+
+    dim = _max_dim(transitions)
+    Nvars = dim / 2
+    shifter = 0
+    if data["different_template"]:
+        shifter = Nvars + 1
+    # farkas Variables
+    rfvars = {}
+    deltas = []
+    # farkas constraints
+    farkas_constraints = []
+    # return objects
+    rfs = {}  # rfs coefficients (result)
+    no_ranked = []  # transitions sets no ranked by rfs
+    # other stuff
+    nodeList = {}
+    countVar = 0
+    # 1.1 - store rfs variables
+    for tr in transitions:
+        if not(tr["source"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["source"]] = f
+            countVar += shifter
+        if not(tr["target"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["target"]] = f
+            countVar += shifter
+    countVar += Nvars + 1
+    # print("rfs", rfvars, countVar)
+    # 1.2 - store delta variables
+    deltas = {transitions[i]["name"]: Variable(countVar + i)
+              for i in range(len(transitions))}
+    countVar += len(transitions)
+    # print("deltas", deltas, countVar)
+    for tr in transitions:
+        rf_s = rfvars[tr["source"]]
+        rf_t = rfvars[tr["target"]]
+        Mcons = len(tr["tr_polyhedron"].get_constraints())
+        # f_s >= 0
+        lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
+        countVar += Mcons
+        # print("lambdas", lambdas, countVar)
+        farkas_constraints += Farkas.f(tr["tr_polyhedron"], lambdas,
+                                       rf_s, 0)
+
+        # f_s - f_t >= delta[tr]
+        # print("lambdas", lambdas, countVar)
+        lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
+        countVar += Mcons
+        farkas_constraints += Farkas.df(tr["tr_polyhedron"], lambdas,
+                                        rf_s, rf_t, deltas[tr["name"]])
+        # 0 <= delta[tr] <= 1
+        farkas_constraints += [0 <= deltas[tr["name"]],
+                               deltas[tr["name"]] <= 1]
+
+    poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    exp = sum([deltas[tr] for tr in deltas])
+    result = poly.maximize(exp)
+    if not result['bounded']:
+        response.set_response(found=False,
+                              info="Unbound polyhedron")
+        return response
+    point = result["generator"]
+    zeros = True
+    for c in point.coefficients():
+        if c != 0:
+            zeros = False
+    if point is None or zeros:
+        response.set_response(found=False,
+                              info="F === 0 "+str(point))
+        return response
+
+    for node in rfvars:
+        rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
+                     point.coefficient(rfvars[node][0]))
+
+        no_ranked = [tr for tr in transitions
+                     if point.coefficient(deltas[tr["name"]]) == 0]
+
+    response.set_response(found=True,
+                          info="mm",
+                          rfs=rfs,
+                          pending_trs=no_ranked)
+    return response
