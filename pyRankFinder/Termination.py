@@ -36,6 +36,8 @@ def _runalgorithm(config):
         return TerminationAlgorithm.LinearRF(config)
     elif alg == "adfglrf":
         return TerminationAlgorithm.compute_adfg_QLRF(config)
+    elif alg == "bgllrf":
+        return TerminationAlgorithm.compute_bg_QLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 
