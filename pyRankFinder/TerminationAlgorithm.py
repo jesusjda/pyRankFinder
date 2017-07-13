@@ -265,9 +265,9 @@ def compute_bg_QLRF(data):
                                        rf_s, 0)
 
         # f_s - f_t >= 1
-        # print("lambdas", lambdas, countVar)
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
+        # print("lambdas", lambdas, countVar)
         farkas_constraints += Farkas.df(tr["tr_polyhedron"], lambdas,
                                         rf_s, rf_t, 0)
     poly = C_Polyhedron(Constraint_System(farkas_constraints))
