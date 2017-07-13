@@ -66,7 +66,6 @@ class Result:
         self._data["error"] = True
 
     def set_response(self, **kwargs):
-        self._data["found"] = kwargs["found"]
         self._data.update(kwargs)
 
     def _rfs2str(self, rfs):

@@ -108,7 +108,7 @@ def LexicographicRF(data):
             return response
         else:
             pending_trs = result.get("pending_trs")
-            if len(no_ranked_trs) <= len(pending_trs):
+            if False and len(no_ranked_trs) <= len(pending_trs):
                 response.set_response(found=False,
                                       info="No decreasing",
                                       rfs=rfs,
@@ -280,22 +280,46 @@ def compute_bg_QLRF(data):
         rfs[node] = ([result[c.id()] for c in rfvars[node][1::]],
                      result[(rfvars[node][0]).id()])
 
-    no_ranked = []
+    response.set_response(found=False,
+                          info="No non-trivial RF")
+
     # check if rfs are non-trivial
+    nonTrivial = False
     for tr in transitions:
         rfvars_s = rfvars[tr["source"]]
         rfvars_t = rfvars[tr["target"]]
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
         poly = tr["tr_polyhedron"]
-        df = Linear_Expression(0)
-        cons = poly.get_constraints()
-        cons.insert(df >= 0)
-        t = C_Polyhedron(cons)
-        if not t.is_empty():
-            tr["tr_polyhedron"] = t
-            no_ranked.append(tr)
-    response.set_response(found=True,
-                          rfs=rfs,
-                          pending_trs=no_ranked)
+        df = 0
+        constant = rf_s[1] - rf_t[1]
+        for i in range(Nvars):
+            df += Variable(i) * rf_s[0][i]
+            df -= Variable(Nvars + i) * rf_t[0][i]
+        answ = poly.maximize(df)
+
+        if(not answ["bounded"] or
+           answ["sup_n"] > -constant):
+            nonTrivial = True
+            break
+
+    if nonTrivial:
+        no_ranked = []
+        for tr in transitions:
+            poly = tr["tr_polyhedron"]
+            cons = poly.get_constraints()
+            cons.insert(df+constant == 0)
+            newpoly = C_Polyhedron(cons)
+            if not newpoly.is_empty():
+                tr["tr_polyhedron"] = newpoly
+                tr["label"] = (tr["label"][:-1] + str(df) +
+                               "+" + str(constant) + "==0\n}")
+                no_ranked.append(tr)
+        response.set_response(found=True,
+                              info="found",
+                              rfs=rfs,
+                              pending_trs=no_ranked)
+        return response
+    response.set_response(found=False,
+                          info="rf found was the trivial")
     return response
