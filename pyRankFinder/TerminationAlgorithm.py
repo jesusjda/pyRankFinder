@@ -280,9 +280,6 @@ def compute_bg_QLRF(data):
         rfs[node] = ([result[c.id()] for c in rfvars[node][1::]],
                      result[(rfvars[node][0]).id()])
 
-    response.set_response(found=False,
-                          info="No non-trivial RF")
-
     # check if rfs are non-trivial
     nonTrivial = False
     for tr in transitions:

@@ -8,7 +8,7 @@ _name = "pyRankFinder"
 
 
 def setArgumentParser():
-    algorithms = ["prlrf", "bgllrf", "adfglrf", "nlrf", "bmsnlrf"]
+    algorithms = ["prlrf", "bgllrf", "adfglrf", "bmslrf", "bmsnlrf", "nlrf"]
     scc_strategies = ["global", "local", "incremental"]
     desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
@@ -60,26 +60,14 @@ def Main(argv):
 
 def set_config(data):
     config = {}
-    if data["algorithm"] == "adfglrf":
+    if data["algorithm"] in ["adfglrf", "bgllrf", "bmslrf", "bmsnlrf"]:
         config = {
             "algorithm": "lex",
             "different_template": data["different_template"],
             "scc_strategy": data["scc_strategy"],
             "cfg": data["cfg"],
             "inner_alg": {
-                "algorithm": "adfglrf",
-                "different_template": data["different_template"],
-                "scc_strategy": data["scc_strategy"]
-            }
-        }
-    elif data["algorithm"] == "bgllrf":
-        config = {
-            "algorithm": "lex",
-            "different_template": data["different_template"],
-            "scc_strategy": data["scc_strategy"],
-            "cfg": data["cfg"],
-            "inner_alg": {
-                "algorithm": "bgllrf",
+                "algorithm": data["algorithm"],
                 "different_template": data["different_template"],
                 "scc_strategy": data["scc_strategy"]
             }
