@@ -60,7 +60,7 @@ def Main(argv):
 
 def set_config(data):
     config = {}
-    if data["algorithm"] in ["adfglrf", "bgllrf", "bmslrf", "bmsnlrf"]:
+    if data["algorithm"] in ["adfglrf", "bgllrf"]:
         config = {
             "algorithm": "lex",
             "different_template": data["different_template"],
@@ -70,6 +70,20 @@ def set_config(data):
                 "algorithm": data["algorithm"],
                 "different_template": data["different_template"],
                 "scc_strategy": data["scc_strategy"]
+            }
+        }
+    elif data["algorithm"] in ["bmslrf", "bmsnlrf"]:
+        config = {
+            "algorithm": "bms",
+            "different_template": data["different_template"],
+            "scc_strategy": data["scc_strategy"],
+            "cfg": data["cfg"],
+            "inner_alg": {
+                "algorithm": data["algorithm"],
+                "different_template": data["different_template"],
+                "scc_strategy": data["scc_strategy"],
+                "min_depth": 1,
+                "max_depth": 5
             }
         }
     else:

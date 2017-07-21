@@ -1,5 +1,5 @@
-import TerminationAlgorithm
 from RankFinder import Config
+import TerminationAlgorithm
 
 
 def run(config):
@@ -31,13 +31,17 @@ def _runalgorithm(config):
     if alg == "lex":
         return TerminationAlgorithm.LexicographicRF(config)
     elif alg == "bms":
-        raise NotImplementedError
+        return TerminationAlgorithm.BMSRF(config)
     elif alg == "prlrf":
         return TerminationAlgorithm.LinearRF(config)
     elif alg == "adfglrf":
         return TerminationAlgorithm.compute_adfg_QLRF(config)
     elif alg == "bgllrf":
         return TerminationAlgorithm.compute_bg_QLRF(config)
+    elif alg == "bmslrf":
+        return TerminationAlgorithm.compute_bms_LRF(config)
+    elif alg == "bmsnlrf":
+        return TerminationAlgorithm.compute_bms_NLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 

@@ -126,6 +126,37 @@ def LexicographicRF(data):
     return response
 
 
+def BMSRF(data):
+    response = Termination.Result(vars_name=data["vars_name"])
+    trans = data["transitions"]
+    # print(transitions)
+    rfs = {}
+    config = data["inner_alg"].copy()
+    config["vars_name"] = data["vars_name"]
+    i = 0
+    foundRF = False
+    for i in range(len(trans)):
+        config["transitions"] = ([trans[i]] +
+                                 [trans[j] for j in range(len(trans))
+                                  if j != i])
+
+        result = Termination.run(config)  # Run NLRF or LRF
+        if result.found():
+            new_data = data.copy()
+            new_data["transitions"] = result.get("pending_trs")
+            bmsresult = Termination.run(new_data)  # Run BMS
+            if bmsresult.found():
+                # merge rfs
+                print(result, bmsresult, "Exito")
+                return response
+
+    # Impossible to find a BMS starting with any transition
+    response.set_response(found=False,
+                          info="No BMS",
+                          rfs=rfs)
+    return response
+
+
 def compute_adfg_QLRF(data):
     response = Termination.Result(vars_name=data["vars_name"])
     transitions = data["transitions"]
@@ -319,4 +350,97 @@ def compute_bg_QLRF(data):
         return response
     response.set_response(found=False,
                           info="rf found was the trivial")
+    return response
+
+
+def compute_bms_LRF(data):
+    config = data.copy()
+    config["max_depth"] = 1
+    config["min_depth"] = 1
+    return compute_bms_NLRF(config)
+
+
+def compute_bms_NLRF(data):
+    """
+    Assuming first transition as main
+    transition 0 of data["transitions"] is
+    the transition where we look for NLRF
+    """
+    response = Termination.Result(vars_name=data["vars_name"])
+    transitions = data["transitions"][1::]
+    ti = data["transitions"][0]
+    max_d = data["max_depth"] + 1
+    min_d = data["min_depth"]
+    print("compute_bms_NLRF", data)
+    for d in range(min_d, max_d):
+        print("d = ", d)
+
+        # init variables
+
+        # calculate rf
+
+        # update trs
+    dim = _max_dim(transitions)
+    Nvars = dim / 2
+    shifter = 0
+    size_rfs = 0
+    if data["different_template"]:
+        shifter = Nvars + 1
+    # farkas Variables
+    rfvars = {}
+    deltas = []
+    # farkas constraints
+    farkas_constraints = []
+    # return objects
+    rfs = {}  # rfs coefficients (result)
+    no_ranked = []  # transitions sets no ranked by rfs
+    # other stuff
+    nodeList = {}
+    countVar = 0
+    # 1.1 - store rfs variables
+    for tr in transitions:
+        if not(tr["source"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["source"]] = f
+            countVar += shifter
+        if not(tr["target"] in nodeList):
+            f = [Variable(i)
+                 for i in range(countVar, countVar + Nvars + 1)]
+            rfvars[tr["target"]] = f
+            countVar += shifter
+    countVar += Nvars + 1
+    size_rfs = countVar
+    # print("rfs", rfvars, countVar)
+    for tr in transitions:
+        rf_s = rfvars[tr["source"]]
+        rf_t = rfvars[tr["target"]]
+        Mcons = len(tr["tr_polyhedron"].get_constraints())
+
+        lambdas = ([Variable(countVar + k) for k in range(Mcons)],
+                   [Variable(countVar + Mcons + k) for k in range(Mcons)])
+        countVar += 2*Mcons
+        # print("lambdas", lambdas, countVar)
+        farkas_constraints += Farkas.NLRF(tr["tr_polyhedron"], lambdas,
+                                          rf_s, rf_t)
+        for tr2 in transitions:
+            if tr == tr2:
+                continue
+            Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
+            lambdas = [Variable(countVar + k) for k in range(Mcons2)]
+            countVar += Mcons2
+            farkas_constraints += Farkas.df(tr2["tr_polyhedron"], lambdas,
+                                            rf_s, rf_t, 0)
+    poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    point = poly.get_point()
+    if point is None:
+        response.set_response(found=False,
+                              info="Farkas Polyhedron is empty.")
+        return response
+
+    for node in rfvars:
+        rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
+                     point.coefficient(rfvars[node][0]))
+
+    response.set_response(found=True, rfs=rfs)
     return response
