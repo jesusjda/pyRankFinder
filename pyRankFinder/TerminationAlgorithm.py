@@ -142,14 +142,20 @@ def BMSRF(data):
 
         result = Termination.run(config)  # Run NLRF or LRF
         if result.found():
+            rfs = result.get("rfs")
             new_data = data.copy()
             new_data["transitions"] = result.get("pending_trs")
             if len(result.get("pending_trs")) > 0:
                 bmsresult = Termination.run(new_data)  # Run BMS
                 if bmsresult.found():
+                    bms_rfs = bmsresult.get("rfs")
+                    for key in bms_rfs:
+                        print key
                     # merge rfs
                     print(result, bmsresult, "Exito")
                     return response
+                else:
+                    return bmsresult
             else:
                 response.set_response(found=True,
                                       info="Found",
@@ -416,7 +422,7 @@ def compute_bms_NLRF(data):
                  for di in range(d)]
             rfvars[tr["target"]] = f
             countVar += shifter
-
+        print(rfvars)
         countVar += (Nvars + 1) * d
         size_rfs = countVar
 
@@ -450,7 +456,7 @@ def compute_bms_NLRF(data):
         point = poly.get_point()
         if point is None:
             continue  # not found, try with next d
-
+        print(point)
         for node in rfvars:
             rfs[node] = [([point.coefficient(c)
                            for c in rfvars[node][di][1::]],
@@ -465,12 +471,17 @@ def compute_bms_NLRF(data):
         rfvars_t = rfvars[tr["target"]]
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
+        trivial = False
         for di in range(d):
             df = 0
             constant = rf_s[di][1] - rf_t[di][1]
             for i in range(Nvars):
                 df += Variable(i) * rf_s[di][0][i]
                 df -= Variable(Nvars + i) * rf_t[di][0][i]
+            print(rfs)
+            if df == 0:
+                Trivial = True
+                break
 
             for tr2 in transitions:
                 poly = tr["tr_polyhedron"]
@@ -482,6 +493,8 @@ def compute_bms_NLRF(data):
                     tr2["label"] = (tr2["label"][:-1] + str(df) +
                                     "+" + str(constant) + "==0\n}")
                     no_ranked.append(tr2)
+        if Trivial:
+            continue
         response.set_response(found=True,
                               info="found",
                               rfs=rfs,
