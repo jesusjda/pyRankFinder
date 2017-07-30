@@ -48,3 +48,10 @@ you can run this command to get all the information:
 > \# config must be a dictionary with all the information needed
 > 
 > Termination.run(config)
+
+**(No tested yet)** If you know what are you doing you can run inside your code a concrete algorithm, but it is no recommend if you don't know them
+
+> Import TerminationAlgorithm
+>
+> TerminationAlgorithem.LexicograficRF(config)
+
