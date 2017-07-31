@@ -388,7 +388,7 @@ def compute_bms_NLRF(data):
     for d in range(min_d, max_d):
         print("d = ", d)
         # 0 - create variables
-        dim = _max_dim(transitions)
+        dim = _max_dim(data["transitions"])
         Nvars = dim / 2
         shifter = 0
         size_rfs = 0
@@ -422,7 +422,6 @@ def compute_bms_NLRF(data):
                  for di in range(d)]
             rfvars[tr["target"]] = f
             countVar += shifter
-        print(rfvars)
         countVar += (Nvars + 1) * d
         size_rfs = countVar
 
@@ -434,8 +433,8 @@ def compute_bms_NLRF(data):
 
         lambdas = [[Variable(countVar + Mcons * di + k)
                     for k in range(Mcons)]
-                   for di in range(d)]
-        countVar += d * Mcons
+                   for di in range(d+1)]
+        countVar += (d+1) * Mcons
         # 1.2.3 - NLRF for tr
         farkas_constraints += Farkas.NLRF(tr["tr_polyhedron"], lambdas,
                                           rf_s, rf_t)
@@ -456,7 +455,7 @@ def compute_bms_NLRF(data):
         point = poly.get_point()
         if point is None:
             continue  # not found, try with next d
-        print(point)
+
         for node in rfvars:
             rfs[node] = [([point.coefficient(c)
                            for c in rfvars[node][di][1::]],
@@ -471,16 +470,18 @@ def compute_bms_NLRF(data):
         rfvars_t = rfvars[tr["target"]]
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
-        trivial = False
+        trivial = True
         for di in range(d):
+            trivial = True
             df = 0
             constant = rf_s[di][1] - rf_t[di][1]
             for i in range(Nvars):
+                if rf_s[di][0][i] != 0 or rf_t[di][0][i] != 0:
+                    trivial = False
                 df += Variable(i) * rf_s[di][0][i]
                 df -= Variable(Nvars + i) * rf_t[di][0][i]
-            print(rfs)
-            if df == 0:
-                Trivial = True
+
+            if trivial:
                 break
 
             for tr2 in transitions:
@@ -493,7 +494,7 @@ def compute_bms_NLRF(data):
                     tr2["label"] = (tr2["label"][:-1] + str(df) +
                                     "+" + str(constant) + "==0\n}")
                     no_ranked.append(tr2)
-        if Trivial:
+        if trivial:
             continue
         response.set_response(found=True,
                               info="found",

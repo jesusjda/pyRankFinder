@@ -18,6 +18,7 @@ def NLRF(polyhedron, lambdas, fs, ft):
     (fs[i] - ft[i]) + fs[i-1] >= 1
     fs[d] >= 0
     """
+    print("len lamb",lambdas,len(lambdas))
     # fs[0] - ft[0] >= 1
     constraints = df(polyhedron, lambdas[0], fs[0], ft[0], 1)
     # (fs[i] - ft[i]) + fs[i-1] >= 1
