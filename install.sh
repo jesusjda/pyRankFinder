@@ -44,5 +44,11 @@ installDependencies(){
     fi
 }
 
-installDependencies $(dirname $(readlink -f $0))
+if [ "$(uname -s)" = 'Linux' ]; then
+    basedir=$(dirname "$(readlink -f "$0" )")
+else
+    basedir=$(dirname "$(readlink "$0" )")
+fi
+
+installDependencies $basedir
 
