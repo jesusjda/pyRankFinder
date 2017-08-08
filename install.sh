@@ -26,14 +26,19 @@ checkAndInstall(){
 }
 
 installDependencies(){
-    if [ -f $1/requirements.apt ]; then
-	for PKG in $(<$1/requirements.apt) ; do
-	    checkAndInstall $PKG
-	done
+    if [ "$(uname -s)" = 'Linux' ]; then
+	if [ -f $1/requirements.apt ]; then
+	    for PKG in $(<$1/requirements.apt) ; do
+		checkAndInstall $PKG
+	    done
+	fi
+    else
+	echo "Assuming you have pre-installed"
+	cat $1/requeriments.apt
     fi
 
     if [ -f $1/requirements.pip ]; then
-	sudo -H pip2 install -r $1/requirements.pip
+	# sudo -H pip2 install -r $1/requirements.pip
 	sudo -H pip2.7 install -r $1/requirements.pip
     fi
 
