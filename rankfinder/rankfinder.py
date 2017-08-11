@@ -36,7 +36,7 @@ def Main(argv):
     config = vars(args)
     if args.version:
         print(_name + " version: " + _version)
-        exit(0)
+        return
     prs = pyParser.GenericParser()
     try:
         if args.dotProgram:
@@ -46,7 +46,7 @@ def Main(argv):
             cfg = prs.parse(args.file)
     except Exception as e:
         print(e)
-        exit(-2)
+	return
     Configuration = Config.the()
     Configuration.set_properties(config)
     config["cfg"] = cfg
@@ -55,7 +55,7 @@ def Main(argv):
     Configuration.echo(3, internal_config)
     result = termination.run(internal_config)
     print(result)
-    exit(0)
+    return
 
 
 def set_config(data):
