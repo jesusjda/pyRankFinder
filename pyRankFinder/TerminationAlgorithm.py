@@ -150,7 +150,7 @@ def BMSRF(data):
                 if bmsresult.found():
                     bms_rfs = bmsresult.get("rfs")
                     for key in bms_rfs:
-                        print key
+                        print(key)
                     # merge rfs
                     print(result, bmsresult, "Exito")
                     return response

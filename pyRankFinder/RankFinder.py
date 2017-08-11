@@ -35,7 +35,7 @@ def Main(argv):
     args = argParser.parse_args(argv)
     config = vars(args)
     if args.version:
-        print _name+" version: "+_version
+        print(_name + " version: " + _version)
         exit(0)
     prs = pyParser.GenericParser()
     try:
