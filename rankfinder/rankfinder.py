@@ -3,8 +3,8 @@ import sys
 import getopt
 import argparse
 
-_version = "0.0.0.1"
-_name = "pyRankFinder"
+_version = "0.0.1"
+_name = "rankfinder"
 
 
 def setArgumentParser():
@@ -53,7 +53,7 @@ def Main(argv):
     internal_config = set_config(config)
     Configuration.echo(3, config)
     Configuration.echo(3, internal_config)
-    result = Termination.run(internal_config)
+    result = termination.run(internal_config)
     print(result)
     exit(0)
 
@@ -131,5 +131,5 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(projectPath, "lib/pyParser/pyParser"))
     sys.path.append(os.path.join(projectPath, "lib/pyLPi/pyLPi"))
     globals()["pyParser"] = __import__("GenericParser")
-    globals()["Termination"] = __import__("Termination")
+    globals()["termination"] = __import__("termination")
     Main(sys.argv[1:])

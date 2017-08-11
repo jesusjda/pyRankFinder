@@ -1,1 +1,1 @@
-import RankFinder
+import rankfinder

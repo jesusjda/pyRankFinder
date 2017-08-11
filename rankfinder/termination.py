@@ -1,5 +1,5 @@
-from RankFinder import Config
-import TerminationAlgorithm
+from rankfinder import Config
+import terminationalgorithm
 
 
 def run(config):
@@ -29,19 +29,19 @@ def apply_strategy(strategy, transitions):
 def _runalgorithm(config):
     alg = config["algorithm"]
     if alg == "lex":
-        return TerminationAlgorithm.LexicographicRF(config)
+        return terminationalgorithm.LexicographicRF(config)
     elif alg == "bms":
-        return TerminationAlgorithm.BMSRF(config)
+        return terminationalgorithm.BMSRF(config)
     elif alg == "prlrf":
-        return TerminationAlgorithm.LinearRF(config)
+        return terminationalgorithm.LinearRF(config)
     elif alg == "adfglrf":
-        return TerminationAlgorithm.compute_adfg_QLRF(config)
+        return terminationalgorithm.compute_adfg_QLRF(config)
     elif alg == "bgllrf":
-        return TerminationAlgorithm.compute_bg_QLRF(config)
+        return terminationalgorithm.compute_bg_QLRF(config)
     elif alg == "bmslrf":
-        return TerminationAlgorithm.compute_bms_LRF(config)
+        return terminationalgorithm.compute_bms_LRF(config)
     elif alg == "bmsnlrf":
-        return TerminationAlgorithm.compute_bms_NLRF(config)
+        return terminationalgorithm.compute_bms_NLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 

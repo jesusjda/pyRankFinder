@@ -39,7 +39,7 @@ def df(polyhedron, lambdas, f1, f2, delta):
     f2vars = [-v for v in f2[1::]]
     exp = f1[1::] + f2vars
     inh = f1[0] - f2[0] - delta
-    return _farkas(polyhedron, lambdas, exp, inh)
+    return farkas(polyhedron, lambdas, exp, inh)
 
 
 def f(polyhedron, lambdas, f, delta):
@@ -48,10 +48,10 @@ def f(polyhedron, lambdas, f, delta):
     """
     exp = f[1::] + [0 for v in f[1::]]
     inh = f[0] - delta
-    return _farkas(polyhedron, lambdas, exp, inh)
+    return farkas(polyhedron, lambdas, exp, inh)
 
 
-def _farkas(polyhedron, lambdas, expressions, inhomogeneous):
+def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     """Returns a list of Constraints, corresponding with the farkas
     constraints for the expressions in `expr`.
     polyhedron of (dimension <= n) with its variables (x1,...,xn)
