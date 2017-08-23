@@ -11,6 +11,8 @@ getGitDependencies(){
     else
 	cd $1/lib/$2
 	git pull
+	python setup.py sdist
+	sudo python setup.py install
 	cd $1
     fi
     installDependencies $1/lib/$2
@@ -39,7 +41,7 @@ installDependencies(){
 
     if [ -f $1/requirements.pip ]; then
 	# sudo -H pip2 install -r $1/requirements.pip
-	sudo -H pip2.7 install -r $1/requirements.pip
+	sudo -H pip install -r $1/requirements.pip
     fi
 
     if [ -f $1/requirements.git ]; then
@@ -55,5 +57,17 @@ else
     basedir=$(dirname "$(readlink "$0" )")
 fi
 
-installDependencies $basedir
+# installDependencies $basedir
 
+
+
+
+
+while true; do
+    read -p "Do you wish to install own modules (pyParser, pyLPi)? [Y/n] " yn
+    case $yn in
+        [YySs]* | "") echo "Installing..."; installModules
+        [Nn]* ) echo "no";;
+        * ) echo "Invalid option."; echo $yn;;
+    esac
+done
