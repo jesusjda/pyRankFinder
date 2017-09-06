@@ -1,0 +1,72 @@
+digraph dependencies {
+	
+	rankdir=LR;
+	/* My Modules */
+	node [shape=box,style=filled,color=".7 .3 1.0"];
+	pyRankFinder;
+	pyLPi;
+	pyParser;
+	/* Python Modules */
+	node [shape=ellipse,style=rounded,color="black"];
+	arpeggio;
+	pydotplus;
+	networkx;
+	cysignals;
+	z3;
+	cython;
+	node [shape=ellipse,style=rounded,color=".8 .8 .8"];
+	numpy;
+	matplotlib;
+	scipy;
+	// Special Python Modules 
+	node [shape=doubleoctagon,style=rounded,color="red"];
+	gmpy2;
+	pplpy;
+
+	// linux packages
+
+	node [shape=triangle,style=rounded,color="black"];
+	build_essentials;
+	cython3;
+	Cython;
+	libmpfr_dev;
+	libmpc_dev;
+	python_sphinx;
+	libppl_dev;
+	libgmp_dev;
+		
+
+	/* DEPENDENCIES */
+	pyRankFinder -> pplpy;
+	pyRankFinder -> pyParser;
+	pyRankFinder -> pyLPi;
+
+	// pyParser
+	pyParser -> pyLPi;
+	pyParser -> arpeggio;
+	pyParser -> pydotplus;
+	pyParser -> networkx;
+	pyParser -> numpy;
+	networkx -> numpy;
+	networkx -> matplotlib;
+	networkx -> pydotplus;
+	networkx -> scipy;
+	
+	// pyLPi
+	pyLPi -> pplpy;
+	pyLPi -> z3;
+	pplpy -> cysignals;
+	pplpy -> libppl_dev;
+	pplpy -> cython;
+	cython -> build_essentials;
+	cython -> Cython;
+	cython -> cython3;
+	pplpy -> gmpy2;
+	gmpy2 -> libgmp_dev;
+	libgmp_dev -> libmpfr_dev;
+	libgmp_dev -> libmpc_dev;
+	libgmp_dev -> python_sphinx;
+	{ rank=same; pyParser pyLPi pplpy gmpy2}
+
+	
+}
