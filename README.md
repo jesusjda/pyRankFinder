@@ -20,6 +20,7 @@ can install with pip*, and the triangles correspond to unix libraries.
 
 \* The red ellipse indicates that you have to install the module from its corresponding repository to install the latest (unstable) version and thus support python 3.
 
+We offer a script which install all the dependencies. <sub><sup> (Read "How to Install" section.)</sup></sub>
 
 ----------
 
