@@ -1,73 +1,182 @@
 #!/bin/bash
 
-getGitDependencies(){
-    echo "Checking git $2"
-    if [ ! -d $1/lib/$2 ]; then
-	if [ -d $1/../$2 ]; then
-	    ln -s $1/../$2 $1/lib/$2
-	else
-	    git clone $3 $1/lib/$2
-	fi
+UN=""
+UP=""
+FORCE=false
+pvers="false"
+
+for i in "$@"
+do
+    case $i in
+	-up|--update)
+	    UP="--upgrade"
+	    UN=""
+	    shift # past argument=value
+	    ;;
+	-un|--uninstall)
+	    UP=""
+	    UN="un"
+	    shift # past argument=value
+	    ;;
+	-p=*|--python=*)
+	    pvers="${i#*=}"
+	    if [ "$pvers" = "2" ]; then
+		P2=true
+		P3=false
+	    fi
+	    if [ "$pvers" = "3" ]; then
+		P3=true
+		P2=false
+	    fi
+	    shift # past argument=value
+	    ;;
+	-f|--force)
+	    FORCE=true
+	    shift # past argument=value
+	    ;;
+	*)
+            >&2 cat  <<EOF 
+ERROR: install.sh [OPTIONS]
+
+[OPTIONS]
+
+    -f | --force ) 
+                   force default values: 
+                   Install own python dependencies like pyLPi and pyParser 
+
+    -up | --update ) 
+                   Update or Upgrade all the packages.
+
+    -un | --uninstall )
+                   Uninstall all except UNIX packages.
+
+    -p=[VERSION] | --python=[VERSION] )
+                   Install only for python version number [VERSION].
+                   It has to be 2 or 3.
+
+EOF
+	    exit -1
+	    ;;
+    esac
+done
+
+
+exists(){
+    command -v "$1" >/dev/null 2>&1
+}
+
+
+if [ "$pvers" = "false" ]; then
+    if exists python2; then
+	P2=true
     else
-	cd $1/lib/$2
-	git pull
-	python setup.py sdist
-	sudo python setup.py install
-	cd $1
+	P2=false
     fi
-    installDependencies $1/lib/$2
-}
-
-checkAndInstall(){
-    PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $PKG|grep "install ok installed")
-    echo Checking for $PKG: $PKG_OK
-    if [ "" == "$PKG_OK" ]; then
-	echo "No $PKG. Setting up $PKG."
-	sudo apt-get --force-yes --yes install $PKG
-    fi
-}
-
-installDependencies(){
-    if [ "$(uname -s)" = 'Linux' ]; then
-	if [ -f $1/requirements.apt ]; then
-	    for PKG in $(<$1/requirements.apt) ; do
-		checkAndInstall $PKG
-	    done
-	fi
+    
+    if exists python3; then
+	P3=true
     else
-	echo "Assuming you have pre-installed"
-	cat $1/requeriments.apt
+	P3=false
     fi
+fi
 
-    if [ -f $1/requirements.pip ]; then
-	# sudo -H pip2 install -r $1/requirements.pip
-	sudo -H pip install -r $1/requirements.pip
-    fi
+flags=""
 
-    if [ -f $1/requirements.git ]; then
-	while read GIT; do
-	    getGitDependencies $1 $GIT
-	done <$1/requirements.git
-    fi
-}
+# check sudo permission
+if [ "$EUID" -ne 0 ]; then
+    flags=$flags" --user"
+fi
 
+
+# get base folder
 if [ "$(uname -s)" = 'Linux' ]; then
     basedir=$(dirname "$(readlink -f "$0" )")
 else
     basedir=$(dirname "$(readlink "$0" )")
 fi
 
-# installDependencies $basedir
-
-
-
-
-
-while true; do
-    read -p "Do you wish to install own modules (pyParser, pyLPi)? [Y/n] " yn
+# Python 2 or 3 or both?
+while [ "$P2" = "true" -a "$P3" = "true" ]; do
+    read -p "Which python version do you want to use? [2/3/B] (default: B - Both)" yn
     case $yn in
-        [YySs]* | "") echo "Installing..."; installModules
-        [Nn]* ) echo "no";;
+        [2]*)
+	    P3=false
+	    break;;
+	[3]* )
+	    P2=false
+	    break;;
+        ""|[bB])
+	    break;;
         * ) echo "Invalid option."; echo $yn;;
     esac
 done
+
+
+if [ "$FORCE" = "true" ]; then
+    mdepen=true
+else
+
+    mdepen=true
+    while true; do
+	read -p "Do you want to "$UN"install the dependencies? [Y/n]" yn
+	case $yn in
+            [yY][eE][sS]|[yY])
+		break;;
+	    [nN][oO]|[nN])
+		mdepen=false
+		break;;
+            "")
+		break;;
+            * ) echo "Invalid option."; echo $yn;;
+	esac
+    done
+
+fi
+
+
+install()
+{
+    lflags=$flags
+    if [ "$UN" = "un" ]; then
+	lflags=" -y"
+    elif [ "$UP" = "up" ]; then	
+	lflags=$lflags" --upgrade"
+    fi
+    vers=$1
+    if [ "$mdepen" = "true" ]; then
+	fl=""
+	if [ "$UN" = "un" ]; then
+	    fl="--uninstall"
+	elif [ "$UP" = "up" ]; then
+	    fl="--update"
+	fi
+	mkdir $basedir/tmplpi
+	git clone https://github.com/jesusjda/pyLPi.git $basedir/tmplpi/
+	$basedir/tmplpi/install.sh -f $fl -p=$vers
+	rm -rf $basedir/tmplpi
+	mkdir $basedir/tmpparser
+	git clone https://github.com/jesusjda/pyParser.git $basedir/tmpparser/
+	$basedir/tmpparser/install.sh -f $fl -p=$vers
+	rm -rf $basedir/tmpparser
+    fi
+
+    echo "----------------------------------------"
+    echo "Installing pyRankFinder on Python $vers"
+    echo "----------------------------------------"
+
+    pip$vers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
+
+} 
+
+if [ "$P2" = "true" ]; then
+    easy_install $flags pip
+    install 2
+fi
+
+if [ "$P3" = "true" ]; then
+    easy_install3 $flags pip
+    install 3
+fi
+
+
+echo "Success!"
