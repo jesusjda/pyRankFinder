@@ -97,7 +97,7 @@ fi
 
 # Python 2 or 3 or both?
 while [ "$P2" = "true" -a "$P3" = "true" ]; do
-    read -p "Which python version do you want to use? [2/3/B] (default: B - Both)" yn
+    read -p "Which python version do you want to use? [2/3/B] (default: B - Both) " yn
     case $yn in
         [2]*)
 	    P3=false
@@ -142,7 +142,7 @@ install()
     elif [ "$UP" = "up" ]; then	
 	lflags=$lflags" --upgrade"
     fi
-    vers=$1
+    lvers=$1
     if [ "$mdepen" = "true" ]; then
 	fl=""
 	if [ "$UN" = "un" ]; then
@@ -152,19 +152,19 @@ install()
 	fi
 	mkdir $basedir/tmplpi
 	git clone https://github.com/jesusjda/pyLPi.git $basedir/tmplpi/
-	$basedir/tmplpi/install.sh -f $fl -p=$vers
+	$basedir/tmplpi/install.sh -f $fl -p=$lvers
 	rm -rf $basedir/tmplpi
 	mkdir $basedir/tmpparser
 	git clone https://github.com/jesusjda/pyParser.git $basedir/tmpparser/
-	$basedir/tmpparser/install.sh -f $fl -p=$vers
+	$basedir/tmpparser/install.sh -f $fl -p=$lvers
 	rm -rf $basedir/tmpparser
     fi
 
     echo "----------------------------------------"
-    echo "Installing pyRankFinder on Python $vers"
+    echo "Installing pyRankFinder on Python $lvers"
     echo "----------------------------------------"
 
-    pip$vers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
+    pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
 
 } 
 
