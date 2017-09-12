@@ -14,6 +14,7 @@ digraph dependencies {
 	cysignals;
 	z3;
 	cython;
+	pillow;
 	node [shape=ellipse,style=rounded,color=".8 .8 .8"];
 	numpy;
 	matplotlib;
@@ -26,7 +27,7 @@ digraph dependencies {
 	// linux packages
 
 	node [shape=triangle,style=rounded,color="black"];
-	build_essentials;
+	build_essential;
 	cython3;
 	Cython;
 	libmpfr_dev;
@@ -44,6 +45,7 @@ digraph dependencies {
 	// pyParser
 	pyParser -> pyLPi;
 	pyParser -> arpeggio;
+	arpeggio -> pillow;
 	pyParser -> pydotplus;
 	pyParser -> networkx;
 	pyParser -> numpy;
@@ -55,10 +57,11 @@ digraph dependencies {
 	// pyLPi
 	pyLPi -> pplpy;
 	pyLPi -> z3;
-	pplpy -> cysignals;
 	pplpy -> libppl_dev;
 	pplpy -> cython;
-	cython -> build_essentials;
+	pplpy -> cysignals;
+	cysignals -> cython;
+	cython -> build_essential;
 	cython -> Cython;
 	cython -> cython3;
 	pplpy -> gmpy2;
@@ -66,7 +69,8 @@ digraph dependencies {
 	libgmp_dev -> libmpfr_dev;
 	libgmp_dev -> libmpc_dev;
 	libgmp_dev -> python_sphinx;
-	{ rank=same; pyParser pyLPi pplpy gmpy2}
+	{ rank=same; pyParser pyLPi pplpy gmpy2 }
+	{ rank=same; cysignals cython libppl_dev}
+		
 
-	
 }
