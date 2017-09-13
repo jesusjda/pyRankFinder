@@ -1,4 +1,4 @@
-from rankfinder import Config
+# import Config
 import terminationalgorithm
 
 

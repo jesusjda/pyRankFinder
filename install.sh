@@ -177,9 +177,8 @@ install()
     echo "Installing pyRankFinder on Python $lvers"
     echo "----------------------------------------"
 
-    if [ "$LOCAL" = "true" ]; then 
-	python$lvers $basedir/setup.py build --build-base=$basedir
-	python$lvers $basedir/setup.py install --upgrade
+    if [ "$LOCAL" = "true" ]; then
+	pip$lvers $UN"install" $lflags .
     else
 	pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
     fi
