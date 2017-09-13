@@ -4,45 +4,52 @@ UN=""
 UP=""
 FORCE=false
 pvers="false"
-
-for i in "$@"
-do
+P3=false
+P2=false
+LOCAL=false
+for i in "$@"; do
     case $i in
 	-up|--update)
-	    UP="--upgrade"
+	    UP="up"
 	    UN=""
-	    shift # past argument=value
+	    shift 
 	    ;;
 	-un|--uninstall)
 	    UP=""
 	    UN="un"
-	    shift # past argument=value
+	    shift 
 	    ;;
 	-p=*|--python=*)
 	    pvers="${i#*=}"
 	    if [ "$pvers" = "2" ]; then
 		P2=true
-		P3=false
 	    fi
 	    if [ "$pvers" = "3" ]; then
 		P3=true
-		P2=false
 	    fi
-	    shift # past argument=value
+	    shift 
 	    ;;
 	-f|--force)
 	    FORCE=true
-	    shift # past argument=value
+	    shift 
+	    ;;
+	-l|--local)
+	    LOCAL=true
+	    shift
 	    ;;
 	*)
-            >&2 cat  <<EOF 
+	    >&2 cat  <<EOF 
 ERROR: install.sh [OPTIONS]
 
 [OPTIONS]
 
     -f | --force ) 
-                   force default values: 
-                   Install own python dependencies like pyLPi and pyParser 
+                   force default values: Install python dependencies, 
+                   but no install own modules like pyLPi.
+
+    -l | --local ) 
+                   Install local version with local modifications.
+                   Otherwise, git repository version will be installed.
 
     -up | --update ) 
                    Update or Upgrade all the packages.
@@ -56,6 +63,7 @@ ERROR: install.sh [OPTIONS]
 
 EOF
 	    exit -1
+            # unknown option
 	    ;;
     esac
 done
@@ -150,13 +158,18 @@ install()
 	elif [ "$UP" = "up" ]; then
 	    fl="--update"
 	fi
+	cwd=$(pwd)
 	mkdir $basedir/tmplpi
 	git clone https://github.com/jesusjda/pyLPi.git $basedir/tmplpi/
+	cd $basedir/tmplpi
 	$basedir/tmplpi/install.sh -f $fl -p=$lvers
+	cd $cwd
 	rm -rf $basedir/tmplpi
 	mkdir $basedir/tmpparser
 	git clone https://github.com/jesusjda/pyParser.git $basedir/tmpparser/
+	cd $basedir/tmpparser
 	$basedir/tmpparser/install.sh -f $fl -p=$lvers
+	cd $cwd
 	rm -rf $basedir/tmpparser
     fi
 
@@ -164,8 +177,12 @@ install()
     echo "Installing pyRankFinder on Python $lvers"
     echo "----------------------------------------"
 
-    pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
-
+    if [ "$LOCAL" = "true" ]; then 
+	python$lvers $basedir/setup.py build --build-base=$basedir
+	python$lvers $basedir/setup.py install --upgrade
+    else
+	pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
+    fi
 } 
 
 if [ "$P2" = "true" ]; then
