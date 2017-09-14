@@ -2,7 +2,7 @@ import unittest
 import rankfinder
 import genericparser
 import lpi
-import termination
+
 
 class TestKey(unittest.TestCase):
     def test_import(self):
