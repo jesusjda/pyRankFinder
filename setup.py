@@ -18,8 +18,8 @@ setup(
     license='GPL v3',
     platforms=['any'],
     packages=['rankfinder', 'termination'],
-    package_dir={'rankfinder': 'rankfinder', 'termination': 'rankfinder'},
-    package_data={'rankfinder': ['*.py'], 'termination': ['*.py']},
+    package_dir={'rankfinder': 'rankfinder'},
+    package_data={'rankfinder': ['*.py']},
     install_requires=['pplpy'],
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
