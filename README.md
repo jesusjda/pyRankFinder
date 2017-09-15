@@ -31,10 +31,28 @@ We recommend to have <kbd>ppl</kbd> already installed.
 
 Then you only have to run the script: [install.sh](install.sh) <sub><sup>(it will ask you some questions.)</sup></sub>
 
-If there are changes on some of the three repositories (pyRankFinder, pyLPi, pyParser),
-you can update them by running: [update.sh](update.sh)
+```install.sh [OPTIONS]
 
-And if you want to un-install, you can run the script: [uninstall.sh](unsinstall.sh) <sub><sup>(it will ask you some questions.)</sup></sub> 
+[OPTIONS]
+
+    -f | --force ) 
+                   force default values: Install python dependencies, 
+                   but no install own modules like pyLPi.
+
+    -l | --local ) 
+                   Install local version with local modifications.
+                   Otherwise, git repository version will be installed.
+
+    -up | --update ) 
+                   Update or Upgrade all the packages.
+
+    -un | --uninstall )
+                   Uninstall all except UNIX packages.
+
+    -p=[VERSION] | --python=[VERSION] )
+                   Install only for python version number [VERSION].
+                   It has to be 2 or 3.
+```
 
 How to Use
 ---------------
@@ -43,19 +61,19 @@ There are two ways to execute this tool.
 
 The main file is [RankFinder.py](pyRankFinder/RankFinder.py),
 you can run this command to get all the information:
-> RankFinder.py --help
 
+```python rankfinder.py --help
+```
 
 **(No tested yet)** The second way is: including the module [Termination.py](pyRankFinder/Termination.py)
-> import Termination
->
-> \# config must be a dictionary with all the information needed
-> 
-> Termination.run(config)
-
+```import termination
+\# config must be a dictionary with all the information needed
+termination.run(config)
+```
 **(No tested yet)** If you know what are you doing you can run inside your code a concrete algorithm, but it is no recommend if you don't know them
 
-> Import TerminationAlgorithm
->
-> TerminationAlgorithem.LexicograficRF(config)
+```import termination.algorithm
+
+termination.algorithem.LexicograficRF(config)
+```
 
