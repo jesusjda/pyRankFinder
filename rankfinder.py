@@ -126,3 +126,5 @@ class Config:
         if self.get("verbosity") >= verbosity:
             print(msg)
 
+if __name__ == "__main__":
+    Main(sys.argv[1:])
