@@ -47,7 +47,7 @@ def Main(argv):
             cfg = prs.parse(args.file)
     except Exception as e:
         print(e)
-	return
+        return
     Configuration = Config.the()
     Configuration.set_properties(config)
     config["cfg"] = cfg
