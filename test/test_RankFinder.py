@@ -1,5 +1,5 @@
 import unittest
-import rankfinder
+import termination
 import genericparser
 import lpi
 

@@ -1,4 +1,4 @@
-import terminationalgorithm
+import algorithm
 
 
 def run(config):
@@ -28,19 +28,19 @@ def apply_strategy(strategy, transitions):
 def _runalgorithm(config):
     alg = config["algorithm"]
     if alg == "lex":
-        return terminationalgorithm.LexicographicRF(config)
+        return algorithm.LexicographicRF(config)
     elif alg == "bms":
-        return terminationalgorithm.BMSRF(config)
+        return algorithm.BMSRF(config)
     elif alg == "prlrf":
-        return terminationalgorithm.LinearRF(config)
+        return algorithm.LinearRF(config)
     elif alg == "adfglrf":
-        return terminationalgorithm.compute_adfg_QLRF(config)
+        return algorithm.compute_adfg_QLRF(config)
     elif alg == "bgllrf":
-        return terminationalgorithm.compute_bg_QLRF(config)
+        return algorithm.compute_bg_QLRF(config)
     elif alg == "bmslrf":
-        return terminationalgorithm.compute_bms_LRF(config)
+        return algorithm.compute_bms_LRF(config)
     elif alg == "bmsnlrf":
-        return terminationalgorithm.compute_bms_NLRF(config)
+        return algorithm.compute_bms_NLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 

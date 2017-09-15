@@ -7,9 +7,9 @@ VERSION = open('version.txt').read()[:-1]
 
 
 setup(
-    name='pyrankfinder',
+    name='pytermination',
     version=VERSION,
-    description='Python Ranking Function Finder',
+    description='Python Termination Analysis Module',
     long_description=open("README.md").read(),
     author='Jesus Domenech',
     author_email='jdomenec@ucm.es',
@@ -17,9 +17,9 @@ setup(
     download_url ='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
-    packages=['rankfinder', 'termination'],
-    package_dir={'rankfinder': 'rankfinder'},
-    package_data={'rankfinder': ['*.py']},
+    packages=['termination'],
+    package_dir={'termination': 'termination'},
+    package_data={'termination': ['*.py']},
     install_requires=['pplpy'],
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
