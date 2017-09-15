@@ -31,7 +31,7 @@ We recommend to have <kbd>ppl</kbd> already installed.
 
 Then you only have to run the script: [install.sh](install.sh) <sub><sup>(it will ask you some questions.)</sup></sub>
 
-```
+```bash
 install.sh [OPTIONS]
 
 [OPTIONS]
@@ -60,22 +60,22 @@ How to Use
 
 There are two ways to execute this tool. 
 
-The main file is [RankFinder.py](pyRankFinder/RankFinder.py),
+The main file is [rankfinder.py](rankfinder.py),
 you can run this command to get all the information:
 
-```
-python rankfinder.py --help
+```bash
+$ python rankfinder.py --help
 ```
 
-**(No tested yet)** The second way is: including the module [Termination.py](pyRankFinder/Termination.py)
-```
+**(No tested yet)** The second way is: including the module [termination.py](termination/termination.py)
+```python
 import termination
 # config must be a dictionary with all the information needed
 termination.run(config)
 ```
 **(No tested yet)** If you know what are you doing you can run inside your code a concrete algorithm, but it is no recommend if you don't know them
 
-```
+```python
 import termination.algorithm
 
 termination.algorithem.LexicograficRF(config)
