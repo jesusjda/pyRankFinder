@@ -14,17 +14,6 @@ def run(config):
     return _runalgorithm(new_config)
 
 
-def apply_strategy(strategy, transitions):
-    if strategy == "global":
-        return transitions
-    elif strategy == "local":
-        raise NotImplementedError
-    elif strategy == "incremental":
-        raise NotImplementedError
-    else:
-        raise Exception("SCC unknown")
-
-
 def _runalgorithm(config):
     alg = config["algorithm"]
     if alg == "lex":
