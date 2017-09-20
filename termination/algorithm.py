@@ -21,7 +21,7 @@ def LinearRF(data):
 
     dim = _max_dim(transitions)
     Nvars = dim / 2
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
 
     shifter = 0
     if "different_template" in data and data["different_template"]:
@@ -85,14 +85,13 @@ def LinearRF(data):
 
 
 def LexicographicRF(data):
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
     transitions = data["transitions"]
     # print(transitions)
     rfs = {}
     no_ranked_trs = transitions
     i = 0
     config = data["inner_alg"].copy()
-    config["vars_name"] = data["vars_name"]
 
     while no_ranked_trs:  # while not empty
         i += 1
@@ -127,12 +126,11 @@ def LexicographicRF(data):
 
 
 def BMSRF(data):
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
     trans = data["transitions"]
     # print(transitions)
     rfs = {}
     config = data["inner_alg"].copy()
-    config["vars_name"] = data["vars_name"]
     i = 0
     foundRF = False
     for i in range(len(trans)):
@@ -170,7 +168,7 @@ def BMSRF(data):
 
 
 def compute_adfg_QLRF(data):
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
@@ -261,7 +259,7 @@ def compute_adfg_QLRF(data):
 
 
 def compute_bg_QLRF(data):
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
@@ -378,7 +376,7 @@ def compute_bms_NLRF(data):
     transition 0 of data["transitions"] is
     the transition where we look for NLRF
     """
-    response = termination.Result(vars_name=data["vars_name"])
+    response = termination.Result()
     transitions = data["transitions"][1::]
     tr = data["transitions"][0]
     max_d = data["max_depth"] + 1
