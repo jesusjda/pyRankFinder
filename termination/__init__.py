@@ -4,13 +4,6 @@ import algorithm
 def run(config):
     new_config = config.copy()
 
-    if "transitions" in config:
-        new_config["transitions"] = config["transitions"]
-        new_config["vars_name"] = config["vars_name"]
-    else:
-        new_config["transitions"] = config["cfg"].get_edges()
-        new_config["vars_name"] = config["cfg"].get_var_name()
-
     return _runalgorithm(new_config)
 
 
@@ -60,42 +53,44 @@ class Result:
     def set_response(self, **kwargs):
         self._data.update(kwargs)
 
-    def _rfs2str(self, rfs):
+    def _rfs2str(self, rfs, vars_name=None):
         res = ""
         for node in rfs:
-            res += node + ": " + self._rflist2str(rfs[node])
+            res += node + ": " + self._rflist2str(rfs[node], vars_name)
             res += "\n"
         return res
 
-    def _rflist2str(self, rfs):
+    def _rflist2str(self, rfs, vars_name=None):
         res = ""
         if isinstance(rfs, tuple):
-            res += self._function2str(rfs)
+            res += self._function2str(rfs, vars_name)
         else:
             res += "< "
             for i in range(len(rfs)):
                 if i != 0:
                     res += ", "
-                res += self._rflist2str(rfs[i])
+                res += self._rflist2str(rfs[i], vars_name)
             res += " >"
         return res
 
-    def _function2str(self, rf):
+    def _function2str(self, rf, vars_name=None):
         coeffs = rf[0]
         inh = rf[1]
         sr = ""
+        if vars_name is None:
+            vars_name = ["x"+str(i) for i in range(len(coeffs))]
         for i in range(len(coeffs)):
             if coeffs[i] == 0:
                 continue
             if coeffs[i] == 1:
-                sr += str(self._data["vars_name"][i]) + " + "
+                sr += str(vars_name[i]) + " + "
                 continue
             sr = (sr + "" + str(coeffs[i]) + " * " +
-                  str(self._data["vars_name"][i]) + " + ")
+                  str(vars_name[i]) + " + ")
         sr += "" + str(inh)
         return sr
 
-    def __repr__(self):
+    def toString(self, vars_name=None):
         if self._data["error"]:
             return "ERROR: " + self._data["errormsg"]
 
@@ -111,3 +106,6 @@ class Result:
         else:
             res += self._data
         return res
+    
+    def __repr__(self):
+        return self.toString()
