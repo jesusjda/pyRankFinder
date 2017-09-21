@@ -1,18 +1,19 @@
 import os
 import sys
+import traceback
 import getopt
 import argparse
 import termination
 from genericparser import GenericParser
-import traceback
+
 _version = "0.0.2"
 _name = "rankfinder"
 
 
 def positive(value):
     ivalue = int(value)
-    if ivalue <= 0:
-        raise argparse.ArgumentTypeError("Minimum value is 1")
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError("Minimum value is 0")
     return ivalue
 
 
@@ -31,7 +32,7 @@ def setArgumentParser():
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different_template", action='store_true',
                            help="Use different templates on each node")
-    argParser.add_argument("-sccd", "--scc_depth", type=positive, default=1,
+    argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
@@ -62,49 +63,83 @@ def Main(argv):
             print(traceback.format_exc())
             print(e)
             return
-        config["cfg"] = cfg
-        internal_config = set_config(config)
-
-        result = termination.run(internal_config)
+        config["vars_name"] = cfg.get_var_name()
+        result = rank(config, [(cfg, config.scc_depth)], config.algorithms)
         print(f)
         print(result)
     return
 
 
-def set_config(data):
+def rank(config, CFGs, algs):
+    done = False
+    while (CFGs and !done):
+        current_cfg, sccd = CFGs.pop(0)
+        if sccd > 0:
+            CFGs_aux = current_cfg.get_sccs()
+        for cfg in CFGs_aux:
+            Trans = cfg.get_edges()
+            R = run_algs(config, Trans, algs)
+
+            # I need """PENDING_TRS""" and """VARS_NAME"""
+            # if pending_trs:
+            #     CFGs = [(Cfg(pending_trs, vars_name),sccd-1)] + CFGs
+    pass
+
+
+def run_algs(config, trans, algs):
+    done = False
+    pending_trs = trans
+    R = None
+    while(!done):
+        f = False
+        for alg in algs:
+            internal_config = set_config(config, alg)
+
+            R = termination.run(internal_config)
+            # R = <S,RF,Trans’>
+            if R.found():
+                f = True
+                break
+            else:
+                pending_trs = R.get("pending_trs")
+                
+        if(noRank is None or !f):
+            done = False
+        else:
+            Trans = Trans’
+
+
+def set_config(data, alg):
     config = {}
-    if data["algorithms"] in ["adfglrf", "bgllrf"]:
+    if alg in ["adfglrf", "bgllrf"]:
         config = {
             "algorithm": "lex",
             "different_template": data["different_template"],
-            "scc_depth": data["scc_depth"],
-            "cfg": data["cfg"],
+            "vars_name": data["vars_name"],
             "inner_alg": {
-                "algorithm": data["algorithm"],
+                "algorithm": alg,
                 "different_template": data["different_template"],
-                "scc_depth": data["scc_depth"]
+                "vars_name": data["vars_name"]
             }
         }
-    elif data["algorithms"] in ["bmslrf", "bmsnlrf"]:
+    elif alg in ["bmslrf", "bmsnlrf"]:
         config = {
             "algorithm": "bms",
             "different_template": data["different_template"],
-            "scc_depth": data["scc_depth"],
-            "cfg": data["cfg"],
+            "vars_name": data["vars_name"],
             "inner_alg": {
-                "algorithm": data["algorithm"],
+                "algorithm": alg,
                 "different_template": data["different_template"],
-                "scc_depth": data["scc_depth"],
+                "vars_name": data["vars_name"],
                 "min_depth": 1,
                 "max_depth": 5
             }
         }
     else:
         config = {
-            "algorithm": data["algorithms"][0],
+            "algorithm": alg,
             "different_template": data["different_template"],
-            "scc_depth": data["scc_depth"],
-            "cfg": data["cfg"]
+            "vars_name": data["vars_name"]
         }
     return config
 
