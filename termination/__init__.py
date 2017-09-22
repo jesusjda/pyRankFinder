@@ -1,4 +1,4 @@
-import algorithm
+import termination.algorithm
 
 
 def run(data):
