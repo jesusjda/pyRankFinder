@@ -55,7 +55,7 @@ def Main(argv):
             print(traceback.format_exc())
             print(e)
             return
-        config["cfg"] = cfg
+        config["transitions"] = cfg.get_edges()
         internal_config = set_config(config)
 
         result = termination.run(internal_config)
@@ -70,7 +70,7 @@ def set_config(data):
         config = {
             "algorithm": "lex",
             "different_template": data["different_template"],
-            "cfg": data["cfg"],
+            "transitions": data["transitions"],
             "inner_alg": {
                 "algorithm": data["algorithm"],
                 "different_template": data["different_template"],
@@ -80,7 +80,7 @@ def set_config(data):
         config = {
             "algorithm": "bms",
             "different_template": data["different_template"],
-            "cfg": data["cfg"],
+            "transitions": data["transitions"],
             "inner_alg": {
                 "algorithm": data["algorithm"],
                 "different_template": data["different_template"],
@@ -92,7 +92,7 @@ def set_config(data):
         config = {
             "algorithm": data["algorithm"],
             "different_template": data["different_template"],
-            "cfg": data["cfg"]
+            "transitions": data["transitions"]
         }
     return config
 

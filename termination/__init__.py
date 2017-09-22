@@ -1,13 +1,8 @@
 import algorithm
 
 
-def run(config):
-    new_config = config.copy()
-
-    return _runalgorithm(new_config)
-
-
-def _runalgorithm(config):
+def run(data):
+    config = data.copy()
     alg = config["algorithm"]
     if alg == "lex":
         return algorithm.LexicographicRF(config)

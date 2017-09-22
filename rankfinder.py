@@ -71,29 +71,34 @@ def Main(argv):
 
 
 def rank(config, CFGs, algs):
-    done = False
-    while (CFGs and !done):
+    while (CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if sccd > 0:
             CFGs_aux = current_cfg.get_sccs()
+        else:
+            CFGs_aux = [current_cfg]
         for cfg in CFGs_aux:
             Trans = cfg.get_edges()
             R = run_algs(config, Trans, algs)
-
-            # I need """PENDING_TRS""" and """VARS_NAME"""
-            # if pending_trs:
-            #     CFGs = [(Cfg(pending_trs, vars_name),sccd-1)] + CFGs
-    pass
+            
+            if pending_trs:
+                if sccd > 0:
+                    CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
+                             sccd-1)] + CFGs
+                else:
+                    raise Exception("NOT FOUND")
+    return True
 
 
 def run_algs(config, trans, algs):
     done = False
     pending_trs = trans
+    rfs = []
     R = None
     while(!done):
         f = False
         for alg in algs:
-            internal_config = set_config(config, alg)
+            internal_config = set_config(config, alg, pending_trs)
 
             R = termination.run(internal_config)
             # R = <S,RF,Trans’>
@@ -101,36 +106,35 @@ def run_algs(config, trans, algs):
                 f = True
                 break
             else:
+                rfs.append(R.get("rfs"))
                 pending_trs = R.get("pending_trs")
-                
-        if(noRank is None or !f):
+
+        if(!pending_trs or !f):
             done = False
         else:
-            Trans = Trans’
+            Trans = pending_trs
 
 
-def set_config(data, alg):
+def set_config(data, alg, trans):
     config = {}
     if alg in ["adfglrf", "bgllrf"]:
         config = {
             "algorithm": "lex",
             "different_template": data["different_template"],
-            "vars_name": data["vars_name"],
+            "transitions": data["transitions"],
             "inner_alg": {
                 "algorithm": alg,
-                "different_template": data["different_template"],
-                "vars_name": data["vars_name"]
+                "different_template": data["different_template"]
             }
         }
     elif alg in ["bmslrf", "bmsnlrf"]:
         config = {
             "algorithm": "bms",
             "different_template": data["different_template"],
-            "vars_name": data["vars_name"],
+            "transitions": data["transitions"],
             "inner_alg": {
                 "algorithm": alg,
                 "different_template": data["different_template"],
-                "vars_name": data["vars_name"],
                 "min_depth": 1,
                 "max_depth": 5
             }
@@ -139,7 +143,7 @@ def set_config(data, alg):
         config = {
             "algorithm": alg,
             "different_template": data["different_template"],
-            "vars_name": data["vars_name"]
+            "transitions": data["transitions"]
         }
     return config
 
