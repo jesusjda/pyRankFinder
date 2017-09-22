@@ -3,8 +3,7 @@ from ppl import Variable
 from ppl import Constraint_System
 from ppl import Constraint
 from lpi import C_Polyhedron
-import farkas
-import termination
+import termination.farkas
 
 
 def _max_dim(edges):
