@@ -180,7 +180,7 @@ install()
     if [ "$LOCAL" = "true" ]; then
 	pip$lvers $UN"install" $lflags .
     else
-	pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pyRankFinder
+	pip$lvers $UN"install" $lflags git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination
     fi
 } 
 
