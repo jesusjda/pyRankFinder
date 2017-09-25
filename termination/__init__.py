@@ -41,6 +41,9 @@ class Result:
     def get(self, key):
         return self._data[key]
 
+    def has(self, key):
+        return key in self._data
+
     def set_error(self, errormsg):
         self._data["errormsg"] = errormsg
         self._data["error"] = True
@@ -101,6 +104,6 @@ class Result:
         else:
             res += self._data
         return res
-    
+
     def __repr__(self):
         return self.toString()

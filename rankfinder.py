@@ -71,6 +71,7 @@ def Main(argv):
 
 
 def rank(config, CFGs, algs):
+    rfs = []
     while (CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if sccd > 0:
@@ -80,39 +81,43 @@ def rank(config, CFGs, algs):
         for cfg in CFGs_aux:
             Trans = cfg.get_edges()
             R = run_algs(config, Trans, algs)
-            
+            if !R.found():
+                raise Exception("NOT FOUND")
+            rfs.append(R.get("rfs"))
+            pending_trs = R.get("pending_trs")
             if pending_trs:
                 if sccd > 0:
                     CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
                              sccd-1)] + CFGs
                 else:
                     raise Exception("NOT FOUND")
-    return True
+    return rfs
 
 
 def run_algs(config, trans, algs):
-    done = False
-    pending_trs = trans
-    rfs = []
+    response = termination.Result()
     R = None
-    while(!done):
-        f = False
-        for alg in algs:
-            internal_config = set_config(config, alg, pending_trs)
+    f = False
+    for alg in algs:
+        internal_config = set_config(config, alg, trans)
 
-            R = termination.run(internal_config)
-            # R = <S,RF,Trans’>
-            if R.found():
+        R = termination.run(internal_config)
+        if R.found():
+            if R.get("rfs"):
                 f = True
                 break
-            else:
-                rfs.append(R.get("rfs"))
-                pending_trs = R.get("pending_trs")
 
-        if(!pending_trs or !f):
-            done = False
-        else:
-            Trans = pending_trs
+    if f:
+        pen = R.get("pending_trs")
+        response.set_response(found=True,
+                              info="Found",
+                              rfs=R.get("rfs"),
+                              pending_trs=pen)
+        return response
+
+    response.set_response(found=False,
+                          info="Not Found")
+    return response
 
 
 def set_config(data, alg, trans):

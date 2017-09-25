@@ -251,7 +251,7 @@ def compute_adfg_QLRF(data):
                      if point.coefficient(deltas[tr["name"]]) == 0]
 
     response.set_response(found=True,
-                          info="mm",
+                          info="Found",
                           rfs=rfs,
                           pending_trs=no_ranked)
     return response
