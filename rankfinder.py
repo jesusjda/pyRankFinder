@@ -133,12 +133,12 @@ def set_config(data, alg, trans):
             "different_template": dt,
             "transitions": trans
         }
-
+        if alg == "nlrf":
+            config["min_depth"] = 1
+            config["max_depth"] = 5
         if not (inner_alg is None):
             config["inner_alg"] = inner_alg
-            if alg == "bms":
-                config["inner_alg"]["min_depth"] = 1
-                config["inner_alg"]["max_depth"] = 5
+
         inner_alg = config
 
     return config
