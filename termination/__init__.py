@@ -2,21 +2,22 @@ import termination.algorithm
 
 
 def run(data):
+    print("Running: "+data["algorithm"])
     config = data.copy()
     alg = config["algorithm"]
     if alg == "lex":
         return algorithm.LexicographicRF(config)
     elif alg == "bms":
         return algorithm.BMSRF(config)
-    elif alg == "prlrf":
+    elif alg == "pr":
         return algorithm.LinearRF(config)
-    elif alg == "adfglrf":
+    elif alg == "adfg":
         return algorithm.compute_adfg_QLRF(config)
-    elif alg == "bgllrf":
+    elif alg == "bg":
         return algorithm.compute_bg_QLRF(config)
-    elif alg == "bmslrf":
+    elif alg == "lrf":
         return algorithm.compute_bms_LRF(config)
-    elif alg == "bmsnlrf":
+    elif alg == "nlrf":
         return algorithm.compute_bms_NLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
@@ -31,6 +32,8 @@ class Result:
         self._data["found"] = found
         self._data["error"] = error
         self._data["errormsg"] = errormsg
+        if not "info" in self._data:
+            self._data["info"] = ""
 
     def found(self):
         return not self._data["error"] and self._data["found"]

@@ -11,7 +11,8 @@ _name = "runOne"
 
 
 def setArgumentParser():
-    algorithms = ["prlrf", "bgllrf", "adfglrf", "bmslrf", "bmsnlrf", "nlrf"]
+    algorithms = ["pr", "bg", "adfg", "lex_bg", "lex_adfg",
+                  "bms_lrf", "bms_nlrf", "nlrf"]
     scc_strategies = ["global", "local", "incremental"]
     desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
@@ -55,6 +56,7 @@ def Main(argv):
             print(traceback.format_exc())
             print(e)
             return
+        print(cfg)
         config["transitions"] = cfg.get_edges()
         internal_config = set_config(config)
 
@@ -65,35 +67,23 @@ def Main(argv):
 
 
 def set_config(data):
+    algs = data["algorithm"].split('_')
+    dt = data["different_template"]
+    trans = data["transitions"]
+    inner_alg = None
     config = {}
-    if data["algorithm"] in ["adfglrf", "bgllrf"]:
+    for alg in reversed(algs):
         config = {
-            "algorithm": "lex",
-            "different_template": data["different_template"],
-            "transitions": data["transitions"],
-            "inner_alg": {
-                "algorithm": data["algorithm"],
-                "different_template": data["different_template"],
-            }
+            "algorithm": alg,
+            "different_template": dt,
+            "transitions": trans
         }
-    elif data["algorithm"] in ["bmslrf", "bmsnlrf"]:
-        config = {
-            "algorithm": "bms",
-            "different_template": data["different_template"],
-            "transitions": data["transitions"],
-            "inner_alg": {
-                "algorithm": data["algorithm"],
-                "different_template": data["different_template"],
-                "min_depth": 1,
-                "max_depth": 5
-            }
-        }
-    else:
-        config = {
-            "algorithm": data["algorithm"],
-            "different_template": data["different_template"],
-            "transitions": data["transitions"]
-        }
+        if not (inner_alg is None):
+            config["inner_alg"] = inner_alg
+            if alg == "bms":
+                config["inner_alg"]["min_depth"] = 1
+                config["inner_alg"]["max_depth"] = 5
+        inner_alg = config
     return config
 
 if __name__ == "__main__":

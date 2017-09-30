@@ -3,7 +3,8 @@ from ppl import Variable
 from ppl import Constraint_System
 from ppl import Constraint
 from lpi import C_Polyhedron
-import termination.farkas
+import termination.farkas as farkas
+import termination
 
 
 def _max_dim(edges):
@@ -19,7 +20,7 @@ def LinearRF(data):
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
-    Nvars = dim / 2
+    Nvars = int(dim / 2)
     response = termination.Result()
 
     shifter = 0
@@ -69,6 +70,7 @@ def LinearRF(data):
 
     poly = C_Polyhedron(Constraint_System(farkas_constraints))
     point = poly.get_point()
+    print(farkas_constraints)
     if point is None:
         response.set_response(found=False,
                               info="Farkas Polyhedron is empty.")
@@ -79,7 +81,8 @@ def LinearRF(data):
                      point.coefficient(rfvars[node][0]))
 
     response.set_response(found=True,
-                          rfs=rfs)
+                          rfs=rfs,
+                          pending_trs=[])
     return response
 
 
@@ -120,7 +123,8 @@ def LexicographicRF(data):
             no_ranked_trs = pending_trs
 
     response.set_response(found=True,
-                          rfs=rfs)
+                          rfs=rfs,
+                          pending_trs=[])
     return response
 
 
@@ -156,7 +160,8 @@ def BMSRF(data):
             else:
                 response.set_response(found=True,
                                       info="Found",
-                                      rfs=rfs)
+                                      rfs=rfs,
+                                      pending_trs=[])
                 return result
 
     # Impossible to find a BMS starting with any transition
@@ -171,7 +176,7 @@ def compute_adfg_QLRF(data):
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
-    Nvars = dim / 2
+    Nvars = int(dim / 2)
     shifter = 0
     if data["different_template"]:
         shifter = Nvars + 1
@@ -262,7 +267,7 @@ def compute_bg_QLRF(data):
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
-    Nvars = dim / 2
+    Nvars = int(dim / 2)
     shifter = 0
     size_rfs = 0
     if data["different_template"]:
@@ -386,7 +391,7 @@ def compute_bms_NLRF(data):
         print("d = ", d)
         # 0 - create variables
         dim = _max_dim(data["transitions"])
-        Nvars = dim / 2
+        Nvars = int(dim / 2)
         shifter = 0
         size_rfs = 0
         if data["different_template"]:

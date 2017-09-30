@@ -18,7 +18,8 @@ def positive(value):
 
 
 def setArgumentParser():
-    algorithms = ["prlrf", "bgllrf", "adfglrf", "bmslrf", "bmsnlrf", "nlrf"]
+    algorithms = ["pr", "bg", "adfg", "lex_bg", "lex_adfg",
+                  "bms_lrf", "bms_nlrf", "nlrf"]
     scc_strategies = ["global", "local", "incremental"]
     desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
@@ -64,7 +65,7 @@ def Main(argv):
             print(e)
             return
         config["vars_name"] = cfg.get_var_name()
-        result = rank(config, [(cfg, config.scc_depth)], config.algorithms)
+        result = rank(config, [(cfg, config["scc_depth"])], config["algorithms"])
         print(f)
         print(result)
     return
@@ -81,7 +82,7 @@ def rank(config, CFGs, algs):
         for cfg in CFGs_aux:
             Trans = cfg.get_edges()
             R = run_algs(config, Trans, algs)
-            if !R.found():
+            if not R.found():
                 raise Exception("NOT FOUND")
             rfs.append(R.get("rfs"))
             pending_trs = R.get("pending_trs")
@@ -121,37 +122,26 @@ def run_algs(config, trans, algs):
 
 
 def set_config(data, alg, trans):
+    algs = alg.split('_')
+    dt = data["different_template"]
+
+    inner_alg = None
     config = {}
-    if alg in ["adfglrf", "bgllrf"]:
-        config = {
-            "algorithm": "lex",
-            "different_template": data["different_template"],
-            "transitions": data["transitions"],
-            "inner_alg": {
-                "algorithm": alg,
-                "different_template": data["different_template"]
-            }
-        }
-    elif alg in ["bmslrf", "bmsnlrf"]:
-        config = {
-            "algorithm": "bms",
-            "different_template": data["different_template"],
-            "transitions": data["transitions"],
-            "inner_alg": {
-                "algorithm": alg,
-                "different_template": data["different_template"],
-                "min_depth": 1,
-                "max_depth": 5
-            }
-        }
-    else:
+    for alg in reversed(algs):
         config = {
             "algorithm": alg,
-            "different_template": data["different_template"],
-            "transitions": data["transitions"]
+            "different_template": dt,
+            "transitions": trans
         }
-    return config
 
+        if not (inner_alg is None):
+            config["inner_alg"] = inner_alg
+            if alg == "bms":
+                config["inner_alg"]["min_depth"] = 1
+                config["inner_alg"]["max_depth"] = 5
+        inner_alg = config
+
+    return config
 
 if __name__ == "__main__":
     Main(sys.argv[1:])
