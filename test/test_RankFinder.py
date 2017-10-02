@@ -18,3 +18,7 @@ class TestKey(unittest.TestCase):
         except NotImplementedError as e:
             self.skipTest("z3 is not implemented")
         self.assertEqual(1, 1)
+
+    def test_Result(self):
+        r = termination.Result(found=True)
+        self.assertTrue(r.found())

@@ -5,6 +5,7 @@ import getopt
 import argparse
 import termination
 from genericparser import GenericParser
+from genericparser.Cfg import Cfg
 
 _version = "0.0.2"
 _name = "rankfinder"
@@ -65,15 +66,18 @@ def Main(argv):
             print(e)
             return
         config["vars_name"] = cfg.get_var_name()
-        result = rank(config, [(cfg, config["scc_depth"])], config["algorithms"])
+        result = rank(config, [(cfg, config["scc_depth"])],
+                      config["algorithms"])
         print(f)
         print(result)
     return
 
 
 def rank(config, CFGs, algs):
+    response = termination.Result()
     rfs = []
-    while (CFGs):
+    fail = False
+    while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if sccd > 0:
             CFGs_aux = current_cfg.get_sccs()
@@ -83,7 +87,8 @@ def rank(config, CFGs, algs):
             Trans = cfg.get_edges()
             R = run_algs(config, Trans, algs)
             if not R.found():
-                raise Exception("NOT FOUND")
+                fail = True
+                break
             rfs.append(R.get("rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
@@ -91,8 +96,16 @@ def rank(config, CFGs, algs):
                     CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
                              sccd-1)] + CFGs
                 else:
-                    raise Exception("NOT FOUND")
-    return rfs
+
+                    fail = True
+                    break
+    if fail:
+        response.set_response(found=False)
+    else:
+        response.set_response(found=True)
+    response.set_response(rfs=rfs,
+                          pending_trs=pending_trs)
+    return response
 
 
 def run_algs(config, trans, algs):
@@ -101,12 +114,16 @@ def run_algs(config, trans, algs):
     f = False
     for alg in algs:
         internal_config = set_config(config, alg, trans)
-
-        R = termination.run(internal_config)
-        if R.found():
-            if R.get("rfs"):
-                f = True
-                break
+        try:
+            print("Running: " + alg)
+            R = termination.run(internal_config)
+            print(R)
+            if R.found():
+                if R.get("rfs"):
+                    f = True
+                    break
+        except:
+            pass
 
     if f:
         pen = R.get("pending_trs")

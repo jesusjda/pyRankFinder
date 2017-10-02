@@ -3,8 +3,29 @@ from ppl import Variable
 from ppl import Constraint_System
 from ppl import Constraint
 from lpi import C_Polyhedron
-# import .Result
 from . import farkas
+from .result import Result
+
+
+def run(data):
+    config = data.copy()
+    alg = config["algorithm"]
+    if alg == "lex":
+        return LexicographicRF(config)
+    elif alg == "bms":
+        return BMSRF(config)
+    elif alg == "pr":
+        return LinearRF(config)
+    elif alg == "adfg":
+        return compute_adfg_QLRF(config)
+    elif alg == "bg":
+        return compute_bg_QLRF(config)
+    elif alg == "lrf":
+        return compute_bms_LRF(config)
+    elif alg == "nlrf":
+        return compute_bms_NLRF(config)
+    else:
+        raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 
 
 def _max_dim(edges):
@@ -98,7 +119,7 @@ def LexicographicRF(data):
     while no_ranked_trs:  # while not empty
         i += 1
         config["transitions"] = [tr.copy() for tr in no_ranked_trs]
-        result = termination.run(config)
+        result = run(config)
         if result.error():
             return result
         elif not result.found():
@@ -141,13 +162,13 @@ def BMSRF(data):
                                  [trans[j] for j in range(len(trans))
                                   if j != i])
 
-        result = termination.run(config)  # Run NLRF or LRF
+        result = run(config)  # Run NLRF or LRF
         if result.found():
             rfs = result.get("rfs")
             new_data = data.copy()
             new_data["transitions"] = result.get("pending_trs")
             if len(result.get("pending_trs")) > 0:
-                bmsresult = termination.run(new_data)  # Run BMS
+                bmsresult = run(new_data)  # Run BMS
                 if bmsresult.found():
                     bms_rfs = bmsresult.get("rfs")
                     for key in bms_rfs:
