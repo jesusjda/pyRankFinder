@@ -56,7 +56,6 @@ def Main(argv):
             print(traceback.format_exc())
             print(e)
             return
-        print(cfg)
         config["transitions"] = cfg.get_edges()
         internal_config = set_config(config)
 
@@ -83,6 +82,13 @@ def set_config(data):
             if alg == "bms":
                 config["inner_alg"]["min_depth"] = 1
                 config["inner_alg"]["max_depth"] = 5
+        if alg == "nlrf":
+            config["min_depth"] = 1
+            config["max_depth"] = 5
+        if alg == "lrf":
+            config["min_depth"] = 1
+            config["max_depth"] = 1
+
         inner_alg = config
     return config
 

@@ -3,8 +3,8 @@ from ppl import Variable
 from ppl import Constraint_System
 from ppl import Constraint
 from lpi import C_Polyhedron
-import termination.farkas as farkas
-import termination
+# import .Result
+from . import farkas
 
 
 def _max_dim(edges):
@@ -21,7 +21,7 @@ def LinearRF(data):
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
-    response = termination.Result()
+    response = Result()
 
     shifter = 0
     if "different_template" in data and data["different_template"]:
@@ -70,7 +70,7 @@ def LinearRF(data):
 
     poly = C_Polyhedron(Constraint_System(farkas_constraints))
     point = poly.get_point()
-    print(farkas_constraints)
+
     if point is None:
         response.set_response(found=False,
                               info="Farkas Polyhedron is empty.")
@@ -87,9 +87,9 @@ def LinearRF(data):
 
 
 def LexicographicRF(data):
-    response = termination.Result()
+    response = Result()
     transitions = data["transitions"]
-    # print(transitions)
+
     rfs = {}
     no_ranked_trs = transitions
     i = 0
@@ -129,9 +129,9 @@ def LexicographicRF(data):
 
 
 def BMSRF(data):
-    response = termination.Result()
+    response = Result()
     trans = data["transitions"]
-    # print(transitions)
+
     rfs = {}
     config = data["inner_alg"].copy()
     i = 0
@@ -172,7 +172,7 @@ def BMSRF(data):
 
 
 def compute_adfg_QLRF(data):
-    response = termination.Result()
+    response = Result()
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
@@ -263,7 +263,7 @@ def compute_adfg_QLRF(data):
 
 
 def compute_bg_QLRF(data):
-    response = termination.Result()
+    response = Result()
     transitions = data["transitions"]
 
     dim = _max_dim(transitions)
@@ -380,7 +380,7 @@ def compute_bms_NLRF(data):
     transition 0 of data["transitions"] is
     the transition where we look for NLRF
     """
-    response = termination.Result()
+    response = Result()
     transitions = data["transitions"][1::]
     tr = data["transitions"][0]
     max_d = data["max_depth"] + 1
