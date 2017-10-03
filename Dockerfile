@@ -6,4 +6,4 @@ RUN apt-get -y update \
  && apt-get -y install git emacs
 ADD https://api.github.com/repos/jesusjda/pyRankFinder/git/refs/heads/master version.json
 RUN git clone https://github.com/jesusjda/pyRankFinder
-RUN cd pyRankFinder && ./docker.sh
+RUN cd pyRankFinder && ./docker.sh -p=2
