@@ -103,12 +103,12 @@ fi
 
 apt-get -y update
 install_all libppl-dev graphviz
-if [ "$P2" == "true" ]; do
+if [ "$P2" == "true" ]; then
     install_all -y python python-dev python-nose python-pip
     install_module 2
 fi
 
-if [ "$P3" == "true" ]; do
+if [ "$P3" == "true" ]; then
     install_all -y python3 python3-dev python3-nose python3-pip
     install_module 3
 fi
