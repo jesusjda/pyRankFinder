@@ -36,11 +36,9 @@ install_module(){
 
 
 basedir=$(dirname "$(readlink -f "$0" )")
-FORCE=false
 pvers="false"
 P3=false
 P2=false
-LOCAL=false
 for i in "$@"; do
     case $i in
 	-p=*|--python=*)
@@ -53,27 +51,11 @@ for i in "$@"; do
 	    fi
 	    shift 
 	    ;;
-	-f|--force)
-	    FORCE=true
-	    shift 
-	    ;;
-	-l|--local)
-	    LOCAL=true
-	    shift
-	    ;;
 	*)
 	    >&2 cat  <<EOF 
 ERROR: docker.sh [OPTIONS]
 
 [OPTIONS]
-
-    -f | --force ) 
-                   force default values: Install python dependencies, 
-                   but no install own modules like pyLPi.
-
-    -l | --local ) 
-                   Install local version with local modifications.
-                   Otherwise, git repository version will be installed.
 
     -p=[VERSION] | --python=[VERSION] )
                    Install only for python version number [VERSION].
@@ -86,6 +68,10 @@ EOF
     esac
 done
 
+if [ "$P3" == "false" -a "$P2" == "false"]; then
+    echo "ERROR at least one python use: -p=[VERSION]" >&2
+    exit -1
+fi
 # INSTALL ppl
 install_all libgmp-dev libmpfr-dev libmpc-dev
 if exists ppl-config; then
