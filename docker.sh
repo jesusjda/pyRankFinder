@@ -7,7 +7,8 @@ exists(){
 
 install_apt(){
     if exists $1; then
-	;;
+	echo $1
+	true
     else
 	apt-get install -y $1
     fi
@@ -31,6 +32,11 @@ install_module(){
     python$vers -m pip install arpeggio
     python$vers -m pip install git+https://github.com/jesusjda/pyParser.git#egg=pyParser
     python$vers -m pip install git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination
+}
+
+install_easyinterface(){
+
+
 }
 basedir=$(dirname "$(readlink -f "$0" )")
 FORCE=false
