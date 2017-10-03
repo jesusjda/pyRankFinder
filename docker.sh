@@ -34,10 +34,7 @@ install_module(){
     python$vers -m pip install git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination
 }
 
-install_easyinterface(){
 
-
-}
 basedir=$(dirname "$(readlink -f "$0" )")
 FORCE=false
 pvers="false"
