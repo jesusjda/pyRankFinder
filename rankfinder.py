@@ -75,7 +75,7 @@ def Main(argv):
 
 def rank(config, CFGs, algs):
     response = termination.Result()
-    rfs = []
+    rfs = {}
     fail = False
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
@@ -89,22 +89,17 @@ def rank(config, CFGs, algs):
             if not R.found():
                 fail = True
                 break
-            rfs.append(R.get("rfs"))
+            merge_rfs(rfs, R.get("rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
-                if sccd > 0:
-                    CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
-                             sccd-1)] + CFGs
-                else:
-
-                    fail = True
-                    break
+                CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
+                         sccd)] + CFGs
     if fail:
         response.set_response(found=False)
     else:
         response.set_response(found=True)
     response.set_response(rfs=rfs,
-                          pending_trs=pending_trs)
+                          pending_cfgs=CFGs)
     return response
 
 
@@ -159,6 +154,18 @@ def set_config(data, alg, trans):
         inner_alg = config
 
     return config
+
+
+def merge_rfs(rfs, to_add):
+    new_rfs = rfs
+    for key in to_add:
+        if key in new_rfs:
+            if not isinstance(new_rfs[key], list):
+                new_rfs[key] = [new_rfs[key]]
+            new_rfs[key].append(to_add[key])
+        else:
+            new_rfs[key] = to_add[key]
+    return new_rfs
 
 if __name__ == "__main__":
     Main(sys.argv[1:])
