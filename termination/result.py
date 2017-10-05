@@ -84,7 +84,7 @@ class Result:
             res += " (" + self._data["type"] + ")"
         res += ": "
         if "rfs" in self._data:
-            res += self._rfs2str(self._data["rfs"])
+            res += self._rfs2str(self._data["rfs"], vars_name)
         else:
             res += self._data
         return res

@@ -69,7 +69,7 @@ def Main(argv):
         result = rank(config, [(cfg, config["scc_depth"])],
                       config["algorithms"])
         print(f)
-        print(result)
+        print(result.toString(cfg.get_var_name()))
     return
 
 
@@ -85,7 +85,7 @@ def rank(config, CFGs, algs):
             CFGs_aux = [current_cfg]
         for cfg in CFGs_aux:
             Trans = cfg.get_edges()
-            R = run_algs(config, Trans, algs)
+            R = run_algs(config, algs, Trans, cfg.get_var_name())
             if not R.found():
                 fail = True
                 break
@@ -103,7 +103,7 @@ def rank(config, CFGs, algs):
     return response
 
 
-def run_algs(config, trans, algs):
+def run_algs(config, algs, trans, vars_name):
     response = termination.Result()
     R = None
     f = False
@@ -112,7 +112,7 @@ def run_algs(config, trans, algs):
         try:
             print("Running: " + alg)
             R = termination.run(internal_config)
-            print(R)
+            print(R.toString(vars_name))
             if R.found():
                 if R.get("rfs"):
                     f = True
