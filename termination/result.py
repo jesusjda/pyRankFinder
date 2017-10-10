@@ -1,3 +1,6 @@
+# import eiol
+
+
 class Result:
 
     _data = {}
@@ -72,7 +75,10 @@ class Result:
         sr += "" + str(inh)
         return sr
 
-    def toString(self, vars_name=None):
+    def _trrfs2str(self, tr_rfs, vars_name=None):
+        return "NOT IMPLEMENTED YET"
+
+    def toString(self, vars_name=None, ei=False):
         if self._data["error"]:
             return "ERROR: " + self._data["errormsg"]
 
@@ -87,7 +93,15 @@ class Result:
             res += self._rfs2str(self._data["rfs"], vars_name)
         else:
             res += self._data
+        trres = ""
+        if "tr_rfs" in self._data:
+            trres += self._trrfs2str(self._data["tr_rfs"], vars_name)
+            res += "\n\nTR_RFS:\n" + trres
         return res
 
     def __repr__(self):
         return self.toString()
+
+    
+    def debug(self):
+        return self._data

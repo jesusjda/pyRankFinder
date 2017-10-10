@@ -53,6 +53,7 @@ def LinearRF(data):
     farkas_constraints = []
     # rfs coefficients (result)
     rfs = {}
+    tr_rfs = {}
     # other stuff
     nodeList = {}
     countVar = 0
@@ -100,9 +101,15 @@ def LinearRF(data):
     for node in rfvars:
         rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
                      point.coefficient(rfvars[node][0]))
+    for tr in transitions:
+        tr_rfs[tr["name"]] = {
+            tr["source"]: [rfs[tr["source"]]],
+            tr["target"]: [rfs[tr["target"]]]
+        }
 
     response.set_response(found=True,
                           rfs=rfs,
+                          tr_rfs=tr_rfs,
                           pending_trs=[])
     return response
 
@@ -112,6 +119,7 @@ def LexicographicRF(data):
     transitions = data["transitions"]
 
     rfs = {}
+    tr_rfs = {}
     no_ranked_trs = transitions
     i = 0
     config = data["inner_alg"].copy()
@@ -126,6 +134,7 @@ def LexicographicRF(data):
             response.set_response(found=False,
                                   info=result.get("info"),
                                   rfs=rfs,
+                                  tr_rfs=tr_rfs,
                                   pending_trs=no_ranked_trs)
             return response
         else:
@@ -134,17 +143,25 @@ def LexicographicRF(data):
                 response.set_response(found=False,
                                       info="No decreasing",
                                       rfs=rfs,
+                                      tr_rfs=tr_rfs,
                                       pending_trs=no_ranked_trs)
                 return response
             res_rfs = result.get("rfs")
+            res_tr_rfs = result.get("tr_rfs")
             for node in res_rfs:
                 if not(node in rfs):
                     rfs[node] = []
                 rfs[node].append(res_rfs[node])
+            for tr in res_tr_rfs:
+                if not(tr in tr_rfs):
+                    tr_rfs[tr] = {}
+                for node in res_tr_rfs[tr]:
+                    tr_rfs[tr][node].append(res_rfs[tr][node])
             no_ranked_trs = pending_trs
 
     response.set_response(found=True,
                           rfs=rfs,
+                          tr_rfs=tr_rfs,
                           pending_trs=[])
     return response
 
@@ -208,6 +225,7 @@ def compute_adfg_QLRF(data):
     farkas_constraints = []
     # return objects
     rfs = {}  # rfs coefficients (result)
+    tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
     # other stuff
     nodeList = {}
@@ -275,10 +293,16 @@ def compute_adfg_QLRF(data):
 
         no_ranked = [tr for tr in transitions
                      if point.coefficient(deltas[tr["name"]]) == 0]
+    for tr in transitions:
+        tr_rfs[tr["name"]] = {
+            tr["source"]: [rfs[tr["source"]]],
+            tr["target"]: [rfs[tr["target"]]]
+        }
 
     response.set_response(found=True,
                           info="Found",
                           rfs=rfs,
+                          tr_rfs=tr_rfs,
                           pending_trs=no_ranked)
     return response
 
@@ -300,6 +324,7 @@ def compute_bg_QLRF(data):
     farkas_constraints = []
     # return objects
     rfs = {}  # rfs coefficients (result)
+    tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
     # other stuff
     nodeList = {}
@@ -378,9 +403,15 @@ def compute_bg_QLRF(data):
                 tr["label"] = (tr["label"][:-1] + str(df) +
                                "+" + str(constant) + "==0\n}")
                 no_ranked.append(tr)
+            tr_rfs[tr["name"]] = {
+                tr["source"]: [rfs[tr["source"]]],
+                tr["target"]: [rfs[tr["target"]]]
+            }
+
         response.set_response(found=True,
                               info="found",
                               rfs=rfs,
+                              tr_rfs=tr_rfs,
                               pending_trs=no_ranked)
         return response
     response.set_response(found=False,
@@ -424,6 +455,7 @@ def compute_bms_NLRF(data):
         farkas_constraints = []
         # 0.3 - return objects
         rfs = {}  # rfs coefficients (result)
+        tr_rfs = {}
         no_ranked = []  # transitions sets no ranked by rfs
         # 0.4 - other stuff
         nodeList = {}
@@ -484,7 +516,11 @@ def compute_bms_NLRF(data):
                            for c in rfvars[node][di][1::]],
                           point.coefficient(rfvars[node][di][0]))
                          for di in range(d)]
-
+        for tr in transitions:
+            tr_rfs[tr["name"]] = {
+                tr["source"]: [rfs[tr["source"]]],
+                tr["target"]: [rfs[tr["target"]]]
+            }
         # 3 - update transitions
 
         no_ranked = []
@@ -522,6 +558,7 @@ def compute_bms_NLRF(data):
         response.set_response(found=True,
                               info="found",
                               rfs=rfs,
+                              tr_rfs=tr_rfs,
                               pending_trs=no_ranked)
         return response
 

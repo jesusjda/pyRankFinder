@@ -31,6 +31,8 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
+    argParser.add_argument("--ei-out", required=False, default=False,
+                           help="Shows the output supporting ei")
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different_template", action='store_true',
                            help="Use different templates on each node")
@@ -112,6 +114,7 @@ def run_algs(config, algs, trans, vars_name):
         try:
             print("Running: " + alg)
             R = termination.run(internal_config)
+            print(R.debug())
             print(R.toString(vars_name))
             if R.found():
                 if R.get("rfs"):
