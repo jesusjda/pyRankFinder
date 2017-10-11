@@ -76,6 +76,10 @@ def Main(argv):
                       config["algorithms"])
         OM.printif(1, f)
         OM.printif(0, result.toString(cfg.get_var_name()))
+        tr_rfs = result.get("tr_rfs")
+        OM.printf(tr_rfs)
+        for tr in tr_rfs:
+            OM.print_rf_tr(cfg, tr, tr_rfs[tr])
     OM.show_output()
     return
 
@@ -83,6 +87,7 @@ def Main(argv):
 def rank(config, CFGs, algs):
     response = termination.Result()
     rfs = {}
+    tr_rfs = {}
     fail = False
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
@@ -97,6 +102,7 @@ def rank(config, CFGs, algs):
                 fail = True
                 break
             merge_rfs(rfs, R.get("rfs"))
+            merge_rfs(tr_rfs, R.get("tr_rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
                 CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
@@ -106,6 +112,7 @@ def rank(config, CFGs, algs):
     else:
         response.set_response(found=True)
     response.set_response(rfs=rfs,
+                          tr_rfs=tr_rfs,
                           pending_cfgs=CFGs)
     return response
 
@@ -133,6 +140,7 @@ def run_algs(config, algs, trans, vars_name):
         response.set_response(found=True,
                               info="Found",
                               rfs=R.get("rfs"),
+                              tr_rfs=R.get("tr_rfs"),
                               pending_trs=pen)
         return response
 

@@ -9,6 +9,7 @@ from .output import Output_Manager as OM
 
 
 def run(data):
+    OM.printif(3, data)
     config = data.copy()
     alg = config["algorithm"]
     if alg == "lex":
@@ -344,6 +345,7 @@ def compute_bg_QLRF(data):
             countVar += shifter
     countVar += Nvars + 1
     size_rfs = countVar
+
     OM.printif(3, "rfs", rfvars, countVar)
     for tr in transitions:
         rf_s = rfvars[tr["source"]]

@@ -16,20 +16,31 @@ class Output:
         self._ei_actions = eiol.eiactions()
 
     def printf(self, *kwargs):
-        self.printif(0, kwargs)
+        self.printif(0, *kwargs)
 
     def printif(self, verbosity, *kwargs):
         msg = ""
         for m in kwargs:
-            msg += m
+            msg += str(m)
         if self.verbosity >= verbosity:
             if self.ei:
                 c = eiol.content(format="text", text=msg)
                 self._ei_commands.append(eiol.command_print(content=c))
             else:
                 print(kwargs)
+
+    def print_rf_tr(self, cfg, tr_name, rfs):
+        msg = "HI"  # rfs_tostring(rfs)
+        if self.ei:
+            c = eiol.content(format="text", text=msg)
+            numl = str(cfg.get_edge(tr_name)["line"])
+            d = {"from": numl}
+            l = eiol.line(**d)
+            ls = eiol.lines(line=l)
+            self._ei_commands.append(eiol.command_addinlinemarker(lines=ls,
+                                                                  content=c))
         else:
-            print("NO V", kwargs)
+            print(tr_name + ":\n\t" + msg)
 
     def show_output(self):
         if self.ei:
