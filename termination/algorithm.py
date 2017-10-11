@@ -5,6 +5,7 @@ from ppl import Constraint
 from lpi import C_Polyhedron
 from . import farkas
 from .result import Result
+from .output import Output_Manager as OM
 
 
 def run(data):
@@ -189,9 +190,9 @@ def BMSRF(data):
                 if bmsresult.found():
                     bms_rfs = bmsresult.get("rfs")
                     for key in bms_rfs:
-                        print(key)
+                        OM.printf(2, key)
                     # merge rfs
-                    print(result, bmsresult, "Exito")
+                    Om.printf(2, result, bmsresult, "Exito")
                     return response
                 else:
                     return bmsresult
@@ -243,12 +244,12 @@ def compute_adfg_QLRF(data):
             rfvars[tr["target"]] = f
             countVar += shifter
     countVar += Nvars + 1
-    # print("rfs", rfvars, countVar)
+    OM.printif(3, "rfs", rfvars, countVar)
     # 1.2 - store delta variables
     deltas = {transitions[i]["name"]: Variable(countVar + i)
               for i in range(len(transitions))}
     countVar += len(transitions)
-    # print("deltas", deltas, countVar)
+    OM.printif(3, "deltas", deltas, countVar)
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
@@ -256,12 +257,12 @@ def compute_adfg_QLRF(data):
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        # print("lambdas", lambdas, countVar)
+        OM.printif(3, "lambdas", lambdas, countVar)
         farkas_constraints += farkas.f(tr["tr_polyhedron"], lambdas,
                                        rf_s, 0)
 
         # f_s - f_t >= delta[tr]
-        # print("lambdas", lambdas, countVar)
+        OM.printif(3, "lambdas", lambdas, countVar)
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
         farkas_constraints += farkas.df(tr["tr_polyhedron"], lambdas,
@@ -343,7 +344,7 @@ def compute_bg_QLRF(data):
             countVar += shifter
     countVar += Nvars + 1
     size_rfs = countVar
-    # print("rfs", rfvars, countVar)
+    OM.printif(3, "rfs", rfvars, countVar)
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
@@ -351,14 +352,14 @@ def compute_bg_QLRF(data):
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        # print("lambdas", lambdas, countVar)
+        OM.printif(3, "lambdas", lambdas, countVar)
         farkas_constraints += farkas.f(tr["tr_polyhedron"], lambdas,
                                        rf_s, 0)
 
         # f_s - f_t >= 1
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        # print("lambdas", lambdas, countVar)
+        OM.printif(3, "lambdas", lambdas, countVar)
         farkas_constraints += farkas.df(tr["tr_polyhedron"], lambdas,
                                         rf_s, rf_t, 0)
     poly = C_Polyhedron(Constraint_System(farkas_constraints))
@@ -437,10 +438,10 @@ def compute_bms_NLRF(data):
     tr = data["transitions"][0]
     max_d = data["max_depth"] + 1
     min_d = data["min_depth"]
-    # print("compute_bms_NLRF", data)
+    OM.printif(3, "compute_bms_NLRF", data)
 
     for d in range(min_d, max_d):
-        print("d = ", d)
+        OM.printif(1, "d = ", d)
         # 0 - create variables
         dim = _max_dim(data["transitions"])
         Nvars = int(dim / 2)

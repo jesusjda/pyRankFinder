@@ -35,6 +35,7 @@ install_dependencies(){
 
 install_module(){
     vers=$1
+    python$vers -m pip install git+https://github.com/abstools/easyinterface@develop#egg=eiol&subdirectory=outputlanguage/python
     python$vers -m pip install git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi
     python$vers -m pip install git+https://github.com/jesusjda/pyParser.git#egg=pyParser
     python$vers -m pip install git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination

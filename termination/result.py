@@ -1,6 +1,3 @@
-# import eiol
-
-
 class Result:
 
     _data = {}
@@ -102,6 +99,5 @@ class Result:
     def __repr__(self):
         return self.toString()
 
-    
     def debug(self):
         return self._data

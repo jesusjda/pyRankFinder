@@ -4,6 +4,7 @@ import traceback
 import getopt
 import argparse
 import termination
+from termination.output import Output_Manager as OM
 from genericparser import GenericParser
 from genericparser.Cfg import Cfg
 
@@ -31,7 +32,7 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
-    argParser.add_argument("--ei-out", required=False, default=False,
+    argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different_template", action='store_true',
@@ -49,12 +50,15 @@ def setArgumentParser():
 def Main(argv):
     argParser = setArgumentParser()
     args = argParser.parse_args(argv)
-    config = vars(args)
+    OM.verbosity = args.verbosity
+    OM.ei = args.ei_out
     if args.version:
         print(_name + " version: " + _version)
         return
+    config = vars(args)
     prs = GenericParser()
     files = args.files
+
     for f in files:
         try:
             if args.dotDestination:
@@ -70,8 +74,9 @@ def Main(argv):
         config["vars_name"] = cfg.get_var_name()
         result = rank(config, [(cfg, config["scc_depth"])],
                       config["algorithms"])
-        print(f)
-        print(result.toString(cfg.get_var_name()))
+        OM.printif(1, f)
+        OM.printif(0, result.toString(cfg.get_var_name()))
+    OM.show_output()
     return
 
 
@@ -112,10 +117,10 @@ def run_algs(config, algs, trans, vars_name):
     for alg in algs:
         internal_config = set_config(config, alg, trans)
         try:
-            print("Running: " + alg)
+            OM.printif(1, "Running: " + alg)
             R = termination.run(internal_config)
-            print(R.debug())
-            print(R.toString(vars_name))
+            OM.printif(2, R.debug())
+            OM.printif(1, R.toString(vars_name))
             if R.found():
                 if R.get("rfs"):
                     f = True
