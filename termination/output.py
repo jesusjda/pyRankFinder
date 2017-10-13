@@ -44,8 +44,8 @@ class Output:
 
     def show_output(self):
         if self.ei:
-            root = eiol.create_output(eicommands=self._ei_commands)
-            print(ET.tostring(root, encoding='utf8', method='xml'))
+            # root = eiol.create_output(eicommands=self._ei_commands)
+            print(ET.tostring(self._ei_commands, encoding='utf8', method='xml'))
         return
 
 Output_Manager = Output()

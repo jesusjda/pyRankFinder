@@ -26,19 +26,23 @@ install_dependencies(){
     vers=$1
     python$vers -m pip install z3 'Cython==0.26' virtualenv
     python$vers -m pip install cysignals 
-    python$vers -m pip install git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0#egg=gmpy2
-    python$vers -m pip install git+https://github.com/videlec/pplpy.git#egg=pplpy
+    python$vers -m pip install "git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0#egg=gmpy2"
+    python$vers -m pip install "git+https://github.com/videlec/pplpy.git#egg=pplpy"
     python$vers -m pip install pydot pydotplus
     python$vers -m pip install networkx
     python$vers -m pip install arpeggio
 }
 
 install_module(){
+    flags=""
+    if [ "$UP" == "true" ]; then
+        flags=" --upgrade "
+    fi
     vers=$1
-    python$vers -m pip install git+https://github.com/abstools/easyinterface@develop#egg=eiol&subdirectory=outputlanguage/python
-    python$vers -m pip install git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi
-    python$vers -m pip install git+https://github.com/jesusjda/pyParser.git#egg=pyParser
-    python$vers -m pip install git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination
+    python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface@develop#egg=eiol&subdirectory=outputlanguage/python"
+    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi"
+    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=pyParser"
+    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
 }
 
 

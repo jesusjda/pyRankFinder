@@ -63,7 +63,7 @@ def Main(argv):
         try:
             if args.dotDestination:
                 dot = os.path.join(args.dotDestination, f + ".dot")
-                cfg = prs.parse(f, dot=dot)
+                cfg = prs.parse(f, dotgraph=dot)
                 os.system("xdot " + args.dotDestination + " &")
             else:
                 cfg = prs.parse(f)
