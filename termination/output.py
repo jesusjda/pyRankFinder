@@ -15,6 +15,15 @@ class Output:
         self._ei_commands = eiol.eicommands()
         self._ei_actions = eiol.eiactions()
 
+    def restart(self, dest=None):
+        self.printf(">"+dest)
+        if dest is None:
+            _ei_commands = eiol.eicommands()
+            _ei_actions = eiol.eiactions()
+        else:
+            _ei_commands = eiol.eicommands(dest=dest)
+            _ei_actions = eiol.eiactions(dest=dest)
+
     def printf(self, *kwargs):
         self.printif(0, *kwargs)
 
