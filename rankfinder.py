@@ -60,11 +60,25 @@ def Main(argv):
     files = args.files
 
     for f in files:
+        aux_p = f.split('/')
+        aux_c = len(aux_p) - 1
+        while aux_c > 0:
+            if aux_p[aux_c] == "examples":
+                break
+            if aux_p[aux_c] == "User_Projects":
+                break 
+            aux_c -= 1
+        r = '/'.join(aux_p[aux_c:])
+
+        OM.restart(dest=r)
+        OM.show_output()
         try:
             if args.dotDestination:
-                dot = os.path.join(args.dotDestination, f + ".dot")
+                s = r.replace('/','_')
+                dot = os.path.join(args.dotDestination, s + ".dot")
+                OM.printif(2, dot)
                 cfg = prs.parse(f, dotgraph=dot)
-                os.system("xdot " + args.dotDestination + " &")
+                # os.system("xdot " + args.dotDestination + " &")
             else:
                 cfg = prs.parse(f)
         except Exception as e:
@@ -80,7 +94,7 @@ def Main(argv):
         OM.printf(tr_rfs)
         for tr in tr_rfs:
             OM.print_rf_tr(cfg, tr, tr_rfs[tr])
-    OM.show_output()
+        OM.show_output()
     return
 
 
