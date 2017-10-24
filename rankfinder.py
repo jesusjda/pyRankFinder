@@ -66,7 +66,7 @@ def Main(argv):
             if aux_p[aux_c] == "examples":
                 break
             if aux_p[aux_c] == "User_Projects":
-                break 
+                break
             aux_c -= 1
         r = '/'.join(aux_p[aux_c:])
 
@@ -74,7 +74,7 @@ def Main(argv):
         OM.show_output()
         try:
             if args.dotDestination:
-                s = r.replace('/','_')
+                s = r.replace('/', '_')
                 dot = os.path.join(args.dotDestination, s + ".dot")
                 OM.printif(2, dot)
                 cfg = prs.parse(f, dotgraph=dot)
