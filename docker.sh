@@ -136,7 +136,9 @@ fi
 
 if [ "$P2" == "true" ]; then
     install_all -y python python-dev python-nose python-pip
-    install_dependencies 2
+    if [ "$UP" == "false" ]; then
+	install_dependencies 2
+    fi
     install_module 2
 fi
 

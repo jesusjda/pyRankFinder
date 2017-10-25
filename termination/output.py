@@ -16,13 +16,12 @@ class Output:
         self._ei_actions = eiol.eiactions()
 
     def restart(self, dest=None):
-        self.printf(">"+dest)
         if dest is None:
-            _ei_commands = eiol.eicommands()
-            _ei_actions = eiol.eiactions()
+            self._ei_commands = eiol.eicommands()
+            self._ei_actions = eiol.eiactions()
         else:
-            _ei_commands = eiol.eicommands(dest=dest)
-            _ei_actions = eiol.eiactions(dest=dest)
+            self._ei_commands = eiol.eicommands(dest=dest)
+            self._ei_actions = eiol.eiactions(dest=dest)
 
     def printf(self, *kwargs):
         self.printif(0, *kwargs)
@@ -51,10 +50,28 @@ class Output:
         else:
             print(tr_name + ":\n\t" + msg)
 
+    def writefile(self, path, content):
+        if self.ei:
+            aux_p = path.split('/')
+            aux_c = len(aux_p) - 1
+            while aux_c > 0:
+                if aux_p[aux_c] == "examples":
+                    break
+                if aux_p[aux_c] == "User_Projects":
+                    break
+                aux_c -= 1
+            aux_t = ["translations"] + aux_p[aux_c+1:]
+            r = '/'.join(aux_t)
+            c = eiol.command_writefile(overwrite="true",
+                                       text=content,
+                                       filename=str(r))
+            self._ei_commands.append(c)
+
     def show_output(self):
         if self.ei:
             # root = eiol.create_output(eicommands=self._ei_commands)
-            print(ET.tostring(self._ei_commands, encoding='utf8', method='xml'))
+            print(ET.tostring(self._ei_commands,
+                              encoding='utf8', method='xml'))
         return
 
 Output_Manager = Output()
