@@ -1,4 +1,14 @@
 #!/bin/bash
+install_apt(){
+    apt-get install -y $@
+
+}
+
+install_all(){
+    if [ "$UnixPKG" == "true" ]; then
+	install_apt $@
+    fi
+}
 
 install_t2(){
     install_all mono-complete mono-xbuild fsharp
