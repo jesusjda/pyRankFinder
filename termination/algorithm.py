@@ -403,8 +403,8 @@ def compute_bg_QLRF(data):
             newpoly = C_Polyhedron(cons)
             if not newpoly.is_empty():
                 tr["tr_polyhedron"] = newpoly
-                tr["label"] = (tr["label"][:-1] + str(df) +
-                               "+" + str(constant) + "==0\n}")
+                #tr["label"] = (tr["label"][:-1] + str(df) +
+                #               "+" + str(constant) + "==0\n}")
                 no_ranked.append(tr)
             tr_rfs[tr["name"]] = {
                 tr["source"]: [rfs[tr["source"]]],
@@ -443,7 +443,7 @@ def compute_bms_NLRF(data):
     OM.printif(3, "compute_bms_NLRF", data)
 
     for d in range(min_d, max_d):
-        OM.printif(1, "d = ", d)
+        # OM.printif(3, "d = ", d)
         # 0 - create variables
         dim = _max_dim(data["transitions"])
         Nvars = int(dim / 2)

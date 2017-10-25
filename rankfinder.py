@@ -111,6 +111,8 @@ def rank(config, CFGs, algs):
             CFGs_aux = [current_cfg]
         for cfg in CFGs_aux:
             Trans = cfg.get_edges()
+            if len(Trans) < 1:
+                continue
             R = run_algs(config, algs, Trans, cfg.get_var_name())
             if not R.found():
                 fail = True
@@ -135,10 +137,15 @@ def run_algs(config, algs, trans, vars_name):
     response = termination.Result()
     R = None
     f = False
+    trs = ""
+    for t in trans:
+        trs += t["name"]+","
+    OM.printif(1, "Analyzing transitions: "+trs)
+           
     for alg in algs:
         internal_config = set_config(config, alg, trans)
         try:
-            OM.printif(1, "Running: " + alg)
+            OM.printif(1, "-> with: " + alg)
             R = termination.run(internal_config)
             OM.printif(2, R.debug())
             OM.printif(1, R.toString(vars_name))
