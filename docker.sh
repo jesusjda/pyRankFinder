@@ -33,7 +33,14 @@ install_module(){
         flags=" --upgrade "
     fi
     vers=$1
-    python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
+    mkdir -p /tmp/pyeiol
+    pushd /tmp/pyeiol
+    git clone https://github.com/abstools/easyinterface.git .
+    git checkout develop
+    cd ./outputlanguage/python
+    python$vers -m pip install $flags .
+    popd
+    # python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
     python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi"
     python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=pyParser"
     python$vers -m pip install $flags "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
@@ -72,7 +79,7 @@ install_t2(){
     # Get required packages via NuGet (may need to import certificates first):
     mozroots --import --sync
     pushd "$T2DIR/src"
-    mono nuget restore
+    mono $NUGET restore
     chmod +x packages/FsLexYacc.*/build/*exe
     popd
 
