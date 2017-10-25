@@ -46,48 +46,6 @@ install_module(){
     python$vers -m pip install $flags "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
 }
 
-install_t2(){
-    install_all mono-complete mono-xbuild fsharp
-    Z3DIR=/opt/tools/z3
-    T2DIR=/opt/tools/t2
-    NUGET=/opt/tools/nuget.exe
-
-    # Build Z3
-    mkdir -p $Z3DIR
-    mkdir -p $T2DIR
-    pushd $Z3DIR
-    git clone https://bitbucket.org/spacer/code
-    cd code
-    git checkout spacer-t2
-    ./configure
-    cd build
-    make
-    popd
-    
-    # Install nuget
-    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe > $NUGET
-
-    # Build .NET bindings for z3
-    pushd $Z3DIR"/code/src/api/dotnet/"
-    xbuild Microsoft.Z3.csproj
-    popd
-
-    # Update z3 and its .NET bindings in the T2 source tree:
-    cp "$Z3DIR/src/api/dotnet/obj/Debug/Microsoft.Z3.*" "$T2DIR/src/"
-    cp "$Z3DIR/build/libz3.*" "$T2DIR/src/"
-
-    # Get required packages via NuGet (may need to import certificates first):
-    mozroots --import --sync
-    pushd "$T2DIR/src"
-    mono $NUGET restore
-    chmod +x packages/FsLexYacc.*/build/*exe
-    popd
-
-    # Build T2, Release configuration:
-    pushd "$T2DIR/src" && xbuild /property:Configuration=Release && popd
-
-    pushd "$T2DIR/test" && mono "$T2DIR/src/bin/Release/T2.exe" -tests
-}
 
 
 basedir=$(dirname "$(readlink -f "$0" )")
@@ -95,7 +53,6 @@ pvers="false"
 P3=false
 P2=false
 LOCAL=false
-T2=false
 UP=false
 UnixPKG=true
 for i in "$@"; do
@@ -116,10 +73,6 @@ for i in "$@"; do
 	    ;;
 	-l|--local)
 	    LOCAL=true
-	    shift
-	    ;;
-	-t2|--t2)
-	    T2=true
 	    shift
 	    ;;
 	-up|--update)
@@ -195,8 +148,4 @@ if [ "$P3" == "true" ]; then
     install_all -y python3 python3-dev python3-nose python3-pip
     install_dependencies 3
     install_module 3
-fi
-
-if [ "$T2" == "true" ]; then
-    install_t2
 fi
