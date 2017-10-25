@@ -1,4 +1,4 @@
-#!/bin/bash
+exi#!/bin/bash
 
 
 exists(){
@@ -40,14 +40,15 @@ install_module(){
 }
 
 install_t2(){
-    install_all build-essential python mono-complete mono-xbuild fsharp
+    install_all mono-complete mono-xbuild fsharp
     Z3DIR=/opt/tools/z3
     T2DIR=/opt/tools/t2
     NUGET=/opt/tools/nuget.exe
 
     # Build Z3
-    mkdir -p "$Z3DIR"
-    pushd "$Z3DIR"
+    mkdir -p $Z3DIR
+    mkdir -p $T2DIR
+    pushd $Z3DIR
     git clone https://bitbucket.org/spacer/code
     cd code
     git checkout spacer-t2
@@ -57,10 +58,10 @@ install_t2(){
     popd
     
     # Install nuget
-    wget https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -O $NUGET
+    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe > $NUGET
 
     # Build .NET bindings for z3
-    pushd "$Z3DIR/code/src/api/dotnet/"
+    pushd $Z3DIR"/code/src/api/dotnet/"
     xbuild Microsoft.Z3.csproj
     popd
 
