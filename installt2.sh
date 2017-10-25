@@ -1,4 +1,5 @@
 #!/bin/bash
+UnixPKG=true
 install_apt(){
     apt-get install -y $@
 
@@ -11,7 +12,7 @@ install_all(){
 }
 
 install_t2(){
-    install_all mono-complete mono-xbuild fsharp
+    install_all build-essential python mono-complete mono-xbuild fsharp
     Z3DIR=/opt/tools/z3
     T2DIR=/opt/tools/t2
     NUGET=/opt/tools/nuget.exe
