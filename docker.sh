@@ -1,4 +1,4 @@
-exi#!/bin/bash
+#!/bin/bash
 
 
 exists(){
