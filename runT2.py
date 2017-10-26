@@ -1,4 +1,6 @@
 import os
+from subprocess import Popen
+from subprocess import PIPE
 import sys
 import getopt
 import argparse
