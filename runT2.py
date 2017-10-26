@@ -46,8 +46,6 @@ def setArgumentParser():
 def Main(argv):
     argParser = setArgumentParser()
     args = argParser.parse_args(argv)
-    OM.verbosity = args.verbosity
-    OM.ei = args.ei_out
     if args.version:
         print("version: 1.0")
         return
@@ -65,14 +63,15 @@ def Main(argv):
             aux_c -= 1
         r = '/'.join(aux_p[aux_c:])
 
-        OM.restart(dest=r)
-
         # smt2 to T2
         ps = Parser_smt2.Parser_smt2()
         t2program,err = ps.toT2(f)
         if err is not None and err != "":
             raise Exception(err)
-        OM.printif(2, t2program)
+        printf("###############################")
+        printf(f)
+        printf("###############################")
+        printf(t2program)
         tmpfile = os.path.join(config["tmpdir"], aux_p[-1])
         with open(tmpfile, "w") as tf:
             tf.write(t2program)
@@ -84,10 +83,8 @@ def Main(argv):
         output, err = pipe.communicate()
         if err is not None and err != "":
             raise Exception(err)
-        OM.printf(output)
-        OM.printif(1, f)
-        OM.printif(0, "")
-        OM.show_output()
+        printf("###############################")
+        printf(output)
     return
 
 
