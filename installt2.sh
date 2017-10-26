@@ -55,7 +55,8 @@ install_t2(){
 
     # Update z3 and its .NET bindings in the T2 source tree:
     cp $Z3DIR/code/src/api/dotnet/obj/Debug/Microsoft.Z3.* $T2DIR/src/
-    cp "$Z3DIR/code/build/libz3.*" "$T2DIR/src/"
+    cp $Z3DIR/code/build/libz3.* $T2DIR/src/
+    
 
     # Get required packages via NuGet (may need to import certificates first):
     cert-sync /etc/ssl/certs/ca-certificates.crt
