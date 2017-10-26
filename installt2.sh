@@ -25,7 +25,7 @@ install_t2(){
     NUGET=/opt/tools/nuget.exe
 
     # Install nuget
-    curl https://dist.nuget.org/win-x86-commandline/v4.1.0/nuget.exe > $NUGET
+    curl -o $NUGET -s -N https://dist.nuget.org/win-x86-commandline/v4.1.0/nuget.exe
 
     git clone https://github.com/mmjb/T2.git $T2DIR
 
