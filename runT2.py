@@ -68,10 +68,10 @@ def Main(argv):
         t2program,err = ps.toT2(f)
         if err is not None and err != "":
             raise Exception(err)
-        printf("###############################")
-        printf(f)
-        printf("###############################")
-        printf(t2program)
+        print("###############################")
+        print(f)
+        print("###############################")
+        print(t2program)
         tmpfile = os.path.join(config["tmpdir"], aux_p[-1])
         with open(tmpfile, "w") as tf:
             tf.write(t2program)
@@ -83,8 +83,8 @@ def Main(argv):
         output, err = pipe.communicate()
         if err is not None and err != "":
             raise Exception(err)
-        printf("###############################")
-        printf(output)
+        print("###############################")
+        print(output)
     return
 
 
