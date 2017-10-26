@@ -1,7 +1,7 @@
 #!/bin/bash
 UnixPKG=true
 install_apt(){
-    apt-get install -y $@
+    apt-get install -f -y $@
 
 }
 
