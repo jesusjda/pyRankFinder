@@ -8,6 +8,7 @@ RUN apt-get -y update \
 RUN mkdir /opt/tools && chmod -R 755 /opt/tools
 ADD https://api.github.com/repos/jesusjda/pyRankFinder/git/refs/heads/master version1.json
 ENV PYRANKFINDER_HOME /opt/tools/pyRankFinder
+ENV T2_HOME /opt/tools/t2
 RUN git clone https://github.com/jesusjda/pyRankFinder /opt/tools/pyRankFinder
 RUN cd /opt/tools/pyRankFinder && ./docker.sh -p=2
 RUN cd /opt/tools/pyRankFinder && ./installt2.sh
