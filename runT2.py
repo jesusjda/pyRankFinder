@@ -35,6 +35,11 @@ def setArgumentParser():
                            help="File to be analysed.")
     argParser.add_argument("-a", "--algorithms", choices=algorithms, nargs='+',
                            required=True, help="Algorithms to be apply.")
+    argParser.add_argument("-t2", "--t2home", default="/opt/tools/t2",
+                           help="T2_HOME")
+    argParser.add_argument("-td", "--tmpdir", default="/tmp/t2stuff",
+                           help="Tmp dir")
+    
     return argParser
 
 
@@ -67,8 +72,19 @@ def Main(argv):
         t2program,err = ps.toT2(f)
         if err is not None and err != "":
             raise Exception(err)
-        # run T2
-        print(t2program)
+        OM.printif(2, t2program)
+        tmpfile = os.path.join(config["tmpdir"], aux_p[-1])
+        with open(tmpfile, "w") as tf:
+            tf.write(t2program)
+        # run T2 
+        t2path = os.path.join(config["t2home"], 'src/bin/Release/T2.exe')
+        pipe = Popen([t2path, '-input_t2', tmpfile,
+                      '-termination', '-print_proof'],
+                     stdout=PIPE, stderr=PIPE)
+        output, err = pipe.communicate()
+        if err is not None and err != "":
+            raise Exception(err)
+        OM.printf(output)
         OM.printif(1, f)
         OM.printif(0, "")
         OM.show_output()
