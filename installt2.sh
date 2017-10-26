@@ -18,7 +18,7 @@ install_t2(){
     
     # Install dependencies
     apt-get update
-    # install_all build-essential python mono-devel fsharp ca-certificates-mono 
+    install_all build-essential python mono-devel fsharp ca-certificates-mono 
 
     Z3DIR=/opt/tools/z3
     T2DIR=/opt/tools/t2
