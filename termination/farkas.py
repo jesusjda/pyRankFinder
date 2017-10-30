@@ -12,6 +12,23 @@ def LRF(polyhedron, lambdas, f1, f2):
     return constraints
 
 
+def QNLRF(polyhedron, lambdas, fs, ft):
+    """
+    fs[0] - ft[0] >= 1
+    (fs[i] - ft[i]) + fs[i-1] >= 1
+    """
+    # fs[0] - ft[0] >= 1
+    constraints = df(polyhedron, lambdas[0], fs[0], ft[0], 1)
+    # (fs[i] - ft[i]) + fs[i-1] >= 1
+    for i in range(1, len(fs)):
+        fx = [fs[i][j] + fs[i-1][j]
+              for j in range(len(fs[i]))]
+        fxp = ft[i]
+        constraints += df(polyhedron, lambdas[i],
+                          fx, fxp, 1)
+    return constraints
+
+
 def NLRF(polyhedron, lambdas, fs, ft):
     """
     fs[0] - ft[0] >= 1
@@ -19,13 +36,8 @@ def NLRF(polyhedron, lambdas, fs, ft):
     fs[d] >= 0
     """
     # fs[0] - ft[0] >= 1
-    constraints = df(polyhedron, lambdas[0], fs[0], ft[0], 1)
     # (fs[i] - ft[i]) + fs[i-1] >= 1
-    for i in range(1, len(fs)):
-        dff = []
-        for j in range(len(fs[i])):
-            dff.append(fs[i][j] - ft[i][j] + fs[i-1][j])
-        constraints += f(polyhedron, lambdas[i], dff, 1)
+    constraints = QNLRF(polyhedron, lambdas, fs, ft)
     # fs[d] >= 0
     constraints += f(polyhedron, lambdas[-1], fs[-1], 0)
     return constraints

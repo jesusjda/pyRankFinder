@@ -76,9 +76,7 @@ def Main(argv):
             if args.dotDestination:
                 s = r.replace('/', '_')
                 dot = os.path.join(args.dotDestination, s + ".dot")
-                OM.printif(2, dot)
                 cfg = prs.parse(f, dotgraph=dot)
-                # os.system("xdot " + args.dotDestination + " &")
             else:
                 cfg = prs.parse(f)
         except Exception as e:
@@ -88,12 +86,12 @@ def Main(argv):
         config["vars_name"] = cfg.get_var_name()
         result = rank(config, [(cfg, config["scc_depth"])],
                       config["algorithms"])
-        OM.printif(1, f)
-        OM.printif(0, result.toString(cfg.get_var_name()))
+        OM.printf(f)
+        OM.printf(result.toString(cfg.get_var_name()))
         tr_rfs = result.get("tr_rfs")
-        OM.printf(tr_rfs)
+        OM.printif(3, tr_rfs)
         for tr in tr_rfs:
-            OM.print_rf_tr(cfg, tr, tr_rfs[tr])
+            OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
         OM.show_output()
     return
 
@@ -141,7 +139,7 @@ def run_algs(config, algs, trans, vars_name):
     for t in trans:
         trs += t["name"]+","
     OM.printif(1, "Analyzing transitions: "+trs)
-           
+
     for alg in algs:
         internal_config = set_config(config, alg, trans)
         try:

@@ -27,17 +27,20 @@ class Output:
         self.printif(0, *kwargs)
 
     def printif(self, verbosity, *kwargs):
-        msg = ""
-        for m in kwargs:
-            msg += str(m)
-        if self.verbosity >= verbosity:
-            if self.ei:
-                c = eiol.content(format="text", text=msg)
-                self._ei_commands.append(eiol.command_print(content=c))
-            else:
-                print(kwargs)
+        if self.verbosity < verbosity:
+            return
+        if self.ei:
+            msg = ""
+            for m in kwargs:
+                msg += str(m)
+            c = eiol.content(format="text", text=msg)
+            self._ei_commands.append(eiol.command_print(content=c))
+        else:
+            print(kwargs)
 
-    def print_rf_tr(self, cfg, tr_name, rfs):
+    def print_rf_tr(self, verbosity, cfg, tr_name, rfs):
+        if self.verbosity < verbosity:
+            return
         msg = "HI"  # rfs_tostring(rfs)
         if self.ei:
             c = eiol.content(format="text", text=msg)
@@ -45,12 +48,15 @@ class Output:
             d = {"from": numl}
             l = eiol.line(**d)
             ls = eiol.lines(line=l)
-            self._ei_commands.append(eiol.command_addinlinemarker(lines=ls,
-                                                                  content=c))
+            self._ei_commands.append(
+                eiol.command_addinlinemarker(lines=ls,
+                                             content=c))
         else:
             print(tr_name + ":\n\t" + msg)
 
-    def writefile(self, path, content):
+    def writefile(self, verbosity, path, content):
+        if self.verbosity < verbosity:
+            return
         if self.ei:
             aux_p = path.split('/')
             aux_c = len(aux_p) - 1
