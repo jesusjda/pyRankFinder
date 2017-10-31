@@ -19,9 +19,44 @@ def positive(value):
     return ivalue
 
 
+def algorithm(value):
+    algs = ["qlrf_bg", "qlrf_adfg", "lrf_pr"]
+    if value in algs:
+        return {"name": value}
+
+    if value == "qnlrf":
+        return {"name": value,
+                "max_depth": 5,
+                "min_depth": 1
+                }
+    import re
+    algth = {}
+    alg = re.match((r"(?P<name>[a-zA-Z0-9]+)\_"
+                    "(?P<arg>(?P<args>[a-zA-Z0-9]+(\_)?)+)"),
+                   value)
+    if alg is None:
+        raise argparse.ArgumentTypeError("Unknown algorithm (" + value + ")")
+    fn_dict = alg.groupdict()
+    del fn_dict['args']
+    fn_dict['arg'] = [arg.strip() for arg in fn_dict['arg'].split('_')]
+    if fn_dict['name'] == "qnlrf":
+        algth['name'] = "qnlrf"
+        if len(fn_dict['arg']) > 0:
+            algth['max_depth'] = int(fn_dict['arg'][0])
+        if len(fn_dict['arg']) > 1:
+            algth['min_depth'] = int(fn_dict['arg'][1])
+        else:
+            algth['min_depth'] = 1
+        if len(fn_dict['arg']) > 2:
+            raise argparse.ArgumentTypeError("qnlrf allows 2 " +
+                                             "arguments at most (given " +
+                                             str(len(fn_dict['arg'])) + ")")
+        return algth
+
+    raise argparse.ArgumentTypeError("Unknown algorithm (" + value + ")")
+
+
 def setArgumentParser():
-    algorithms = ["pr", "bg", "adfg", "lex_bg", "lex_adfg",
-                  "bms_lrf", "bms_nlrf", "nlrf"]
     scc_strategies = ["global", "local", "incremental"]
     desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
@@ -42,7 +77,7 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
-    argParser.add_argument("-a", "--algorithms", choices=algorithms, nargs='+',
+    argParser.add_argument("-a", "--algorithms", type=algorithm, nargs='+',
                            required=True, help="Algorithms to be apply.")
     return argParser
 
@@ -58,7 +93,6 @@ def Main(argv):
     config = vars(args)
     prs = GenericParser()
     files = args.files
-
     for f in files:
         aux_p = f.split('/')
         aux_c = len(aux_p) - 1
@@ -143,9 +177,9 @@ def run_algs(config, algs, trans, vars_name):
     for alg in algs:
         internal_config = set_config(config, alg, trans)
         try:
-            OM.printif(1, "-> with: " + alg)
+            OM.printif(1, "-> with: " + alg['name'])
             R = termination.run(internal_config)
-            OM.printif(2, R.debug())
+            OM.printif(3, R.debug())
             OM.printif(1, R.toString(vars_name))
             if R.found():
                 if R.get("rfs"):
@@ -169,24 +203,13 @@ def run_algs(config, algs, trans, vars_name):
 
 
 def set_config(data, alg, trans):
-    algs = alg.split('_')
     dt = data["different_template"]
 
-    inner_alg = None
-    config = {}
-    for alg in reversed(algs):
-        config = {
-            "algorithm": alg,
-            "different_template": dt,
-            "transitions": trans
-        }
-        if alg == "nlrf":
-            config["min_depth"] = 1
-            config["max_depth"] = 5
-        if not (inner_alg is None):
-            config["inner_alg"] = inner_alg
-
-        inner_alg = config
+    config = {
+        "algorithm": alg,
+        "different_template": dt,
+        "transitions": trans
+    }
 
     return config
 

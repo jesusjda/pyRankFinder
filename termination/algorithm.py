@@ -11,20 +11,14 @@ from .output import Output_Manager as OM
 def run(data):
     OM.printif(3, data)
     config = data.copy()
-    alg = config["algorithm"]
-    if alg == "lex":
-        return LexicographicRF(config)
-    elif alg == "bms":
-        return BMSRF(config)
-    elif alg == "pr":
+    alg = config["algorithm"]['name']
+    if alg == "lrf_pr":
         return LinearRF(config)
-    elif alg == "adfg":
+    elif alg == "qlrf_adfg":
         return compute_adfg_QLRF(config)
-    elif alg == "bg":
+    elif alg == "qlrf_bg":
         return compute_bg_QLRF(config)
-    elif alg == "lrf":
-        return compute_bms_LRF(config)
-    elif alg == "nlrf":
+    elif alg == "qnlrf":
         return compute_bms_NLRF(config)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
@@ -424,13 +418,6 @@ def compute_bg_QLRF(data):
     return response
 
 
-def compute_bms_LRF(data):
-    config = data.copy()
-    config["max_depth"] = 3
-    config["min_depth"] = 1
-    return compute_bms_NLRF(config)
-
-
 def compute_bms_NLRF(data):
     """
     Assuming first transition as main
@@ -440,8 +427,8 @@ def compute_bms_NLRF(data):
     response = Result()
     transitions = data["transitions"][1::]
     tr = data["transitions"][0]
-    max_d = data["max_depth"] + 1
-    min_d = data["min_depth"]
+    max_d = data["algorithm"]["max_depth"] + 1
+    min_d = data["algorithm"]["min_depth"]
 
     for d in range(min_d, max_d):
         OM.printif(2, "d = ", d)
