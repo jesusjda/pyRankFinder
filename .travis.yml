@@ -79,6 +79,13 @@ install: # command to install dependencies
   - pip install --user matplotlib scipy numpy
   - pip install --user networkx
   - pip install --user arpeggio
+  - mkdir -p /tmp/pyeiol
+  - pushd /tmp/pyeiol
+  - git clone https://github.com/abstools/easyinterface.git .
+  - git checkout develop
+  - cd ./outputlanguage/python
+  - pip install --user .
+  - popd
   - pip install --user git+https://github.com/jesusjda/pyParser --verbose --no-index;
   - pip install . --user --verbose --no-index;
 script: nosetests -v
