@@ -17,9 +17,9 @@ setup(
     download_url ='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
-    packages=['termination'],
-    package_dir={'termination': 'termination'},
-    package_data={'termination': ['*.py']},
+    packages=['termination', 'invariants'],
+    package_dir={'termination': 'termination', 'invariants': 'invariants'},
+    package_data={'termination': ['*.py'], 'invariants': ['*.py']},
     install_requires=['pplpy'],
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

@@ -79,6 +79,8 @@ def setArgumentParser():
                            help="File to be analysed.")
     argParser.add_argument("-a", "--algorithms", type=algorithm, nargs='+',
                            required=True, help="Algorithms to be apply.")
+    argParser.add_argument("-i", "--invariants", required=False,
+                           default="none", help="Compute Invariants.")
     return argParser
 
 
@@ -118,6 +120,7 @@ def Main(argv):
             print(e)
             return
         config["vars_name"] = cfg.get_var_name()
+        invariants(config, cfg)
         result = rank(config, [(cfg, config["scc_depth"])],
                       config["algorithms"])
         OM.printf(f)
@@ -128,6 +131,41 @@ def Main(argv):
             OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
         OM.show_output()
     return
+
+
+def invariants(config, cfg):
+    # Temporal defs to be compilable
+    def apply(a, b):
+        return a
+
+    def lub(a, b):
+        return a
+
+    def lte(a, b):
+        return False
+
+    graph_nodes = cfg.nodes()
+    nodes = {}
+    init_node = graph_nodes[0]
+    for node in graph_nodes:
+        OM.printif(3, node)
+        nodes[node] = {
+            "state": True,
+            "access": 0
+        }
+    queue = [init_node]
+    while len(queue) > 0:
+        node = queue.pop()
+        s = nodes[node]["state"]
+        for t in cfg.get_edges(src=node):
+            dest_s = nodes[t["target"]]
+            s1 = apply(s, t)
+            s2 = lub(dest_s["state"], s1)
+            if lte(s2, dest_s["state"]):
+                dest_s["state"] = s2
+                dest_s["access"] += 1
+                if not(t["target"] in queue):
+                    queue.append(t["target"])
 
 
 def rank(config, CFGs, algs):
