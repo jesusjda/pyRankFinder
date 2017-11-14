@@ -21,10 +21,6 @@ install_dependencies(){
     python$vers -m pip install z3-solver 'Cython==0.26' virtualenv
     python$vers -m pip install cysignals 
     python$vers -m pip install "git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0#egg=gmpy2"
-    python$vers -m pip install "git+https://github.com/videlec/pplpy.git#egg=pplpy"
-    python$vers -m pip install pydot pydotplus
-    python$vers -m pip install networkx
-    python$vers -m pip install arpeggio
 }
 
 install_module(){
@@ -41,9 +37,9 @@ install_module(){
     python$vers -m pip install $flags .
     popd
     # python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
-    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi"
-    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=pyParser"
-    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
+    # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi" --process-dependency-links
+    # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=genericparser" --process-dependency-links
+    python$vers -m pip install $flags . --process-dependency-links  # "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
 }
 
 
@@ -120,7 +116,7 @@ if [ "$UnixPKG" == "true" ]; then
 
     if exists ppl-config; then
 	mkdir /tmp/ppl
-	cd /tmp/ppl
+	pushd /tmp/ppl
 	wget http://bugseng.com/products/ppl/download/ftp/releases/1.2/ppl-1.2.tar.gz
 	gunzip ppl-1.2.tar.gz
 	tar xvfp ppl-1.2.tar
@@ -128,6 +124,7 @@ if [ "$UnixPKG" == "true" ]; then
 	./configure --prefix=/usr/local --with-gmp=/opt/local --enable-interfaces="swi_prolog,c++"
 	make
 	make install
+	popd
 	# chmod a+rwx -R /usr/local/lib/ppl
     fi
     install_all libppl-dev graphviz

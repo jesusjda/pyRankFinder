@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup
 import sys
+import os
 
 base = os.path.dirname(os.path.abspath(__file__))
 
@@ -10,8 +11,8 @@ requires = ['pplpy>=0.7', 'pylpi', 'genericparser']
 
 dependency_links = [
     'git+https://github.com/videlec/pplpy.git#egg=pplpy-0.7',
-    'git+https://github.com/jesusjda/pyLPi.git#egg=pylpi',
-    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser'
+    'git+https://github.com/jesusjda/pyLPi.git#egg=pylpi-0.1',
+    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-0.1'
 ]
 
 ter_dir = os.path.join(base, 'termination')
