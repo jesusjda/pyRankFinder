@@ -135,38 +135,68 @@ def Main(argv):
 
 def invariants(config, cfg):
     # Temporal defs to be compilable
-    def apply(a, b):
-        return a
+    from copy import deepcopy
+    from ppl import Variables_Set
+    import lpi
+    def apply_tr(s, tr):
+        poly_tr = tr["tr_polyhedron"]
+        m = poly_tr.get_dimension()
+        n = s.get_dimension()
+        OM.printif(3, "-> ", s)        
+        s1 = deepcopy(s)
+        OM.printif(3, isinstance(poly_tr, lpi.C_Polyhedron))
+        s1.add_dimensions(m - n)
+        s1.intersection_assign(poly_tr)
+        var_set = Variables_Set()
+        for i in range(0, n-1):
+            var_set.insert(Variable(i))
+        for i in range(2*n, m):
+            var_set.insert(Variable(i))
+        s1.remove_dimensions(var_set)
+        return s1
 
-    def lub(a, b):
+    def lub(s1, s2):
+        a = deepcopy(s1)
+        a.poly_hull_assign(s2)
         return a
-
-    def lte(a, b):
-        return False
 
     graph_nodes = cfg.nodes()
     nodes = {}
     init_node = graph_nodes[0]
+    Nvars = len(cfg.get_var_name())/2
+    import lpi
+    from ppl import Linear_Expression
+
+    p = lpi.C_Polyhedron(dim=Nvars)
+    p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
+
     for node in graph_nodes:
         OM.printif(3, node)
         nodes[node] = {
-            "state": True,
+            "state": deepcopy(p),
             "access": 0
         }
+    nodes[node]["state"] = lpi.C_Polyhedron(dim=Nvars)
+
     queue = [init_node]
     while len(queue) > 0:
         node = queue.pop()
+        OM.printif(3, "loop: ", node)
         s = nodes[node]["state"]
         for t in cfg.get_edges(src=node):
             dest_s = nodes[t["target"]]
-            s1 = apply(s, t)
+            s1 = apply_tr(s, t)
             s2 = lub(dest_s["state"], s1)
-            if lte(s2, dest_s["state"]):
-                dest_s["state"] = s2
+            if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
                 dest_s["access"] += 1
+                if dest_s["access"] >= 3:
+                    dest_s["access"] = 0
+                    s2.widening_assign(dest_s["state"])
+                dest_s["state"] = s2
                 if not(t["target"] in queue):
                     queue.append(t["target"])
 
+    OM.printif(3, nodes)
 
 def rank(config, CFGs, algs):
     response = termination.Result()
