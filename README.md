@@ -11,10 +11,6 @@ This module has three main python-module dependencies:
 - <kbd>pyParser</kbd>
 - <kbd>pplpy</kbd>
 
-But they have a lot of other dependencies.
-
-![](dependencies.png)
-
 On this graph the ellipses correspond to python modules, that you
 can install with pip*, and the triangles correspond to unix libraries.
 

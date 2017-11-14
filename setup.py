@@ -2,9 +2,23 @@
 from setuptools import setup
 import sys
 
+base = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = open('version.txt').read()[:-1]
+VERSION = open(os.path.join(base, 'version.txt')).read()[:-1]
 
+requires = ['pplpy>=0.7', 'pylpi', 'genericparser']
+
+dependency_links = [
+    'git+https://github.com/videlec/pplpy.git#egg=pplpy-0.7',
+    'git+https://github.com/jesusjda/pyLPi.git#egg=pylpi',
+    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser'
+]
+
+ter_dir = os.path.join(base, 'termination')
+ter_name = 'termination'
+
+inv_dir = os.path.join(base, 'invariants')
+inv_name = 'invariants'
 
 setup(
     name='pytermination',
@@ -17,10 +31,11 @@ setup(
     download_url ='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
-    packages=['termination', 'invariants'],
-    package_dir={'termination': 'termination', 'invariants': 'invariants'},
-    package_data={'termination': ['*.py'], 'invariants': ['*.py']},
-    install_requires=['pplpy'],
+    packages=[ter_name, inv_name],
+    package_dir={ter_name: ter_dir, inv_name: inv_dir},
+    package_data={ter_name: ['*.py'], inv_name: ['*.py']},
+    install_requires=requires,
+    dependency_links=dependency_links,
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: C++",
