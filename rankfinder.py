@@ -136,22 +136,22 @@ def Main(argv):
 def invariants(config, cfg):
     # Temporal defs to be compilable
     from copy import deepcopy
-    from ppl import Variables_Set
+    from ppl import Variables_Set, Variable
     import lpi
+
     def apply_tr(s, tr):
         poly_tr = tr["tr_polyhedron"]
         m = poly_tr.get_dimension()
         n = s.get_dimension()
-        OM.printif(3, "-> ", s)        
         s1 = deepcopy(s)
-        OM.printif(3, isinstance(poly_tr, lpi.C_Polyhedron))
         s1.add_dimensions(m - n)
         s1.intersection_assign(poly_tr)
         var_set = Variables_Set()
-        for i in range(0, n-1):
+        for i in range(0, n):  # Vars from 0 to n-1 inclusive
             var_set.insert(Variable(i))
-        for i in range(2*n, m):
+        for i in range(2*n, m): # Vars from 2*n to m-1 inclusive (local variables)
             var_set.insert(Variable(i))
+
         s1.remove_dimensions(var_set)
         return s1
 
@@ -162,7 +162,7 @@ def invariants(config, cfg):
 
     graph_nodes = cfg.nodes()
     nodes = {}
-    init_node = graph_nodes[0]
+    init_node = 'n0'
     Nvars = len(cfg.get_var_name())/2
     import lpi
     from ppl import Linear_Expression
@@ -171,12 +171,11 @@ def invariants(config, cfg):
     p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
 
     for node in graph_nodes:
-        OM.printif(3, node)
         nodes[node] = {
             "state": deepcopy(p),
             "access": 0
         }
-    nodes[node]["state"] = lpi.C_Polyhedron(dim=Nvars)
+    nodes[init_node]["state"] = lpi.C_Polyhedron(dim=Nvars)
 
     queue = [init_node]
     while len(queue) > 0:
@@ -190,13 +189,13 @@ def invariants(config, cfg):
             if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
                 dest_s["access"] += 1
                 if dest_s["access"] >= 3:
-                    dest_s["access"] = 0
                     s2.widening_assign(dest_s["state"])
+                    dest_s["access"] = 0
                 dest_s["state"] = s2
                 if not(t["target"] in queue):
                     queue.append(t["target"])
-
-    OM.printif(3, nodes)
+    for n in nodes:
+        OM.printif(3, n, ": ", nodes[n]["state"].get_constraints())
 
 def rank(config, CFGs, algs):
     response = termination.Result()
