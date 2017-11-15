@@ -1,25 +1,29 @@
-from ppl import Linear_Expression
-from ppl import Variable
-from ppl import Constraint_System
-from ppl import Constraint
+from genericparser.Cfg import Cfg
 from lpi import C_Polyhedron
+from ppl import Constraint_System
+from ppl import Variable
+
 from . import farkas
-from .result import Result
 from .output import Output_Manager as OM
+from .result import Result
 
 
-def run(data):
-    OM.printif(3, data)
-    config = data.copy()
-    alg = config["algorithm"]['name']
+def run(algorithm, cfg, different_template=False):
+    alg = algorithm['name']
     if alg == "lrf_pr":
-        return LinearRF(config)
+        return LinearRF(algorithm, cfg,
+                        different_template=different_template)
     elif alg == "qlrf_adfg":
-        return compute_adfg_QLRF(config)
+        return compute_adfg_QLRF(algorithm, cfg,
+                                 different_template=different_template)
     elif alg == "qlrf_bg":
-        return compute_bg_QLRF(config)
+        return compute_bg_QLRF(algorithm, cfg,
+                               different_template=different_template)
     elif alg == "qnlrf":
-        return compute_bms_NLRF(config)
+        return compute_bms_NLRF(algorithm, cfg,
+                                min_depth=algorithm["min_depth"],
+                                max_depth=algorithm["max_depth"],
+                                different_template=different_template)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
 
@@ -33,15 +37,15 @@ def _max_dim(edges):
     return maximum
 
 
-def LinearRF(data):
-    transitions = data["transitions"]
+def LinearRF(algorithm, cfg, different_template=False):
+    transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
     response = Result()
 
     shifter = 0
-    if "different_template" in data and data["different_template"]:
+    if different_template:
         shifter = Nvars + 1
     # farkas Variables
     rfvars = {}
@@ -53,6 +57,8 @@ def LinearRF(data):
     # other stuff
     nodeList = {}
     countVar = 0
+    # invariants
+    src_invariant = None
     for tr in transitions:
         if not(tr["source"] in nodeList):
             f = [Variable(i)
@@ -65,9 +71,6 @@ def LinearRF(data):
             rfvars[tr["target"]] = f
             countVar += shifter
             countVar += Nvars + 1
-
-    num_constraints = [len(e["tr_polyhedron"].get_constraints())
-                       for e in transitions]
 
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
@@ -108,20 +111,23 @@ def LinearRF(data):
     return response
 
 
-def LexicographicRF(data):
+def LexicographicRF(algorithm, cfg, different_template=False):
     response = Result()
-    transitions = data["transitions"]
+    transitions = cfg.get_edges()
 
     rfs = {}
     tr_rfs = {}
     no_ranked_trs = transitions
     i = 0
-    config = data["inner_alg"].copy()
+    inner_alg = algorithm["inner_alg"]
 
     while no_ranked_trs:  # while not empty
         i += 1
-        config["transitions"] = [tr.copy() for tr in no_ranked_trs]
-        result = run(config)
+        trs = [tr.copy() for tr in no_ranked_trs]
+        inner_cfg = Cfg(trs, cfg.get_var_name(),
+                        nodes_info=cfg.get_node_info(),
+                        init_node=cfg.get_init_node())
+        result = run(inner_alg, inner_cfg, different_template)
         if result.error():
             return result
         elif not result.found():
@@ -160,30 +166,36 @@ def LexicographicRF(data):
     return response
 
 
-def BMSRF(data):
+def BMSRF(algorithm, cfg, different_template=False):
     response = Result()
-    trans = data["transitions"]
+    trans = cfg.get_edges()
 
     rfs = {}
-    config = data["inner_alg"].copy()
-    i = 0
-    foundRF = False
-    for i in range(len(trans)):
-        config["transitions"] = ([trans[i]] +
-                                 [trans[j] for j in range(len(trans))
-                                  if j != i])
+    inner_alg = algorithm["inner_alg"]
 
-        result = run(config)  # Run NLRF or LRF
+    for i in range(len(trans)):
+        inner_alg["first_tr_idx"] = i
+
+        result = run(inner_alg, cfg,
+                     different_template=different_template)  # Run NLRF or LRF
+
         if result.found():
             trfs = result.get("rfs")
             for key in trfs:
                 if not(key in rfs):
                     rfs[key] = []
                 rfs[key].append(trfs[key])
-            new_data = data.copy()
-            new_data["transitions"] = result.get("pending_trs")
-            if len(result.get("pending_trs")) > 0:
-                bmsresult = run(new_data)  # Run BMS
+
+            no_ranked_trs = result.get("pending_trs")
+            trs = [tr.copy() for tr in no_ranked_trs]
+
+            if len(trs) > 0:
+                inner_cfg = Cfg(trs, cfg.get_var_name(),
+                                nodes_info=cfg.get_node_info(),
+                                init_node=cfg.get_init_node())
+                # Run BMS
+                bmsresult = run(algorithm, inner_cfg,
+                                different_template=different_template)
                 if bmsresult.found():
                     bms_rfs = bmsresult.get("rfs")
                     # merge rfs
@@ -210,22 +222,22 @@ def BMSRF(data):
     # Impossible to find a BMS
     response.set_response(found=False,
                           info="No BMS",
-                          rfs=rfs)
+                          rfs=rfs,
+                          pending_trs=trans)
     return response
 
 
-def compute_adfg_QLRF(data):
+def compute_adfg_QLRF(algorithm, cfg, different_template=False):
     response = Result()
-    transitions = data["transitions"]
+    transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
     shifter = 0
-    if data["different_template"]:
+    if different_template:
         shifter = Nvars + 1
     # farkas Variables
     rfvars = {}
-    deltas = []
     # farkas constraints
     farkas_constraints = []
     # return objects
@@ -308,15 +320,15 @@ def compute_adfg_QLRF(data):
     return response
 
 
-def compute_bg_QLRF(data):
+def compute_bg_QLRF(cfg, different_template=False):
     response = Result()
-    transitions = data["transitions"]
+    transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
     shifter = 0
     size_rfs = 0
-    if data["different_template"]:
+    if different_template:
         shifter = Nvars + 1
     # farkas Variables
     rfvars = {}
@@ -373,8 +385,6 @@ def compute_bg_QLRF(data):
     # check if rfs are non-trivial
     nonTrivial = False
     for tr in transitions:
-        rfvars_s = rfvars[tr["source"]]
-        rfvars_t = rfvars[tr["target"]]
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
         poly = tr["tr_polyhedron"]
@@ -418,26 +428,30 @@ def compute_bg_QLRF(data):
     return response
 
 
-def compute_bms_NLRF(data):
-    """
-    Assuming first transition as main
+def compute_bms_NLRF(algorithm, cfg, different_template=False):
+    """Assuming first transition as main
     transition 0 of data["transitions"] is
     the transition where we look for NLRF
     """
+    if "main_tr_idx" in algorithm:
+        algorithm["main_tr_idx"] = 0
     response = Result()
-    transitions = data["transitions"][1::]
-    tr = data["transitions"][0]
-    max_d = data["algorithm"]["max_depth"] + 1
-    min_d = data["algorithm"]["min_depth"]
+    all_transitions = cfg.get_edges()
+    tr = all_transitions[algorithm["main_tr_idx"]]
+    transitions = [all_transitions[j] for j in range(all_transitions)
+                   if j != algorithm["main_tr_idx"]]
+
+    max_d = algorithm["max_depth"] + 1
+    min_d = algorithm["min_depth"]
 
     for d in range(min_d, max_d):
         OM.printif(2, "d = ", d)
         # 0 - create variables
-        dim = _max_dim(data["transitions"])
+        dim = _max_dim(transitions)
         Nvars = int(dim / 2)
         shifter = 0
         size_rfs = 0
-        if data["different_template"]:
+        if different_template:
             shifter = (Nvars + 1) * (d)
         # 0.1 - farkas Variables
         rfvars = {}

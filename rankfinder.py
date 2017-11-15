@@ -1,8 +1,13 @@
 import os
 import sys
 import traceback
-import getopt
+# import getopt
 import argparse
+from copy import deepcopy
+from ppl import Variables_Set
+from ppl import Variable
+from ppl import Linear_Expression
+import lpi
 import termination
 from termination.output import Output_Manager as OM
 from genericparser import GenericParser
@@ -57,7 +62,6 @@ def algorithm(value):
 
 
 def setArgumentParser():
-    scc_strategies = ["global", "local", "incremental"]
     desc = _name+": a Ranking Function finder on python."
     argParser = argparse.ArgumentParser(description=desc)
     # Program Parameters
@@ -121,8 +125,9 @@ def Main(argv):
             return
         config["vars_name"] = cfg.get_var_name()
         invariants(config, cfg)
-        result = rank(config, [(cfg, config["scc_depth"])],
-                      config["algorithms"])
+        result = rank(config["algorithms"], 
+                      [(cfg, config["scc_depth"])],
+                      config["different_template"])
         OM.printf(f)
         OM.printf(result.toString(cfg.get_var_name()))
         tr_rfs = result.get("tr_rfs")
@@ -133,71 +138,76 @@ def Main(argv):
     return
 
 
-def invariants(config, cfg):
+def invariants(invariant_type, cfg):
     # Temporal defs to be compilable
-    from copy import deepcopy
-    from ppl import Variables_Set, Variable
-    import lpi
-
-    def apply_tr(s, tr):
-        poly_tr = tr["tr_polyhedron"]
-        m = poly_tr.get_dimension()
-        n = s.get_dimension()
-        s1 = deepcopy(s)
-        s1.add_dimensions(m - n)
-        s1.intersection_assign(poly_tr)
-        var_set = Variables_Set()
-        for i in range(0, n):  # Vars from 0 to n-1 inclusive
-            var_set.insert(Variable(i))
-        for i in range(2*n, m): # Vars from 2*n to m-1 inclusive (local variables)
-            var_set.insert(Variable(i))
-
-        s1.remove_dimensions(var_set)
-        return s1
-
-    def lub(s1, s2):
-        a = deepcopy(s1)
-        a.poly_hull_assign(s2)
-        return a
-
     graph_nodes = cfg.nodes()
     nodes = {}
-    init_node = 'n0'
     Nvars = len(cfg.get_var_name())/2
-    import lpi
-    from ppl import Linear_Expression
-
-    p = lpi.C_Polyhedron(dim=Nvars)
-    p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
-
-    for node in graph_nodes:
-        nodes[node] = {
-            "state": deepcopy(p),
-            "access": 0
-        }
-    nodes[init_node]["state"] = lpi.C_Polyhedron(dim=Nvars)
-
-    queue = [init_node]
-    while len(queue) > 0:
-        node = queue.pop()
-        OM.printif(3, "loop: ", node)
-        s = nodes[node]["state"]
-        for t in cfg.get_edges(src=node):
-            dest_s = nodes[t["target"]]
-            s1 = apply_tr(s, t)
-            s2 = lub(dest_s["state"], s1)
-            if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
-                dest_s["access"] += 1
-                if dest_s["access"] >= 3:
-                    s2.widening_assign(dest_s["state"])
-                    dest_s["access"] = 0
-                dest_s["state"] = s2
-                if not(t["target"] in queue):
-                    queue.append(t["target"])
+    if(invariant_type is None or
+       invariant_type == "none"):
+        for node in graph_nodes:
+            nodes[node] = {
+                "state": lpi.C_Polyhedron(dim=Nvars),
+                "access": 0
+            }
+    else:
+        def apply_tr(s, tr):
+            poly_tr = tr["tr_polyhedron"]
+            m = poly_tr.get_dimension()
+            n = s.get_dimension()
+            s1 = deepcopy(s)
+            s1.add_dimensions(m - n)
+            s1.intersection_assign(poly_tr)
+            var_set = Variables_Set()
+            for i in range(0, n):  # Vars from 0 to n-1 inclusive
+                var_set.insert(Variable(i))
+            for i in range(2*n, m): # Vars from 2*n to m-1 inclusive (local variables)
+                var_set.insert(Variable(i))
+    
+            s1.remove_dimensions(var_set)
+            return s1
+    
+        def lub(s1, s2):
+            a = deepcopy(s1)
+            a.poly_hull_assign(s2)
+            return a
+    
+        init_node = cfg.get_init_node()    
+        p = lpi.C_Polyhedron(dim=Nvars)
+        p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
+    
+        for node in graph_nodes:
+            nodes[node] = {
+                "state": deepcopy(p),
+                "access": 0
+            }
+    
+        nodes[init_node]["state"] = lpi.C_Polyhedron(dim=Nvars)
+    
+        queue = [init_node]
+        while len(queue) > 0:
+            node = queue.pop()
+            OM.printif(3, "loop: ", node)
+            s = nodes[node]["state"]
+            for t in cfg.get_edges(src=node):
+                dest_s = nodes[t["target"]]
+                s1 = apply_tr(s, t)
+                s2 = lub(dest_s["state"], s1)
+                if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
+                    dest_s["access"] += 1
+                    if dest_s["access"] >= 3:
+                        s2.widening_assign(dest_s["state"])
+                        dest_s["access"] = 0
+                    dest_s["state"] = s2
+                    if not(t["target"] in queue):
+                        queue.append(t["target"])
+    
+    OM.printif(3, "INVARIANTS")
     for n in nodes:
+        cfg.add_node_info(n, "invariant", nodes[n]["state"] )
         OM.printif(3, n, ": ", nodes[n]["state"].get_constraints())
 
-def rank(config, CFGs, algs):
+def rank(algs, CFGs, different_template=False):
     response = termination.Result()
     rfs = {}
     tr_rfs = {}
@@ -209,10 +219,10 @@ def rank(config, CFGs, algs):
         else:
             CFGs_aux = [current_cfg]
         for cfg in CFGs_aux:
-            Trans = cfg.get_edges()
-            if len(Trans) < 1:
+            if not cfg.has_cycle():
                 continue
-            R = run_algs(config, algs, Trans, cfg.get_var_name())
+            R = run_algs(algs, cfg,
+                         different_template=different_template)
             if not R.found():
                 fail = True
                 break
@@ -220,7 +230,9 @@ def rank(config, CFGs, algs):
             merge_rfs(tr_rfs, R.get("tr_rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
-                CFGs = [(Cfg(pending_trs, cfg.get_var_name()),
+                CFGs = [(Cfg(pending_trs, cfg.get_var_name(), 
+                             nodes_info=cfg.get_node_info(),
+                             init_node=cfg.get_init_node()),
                          sccd)] + CFGs
     if fail:
         response.set_response(found=False)
@@ -232,20 +244,22 @@ def rank(config, CFGs, algs):
     return response
 
 
-def run_algs(config, algs, trans, vars_name):
+def run_algs(algs, cfg, different_template=False):
     response = termination.Result()
+    vars_name = cfg.get_var_name()
     R = None
     f = False
+    trans = cfg.get_edges()
     trs = ""
     for t in trans:
         trs += t["name"]+","
     OM.printif(1, "Analyzing transitions: "+trs)
 
     for alg in algs:
-        internal_config = set_config(config, alg, trans)
         try:
             OM.printif(1, "-> with: " + alg['name'])
-            R = termination.run(internal_config)
+            R = termination.run(alg, cfg, 
+                                different_template=different_template)
             OM.printif(3, R.debug())
             OM.printif(1, R.toString(vars_name))
             if R.found():
@@ -267,18 +281,6 @@ def run_algs(config, algs, trans, vars_name):
     response.set_response(found=False,
                           info="Not Found")
     return response
-
-
-def set_config(data, alg, trans):
-    dt = data["different_template"]
-
-    config = {
-        "algorithm": alg,
-        "different_template": dt,
-        "transitions": trans
-    }
-
-    return config
 
 
 def merge_rfs(rfs, to_add):
