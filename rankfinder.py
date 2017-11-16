@@ -124,7 +124,7 @@ def Main(argv):
             print(e)
             return
         config["vars_name"] = cfg.get_var_name()
-        invariants(config, cfg)
+        invariants(config["invariants"], cfg)
         result = rank(config["algorithms"], 
                       [(cfg, config["scc_depth"])],
                       config["different_template"])
@@ -143,12 +143,12 @@ def invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
     Nvars = len(cfg.get_var_name())/2
+    OM.printif(2, "invariant type = ", invariant_type)
     if(invariant_type is None or
        invariant_type == "none"):
         for node in graph_nodes:
             nodes[node] = {
-                "state": lpi.C_Polyhedron(dim=Nvars),
-                "access": 0
+                "state": lpi.C_Polyhedron(dim=Nvars)
             }
     else:
         def apply_tr(s, tr):
@@ -187,7 +187,6 @@ def invariants(invariant_type, cfg):
         queue = [init_node]
         while len(queue) > 0:
             node = queue.pop()
-            OM.printif(3, "loop: ", node)
             s = nodes[node]["state"]
             for t in cfg.get_edges(src=node):
                 dest_s = nodes[t["target"]]

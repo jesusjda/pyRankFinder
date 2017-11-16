@@ -37,6 +37,24 @@ def _max_dim(edges):
     return maximum
 
 
+def _add_invariant(tr_poly, src_id, cfg):
+    src_invariant = cfg.get_node_info(src_id,"invariant")
+    OM.printif(3, "invariant of ", src_id, " = ",src_invariant.get_constraints())
+    OM.printif(3, "dim inv = ", src_invariant.get_dimension())
+    OM.printif(3, "dim tr = ", tr_poly.get_dimension())
+    Nvars = len(cfg.get_var_name())
+    poly = C_Polyhedron(dim=Nvars)
+    for c in tr_poly.get_constraints():
+        poly.add_constraint(c)
+    for c in src_invariant.get_constraints():
+        poly.add_constraint(c)
+    OM.printif(3, "tr = ", tr_poly.get_constraints())
+    OM.printif(3, "poly with tr = ", poly.get_constraints())
+    OM.printif(3, "poly minimized = ", poly._poly._poly.minimized_constraints())
+
+    return poly
+
+
 def LinearRF(algorithm, cfg, different_template=False):
     transitions = cfg.get_edges()
 
@@ -57,8 +75,6 @@ def LinearRF(algorithm, cfg, different_template=False):
     # other stuff
     nodeList = {}
     countVar = 0
-    # invariants
-    src_invariant = None
     for tr in transitions:
         if not(tr["source"] in nodeList):
             f = [Variable(i)
@@ -75,7 +91,8 @@ def LinearRF(algorithm, cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        Mcons = len(tr["tr_polyhedron"].get_constraints())
+        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        Mcons = len(poly.get_constraints())
 
         # f_s >= 0
         # f_s - f_t >= 1
@@ -83,12 +100,12 @@ def LinearRF(algorithm, cfg, different_template=False):
         countVar += Mcons + 1
         lambdas2 = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons + 1
-        farkas_constraints += farkas.LRF(tr["tr_polyhedron"],
+        farkas_constraints += farkas.LRF(poly,
                                          [lambdas, lambdas2],
                                          rf_s, rf_t)
 
-    poly = C_Polyhedron(Constraint_System(farkas_constraints))
-    point = poly.get_point()
+    farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    point = farkas_poly.get_point()
 
     if point is None:
         response.set_response(found=False,
@@ -267,25 +284,26 @@ def compute_adfg_QLRF(algorithm, cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        Mcons = len(tr["tr_polyhedron"].get_constraints())
+        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        Mcons = len(poly.get_constraints())
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        farkas_constraints += farkas.f(tr["tr_polyhedron"], lambdas,
+        farkas_constraints += farkas.f(poly, lambdas,
                                        rf_s, 0)
 
         # f_s - f_t >= delta[tr]
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        farkas_constraints += farkas.df(tr["tr_polyhedron"], lambdas,
+        farkas_constraints += farkas.df(poly, lambdas,
                                         rf_s, rf_t, deltas[tr["name"]])
         # 0 <= delta[tr] <= 1
         farkas_constraints += [0 <= deltas[tr["name"]],
                                deltas[tr["name"]] <= 1]
 
-    poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
     exp = sum([deltas[tr] for tr in deltas])
-    result = poly.maximize(exp)
+    result = farkas_poly.maximize(exp)
     if not result['bounded']:
         response.set_response(found=False,
                               info="Unbound polyhedron")
@@ -360,20 +378,21 @@ def compute_bg_QLRF(cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        Mcons = len(tr["tr_polyhedron"].get_constraints())
+        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        Mcons = len(poly.get_constraints())
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        farkas_constraints += farkas.f(tr["tr_polyhedron"], lambdas,
+        farkas_constraints += farkas.f(poly, lambdas,
                                        rf_s, 0)
 
         # f_s - f_t >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
         countVar += Mcons
-        farkas_constraints += farkas.df(tr["tr_polyhedron"], lambdas,
+        farkas_constraints += farkas.df(poly, lambdas,
                                         rf_s, rf_t, 0)
-    poly = C_Polyhedron(Constraint_System(farkas_constraints))
-    result = poly.get_relative_interior_point(size_rfs)
+    farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+    result = farkas_poly.get_relative_interior_point(size_rfs)
     if result is None:
         response.set_response(found=False,
                               info="No relative interior point")
@@ -387,7 +406,7 @@ def compute_bg_QLRF(cfg, different_template=False):
     for tr in transitions:
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
-        poly = tr["tr_polyhedron"]
+        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
         df = 0
         constant = rf_s[1] - rf_t[1]
         for i in range(Nvars):

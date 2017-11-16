@@ -3,6 +3,7 @@
 	<name>pyRankFinder</name>
 	<comment></comment>
 	<projects>
+		<project>eiol</project>
 		<project>pyLPi</project>
 		<project>pyParser</project>
 	</projects>
