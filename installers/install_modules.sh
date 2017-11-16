@@ -51,13 +51,13 @@ install_module(){
     git clone https://github.com/abstools/easyinterface.git .
     git checkout develop
     cd ./outputlanguage/python
-    python$vers -m pip install $flags .
+    python$vers setup.py install $flags
     popd
     # python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
     # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi" --process-dependency-links
     # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=genericparser" --process-dependency-links
     if [ "$LOCAL" == "true" ]; then
-	python$vers -m pip install $flags . --process-dependency-links
+	python$vers setup.py install $flags --process-dependency-links
     else
 	python$vers -m pip install $flags --process-dependency-links "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
     fi
