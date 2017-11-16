@@ -10,7 +10,7 @@ VERSION = open(os.path.join(base, 'version.txt')).read()[:-1]
 requires = ['pplpy>=0.7', 'pylpi', 'genericparser']
 
 dependency_links = [
-    'git+https://github.com/videlec/pplpy.git#egg=pplpy-0.7',
+    'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7',
     'git+https://github.com/jesusjda/pyLPi.git#egg=pylpi-0.1',
     'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-0.1'
 ]

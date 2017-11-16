@@ -62,7 +62,7 @@ install_all(){
 install_dependencies(){
     vers=$1
     python$vers -m pip install z3-solver 'Cython==0.26' virtualenv
-    python$vers -m pip install cysignals 
+    python$vers -m pip install cysignals
     python$vers -m pip install "git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0#egg=gmpy2"
 }
 
