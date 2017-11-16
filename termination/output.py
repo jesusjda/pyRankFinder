@@ -1,5 +1,8 @@
-import xml.etree.ElementTree as ET
+from __future__ import print_function
+
 import eiol
+
+import xml.etree.ElementTree as ET
 
 
 class Output:
