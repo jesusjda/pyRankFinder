@@ -36,7 +36,7 @@ class Output:
             c = eiol.content(format="text", text=msg)
             self._ei_commands.append(eiol.command_print(content=c))
         else:
-            print(kwargs)
+            print(*kwargs)
 
     def print_rf_tr(self, verbosity, cfg, tr_name, rfs):
         if self.verbosity < verbosity:
