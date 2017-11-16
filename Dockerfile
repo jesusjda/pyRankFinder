@@ -1,4 +1,4 @@
-FROM php:5.6.15-apache
+FROM php:5.6-apache
 # docker build -t rankfinder .
 # docker run -d -p 8081:80 --name rankfinder rankfinder
 # docker exec -it rankfinder bash

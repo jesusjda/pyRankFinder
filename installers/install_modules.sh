@@ -15,14 +15,14 @@ for i in "$@"; do
 	    if [ "$pvers" = "3" ]; then
 		P3=true
 	    fi
-	    shift 
+	    shift
 	    ;;
 	-l|--local)
 	    LOCAL=true
 	    shift
 	    ;;
 	*)
-	    >&2 cat  <<EOF 
+	    >&2 cat  <<EOF
 ERROR: $0 [OPTIONS]
 
 [OPTIONS]
@@ -31,7 +31,7 @@ ERROR: $0 [OPTIONS]
         Install only for python version number [VERSION].
         It has to be 2 or 3.
 
-    -l | --local ) 
+    -l | --local )
         Install local version with local modifications.
         Otherwise, git repository version will be installed.
 
@@ -51,13 +51,13 @@ install_module(){
     git clone https://github.com/abstools/easyinterface.git .
     git checkout develop
     cd ./outputlanguage/python
-    python$vers setup.py install $flags
+    python$vers -m pip install $flags .
     popd
     # python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
     # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi" --process-dependency-links
     # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=genericparser" --process-dependency-links
     if [ "$LOCAL" == "true" ]; then
-	python$vers setup.py install $flags --process-dependency-links
+	python$vers -m pip install $flags --process-dependency-links .
     else
 	python$vers -m pip install $flags --process-dependency-links "git+https://github.com/jesusjda/pyRankFinder.git#egg=pytermination"
     fi
