@@ -10,8 +10,8 @@ ADD https://api.github.com/repos/jesusjda/pyRankFinder/git/refs/heads/master ver
 ENV PYRANKFINDER_HOME /opt/tools/pyRankFinder
 ENV T2_HOME /opt/tools/t2
 RUN git clone https://github.com/jesusjda/pyRankFinder /opt/tools/pyRankFinder
-RUN cd /opt/tools/pyRankFinder && ./docker.sh -p=2
-RUN cd /opt/tools/pyRankFinder && ./installt2.sh
+RUN cd /opt/tools/pyRankFinder && ./installers/install_dependencies.sh -p=2
+RUN cd /opt/tools/pyRankFinder && ./installers/install_modules.sh -l -p=2
 ADD https://api.github.com/repos/jesusjda/easyinterface-config/git/refs/heads/master version2.json
 RUN git clone https://github.com/jesusjda/easyinterface-config.git /opt/tools/easyinterface-config \
  && cd /opt/tools/easyinterface-config \
