@@ -253,7 +253,8 @@ def run_algs(algs, cfg, different_template=False):
     for t in trans:
         trs += t["name"]+","
     OM.printif(1, "Analyzing transitions: "+trs)
-
+    for t in trans:
+        OM.printif(2, t["name"], t["tr_polyhedron"].get_constraints())
     for alg in algs:
         try:
             OM.printif(1, "-> with: " + alg['name'])
