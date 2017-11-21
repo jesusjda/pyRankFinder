@@ -71,8 +71,8 @@ install: # command to install dependencies
   - pip install --user 'Cython==0.26';
   - pip install --user git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0 --no-index --verbose;
   - pip install --user cysignals;
-  - pip install --user git+https://github.com/videlec/pplpy --no-index --verbose
-  - pip install --user z3
+  - pip install --user git+https://github.com/jesusjda/pplpy --no-index --verbose
+  - pip install --user z3-solver
   - pip install --user git+https://github.com/jesusjda/pyLPi --verbose --no-index;
   - pip install --user pydotplus
   - pip install --user pydot
