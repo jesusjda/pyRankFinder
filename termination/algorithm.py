@@ -21,8 +21,6 @@ def run(algorithm, cfg, different_template=False):
                                different_template=different_template)
     elif alg == "qnlrf":
         return compute_bms_NLRF(algorithm, cfg,
-                                min_depth=algorithm["min_depth"],
-                                max_depth=algorithm["max_depth"],
                                 different_template=different_template)
     else:
         raise Exception("ERROR: Algorithm (" + alg + ") not found.")
@@ -38,8 +36,9 @@ def _max_dim(edges):
 
 
 def _add_invariant(tr_poly, src_id, cfg):
-    src_invariant = cfg.get_node_info(src_id,"invariant")
-    OM.printif(3, "invariant of ", src_id, " = ",src_invariant.get_constraints())
+    src_invariant = cfg.get_node_info(src_id, "invariant")
+    OM.printif(3, "invariant of ", src_id, " = ",
+               src_invariant.get_constraints())
     OM.printif(3, "dim inv = ", src_invariant.get_dimension())
     OM.printif(3, "dim tr = ", tr_poly.get_dimension())
     Nvars = len(cfg.get_var_name())
@@ -50,12 +49,13 @@ def _add_invariant(tr_poly, src_id, cfg):
         poly.add_constraint(c)
     OM.printif(3, "tr = ", tr_poly.get_constraints())
     OM.printif(3, "poly with tr = ", poly.get_constraints())
-    OM.printif(3, "poly minimized = ", poly._poly._poly.minimized_constraints())
+    OM.printif(3, "poly minimized = ",
+               poly._poly._poly.minimized_constraints())
 
     return poly
 
 
-def LinearRF(algorithm, cfg, different_template=False):
+def LinearRF(_, cfg, different_template=False):
     transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
@@ -91,7 +91,7 @@ def LinearRF(algorithm, cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         Mcons = len(poly.get_constraints())
 
         # f_s >= 0
@@ -185,66 +185,62 @@ def LexicographicRF(algorithm, cfg, different_template=False):
 
 def BMSRF(algorithm, cfg, different_template=False):
     response = Result()
-    trans = cfg.get_edges()
 
     rfs = {}
     inner_alg = algorithm["inner_alg"]
 
-    for i in range(len(trans)):
-        inner_alg["first_tr_idx"] = i
+    result = run(inner_alg, cfg,
+                 different_template=different_template)  # Run NLRF or LRF
 
-        result = run(inner_alg, cfg,
-                     different_template=different_template)  # Run NLRF or LRF
+    if result.found():
+        trfs = result.get("rfs")
+        for key in trfs:
+            if not(key in rfs):
+                rfs[key] = []
+            rfs[key].append(trfs[key])
 
-        if result.found():
-            trfs = result.get("rfs")
-            for key in trfs:
-                if not(key in rfs):
-                    rfs[key] = []
-                rfs[key].append(trfs[key])
+        no_ranked_trs = result.get("pending_trs")
+        trs = [tr.copy() for tr in no_ranked_trs]
 
-            no_ranked_trs = result.get("pending_trs")
-            trs = [tr.copy() for tr in no_ranked_trs]
-
-            if len(trs) > 0:
-                inner_cfg = Cfg(trs, cfg.get_var_name(),
-                                nodes_info=cfg.get_node_info(),
-                                init_node=cfg.get_init_node())
-                # Run BMS
-                bmsresult = run(algorithm, inner_cfg,
-                                different_template=different_template)
-                if bmsresult.found():
-                    bms_rfs = bmsresult.get("rfs")
-                    # merge rfs
-                    for key in bms_rfs:
-                        if not(key in rfs):
-                            rfs[key] = []
-                        rfs[key].append(bms_rfs[key])
-                    response.set_response(found=True,
-                                          info="Found",
-                                          rfs=rfs,
-                                          pending_trs=[],
-                                          tr_rfs={})
-
-                    return response
-                else:
-                    return bmsresult
-            else:
+        if len(trs) > 0:
+            inner_cfg = Cfg(trs, cfg.get_var_name(),
+                            nodes_info=cfg.get_node_info(),
+                            init_node=cfg.get_init_node())
+            # Run BMS
+            bmsresult = run(algorithm, inner_cfg,
+                            different_template=different_template)
+            if bmsresult.found():
+                bms_rfs = bmsresult.get("rfs")
+                # merge rfs
+                for key in bms_rfs:
+                    if not(key in rfs):
+                        rfs[key] = []
+                    rfs[key].append(bms_rfs[key])
                 response.set_response(found=True,
                                       info="Found",
                                       rfs=rfs,
-                                      pending_trs=[])
-                return result
+                                      pending_trs=[],
+                                      tr_rfs={})
+
+                return response
+            else:
+                return bmsresult
+        else:
+            response.set_response(found=True,
+                                  info="Found",
+                                  rfs=rfs,
+                                  pending_trs=[])
+            return result
 
     # Impossible to find a BMS
     response.set_response(found=False,
                           info="No BMS",
                           rfs=rfs,
-                          pending_trs=trans)
+                          pending_trs=result.get("pending_trs"))
     return response
 
 
-def compute_adfg_QLRF(algorithm, cfg, different_template=False):
+def compute_adfg_QLRF(_, cfg, different_template=False):
     response = Result()
     transitions = cfg.get_edges()
 
@@ -284,7 +280,7 @@ def compute_adfg_QLRF(algorithm, cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         Mcons = len(poly.get_constraints())
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
@@ -338,19 +334,17 @@ def compute_adfg_QLRF(algorithm, cfg, different_template=False):
     return response
 
 
-def compute_bg_QLRF(cfg, different_template=False):
+def compute_bg_QLRF(_, cfg, different_template=False):
     response = Result()
     transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
     shifter = 0
-    size_rfs = 0
     if different_template:
         shifter = Nvars + 1
     # farkas Variables
     rfvars = {}
-    deltas = []
     # farkas constraints
     farkas_constraints = []
     # return objects
@@ -378,7 +372,7 @@ def compute_bg_QLRF(cfg, different_template=False):
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
-        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         Mcons = len(poly.get_constraints())
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
@@ -406,7 +400,7 @@ def compute_bg_QLRF(cfg, different_template=False):
     for tr in transitions:
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
-        poly = _add_invariant(tr["tr_polyhedron"],tr["source"], cfg)
+        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         df = 0
         constant = rf_s[1] - rf_t[1]
         for i in range(Nvars):
@@ -448,109 +442,101 @@ def compute_bg_QLRF(cfg, different_template=False):
 
 
 def compute_bms_NLRF(algorithm, cfg, different_template=False):
-    """Assuming first transition as main
-    transition 0 of data["transitions"] is
-    the transition where we look for NLRF
-    """
-    if "main_tr_idx" in algorithm:
-        algorithm["main_tr_idx"] = 0
     response = Result()
     all_transitions = cfg.get_edges()
-    tr = all_transitions[algorithm["main_tr_idx"]]
-    transitions = [all_transitions[j] for j in range(all_transitions)
-                   if j != algorithm["main_tr_idx"]]
 
     max_d = algorithm["max_depth"] + 1
     min_d = algorithm["min_depth"]
+    dim = _max_dim(all_transitions)
+    Nvars = int(dim / 2)
 
-    for d in range(min_d, max_d):
-        OM.printif(2, "d = ", d)
-        # 0 - create variables
-        dim = _max_dim(transitions)
-        Nvars = int(dim / 2)
-        shifter = 0
-        size_rfs = 0
-        if different_template:
-            shifter = (Nvars + 1) * (d)
-        # 0.1 - farkas Variables
-        rfvars = {}
-        deltas = []
-        # 0.2 - farkas constraints
-        farkas_constraints = []
-        # 0.3 - return objects
-        rfs = {}  # rfs coefficients (result)
-        tr_rfs = {}
-        no_ranked = []  # transitions sets no ranked by rfs
-        # 0.4 - other stuff
-        nodeList = {}
-        countVar = 0
+    for tr_idx in range(len(all_transitions)):
+        tr = all_transitions[tr_idx]
+        transitions = [all_transitions[j] for j in range(len(all_transitions))
+                       if j != tr_idx]
 
-        # 1 - init variables
-        # 1.1 - store rfs variables
-        if not(tr["source"] in nodeList):
-            f = [[Variable(i)
-                  for i in range(countVar + (Nvars + 1) * di,
-                                 countVar + (Nvars + 1) * (di + 1))]
-                 for di in range(d)]
-            rfvars[tr["source"]] = f
-            countVar += shifter
-        if not(tr["target"] in nodeList):
-            f = [[Variable(i)
-                  for i in range(countVar + (Nvars + 1) * di,
-                                 countVar + (Nvars + 1) * (di + 1))]
-                 for di in range(d)]
-            rfvars[tr["target"]] = f
-            countVar += shifter
-        countVar += (Nvars + 1) * d
-        size_rfs = countVar
-        # 1.2 - calculate farkas constraints
+        for d in range(min_d, max_d):
+            OM.printif(2, "d = ", d)
+            # 0 - create variables
+            shifter = 0
+            if different_template:
+                shifter = (Nvars + 1) * (d)
+            # 0.1 - farkas Variables
+            rfvars = {}
+            # 0.2 - farkas constraints
+            farkas_constraints = []
+            # 0.3 - return objects
+            rfs = {}  # rfs coefficients (result)
+            tr_rfs = {}
+            # 0.4 - other stuff
+            nodeList = {}
+            countVar = 0
 
-        rf_s = rfvars[tr["source"]]
-        rf_t = rfvars[tr["target"]]
-        Mcons = len(tr["tr_polyhedron"].get_constraints())
+            # 1 - init variables
+            # 1.1 - store rfs variables
+            if not(tr["source"] in nodeList):
+                f = [[Variable(i)
+                      for i in range(countVar + (Nvars + 1) * di,
+                                     countVar + (Nvars + 1) * (di + 1))]
+                     for di in range(d)]
+                rfvars[tr["source"]] = f
+                countVar += shifter
+            if not(tr["target"] in nodeList):
+                f = [[Variable(i)
+                      for i in range(countVar + (Nvars + 1) * di,
+                                     countVar + (Nvars + 1) * (di + 1))]
+                     for di in range(d)]
+                rfvars[tr["target"]] = f
+                countVar += shifter
+            countVar += (Nvars + 1) * d
+            # 1.2 - calculate farkas constraints
 
-        lambdas = [[Variable(countVar + k + Mcons * di)
-                    for k in range(Mcons)]
-                   for di in range(d + 1)]
-        countVar += Mcons * (d + 1)
-        # 1.2.3 - NLRF for tr
-        farkas_constraints += farkas.NLRF(tr["tr_polyhedron"], lambdas,
-                                          rf_s, rf_t)
-        # 1.2.4 - df >= 0 for each tri != tr
-        for tr2 in transitions:
-            if tr == tr2:
-                continue
-            Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
-            for di in range(d):
-                lambdas = [Variable(countVar + k) for k in range(Mcons2)]
-                farkas_constraints += farkas.df(tr2["tr_polyhedron"],
-                                                lambdas,
-                                                rf_s[di], rf_t[di], 0)
-                countVar += Mcons2
+            rf_s = rfvars[tr["source"]]
+            rf_t = rfvars[tr["target"]]
+            Mcons = len(tr["tr_polyhedron"].get_constraints())
 
-        # 2 - Polyhedron
-        poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        point = poly.get_point()
-        if point is None:
-            continue  # not found, try with next d
+            lambdas = [[Variable(countVar + k + Mcons * di)
+                        for k in range(Mcons)]
+                       for di in range(d + 1)]
+            countVar += Mcons * (d + 1)
+            # 1.2.3 - NLRF for tr
+            farkas_constraints += farkas.NLRF(tr["tr_polyhedron"], lambdas,
+                                              rf_s, rf_t)
+            # 1.2.4 - df >= 0 for each tri != tr
+            for tr2 in transitions:
+                if tr == tr2:
+                    continue
+                Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
+                for di in range(d):
+                    lambdas = [Variable(countVar + k) for k in range(Mcons2)]
+                    farkas_constraints += farkas.df(tr2["tr_polyhedron"],
+                                                    lambdas,
+                                                    rf_s[di], rf_t[di], 0)
+                    countVar += Mcons2
 
-        for node in rfvars:
-            rfs[node] = [([point.coefficient(c)
-                           for c in rfvars[node][di][1::]],
-                          point.coefficient(rfvars[node][di][0]))
-                         for di in range(d)]
-        for tr in transitions:
-            tr_rfs[tr["name"]] = {
-                tr["source"]: [rfs[tr["source"]]],
-                tr["target"]: [rfs[tr["target"]]]
-            }
+            # 2 - Polyhedron
+            poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            point = poly.get_point()
+            if point is None:
+                continue  # not found, try with next d
 
-        response.set_response(found=True,
-                              info="found",
-                              rfs=rfs,
-                              tr_rfs=tr_rfs,
-                              pending_trs=transitions)
-        return response
+            for node in rfvars:
+                rfs[node] = [([point.coefficient(c)
+                               for c in rfvars[node][di][1::]],
+                              point.coefficient(rfvars[node][di][0]))
+                             for di in range(d)]
+            for tr2 in all_transitions:
+                tr_rfs[tr2["name"]] = {
+                    tr2["source"]: [rfs[tr2["source"]]],
+                    tr2["target"]: [rfs[tr2["target"]]]
+                }
+
+            response.set_response(found=True,
+                                  info="found",
+                                  rfs=rfs,
+                                  tr_rfs=tr_rfs,
+                                  pending_trs=transitions)
+            return response
 
     response.set_response(found=False,
                           info="Not found: max_d = " + str(max_d-1) + " .")

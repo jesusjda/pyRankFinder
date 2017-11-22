@@ -55,8 +55,8 @@ install_module(){
     popd
     # python$vers -m pip install $flags "git+https://github.com/jesusjda/pplpy.git#egg=pplpy" --process-dependency-links
     # python$vers -m pip install $flags "git+https://github.com/abstools/easyinterface.git@develop#egg=pyeiol&subdirectory=outputlanguage/python"
-    # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi" --process-dependency-links
-    # python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=genericparser" --process-dependency-links
+    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi" --process-dependency-links
+    python$vers -m pip install $flags "git+https://github.com/jesusjda/pyParser.git#egg=genericparser" --process-dependency-links
     if [ "$LOCAL" == "true" ]; then
 	python$vers -m pip install $flags --process-dependency-links .
     else

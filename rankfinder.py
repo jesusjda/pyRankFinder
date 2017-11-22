@@ -1,18 +1,19 @@
-import os
-import sys
-import traceback
-# import getopt
 import argparse
 from copy import deepcopy
-from ppl import Variables_Set
-from ppl import Variable
-from ppl import Linear_Expression
-import lpi
-import termination
-from termination.output import Output_Manager as OM
 from genericparser import GenericParser
 from genericparser.Cfg import Cfg
+import lpi
+import os
+from ppl import Linear_Expression
+from ppl import Variable
+from ppl import Variables_Set
+import sys
+import termination
+from termination.output import Output_Manager as OM
+import traceback
 
+
+# import getopt
 _version = "0.0.2"
 _name = "rankfinder"
 
@@ -125,7 +126,7 @@ def Main(argv):
             return
         config["vars_name"] = cfg.get_var_name()
         invariants(config["invariants"], cfg)
-        result = rank(config["algorithms"], 
+        result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
                       config["different_template"])
         OM.printf(f)
@@ -161,29 +162,30 @@ def invariants(invariant_type, cfg):
             var_set = Variables_Set()
             for i in range(0, n):  # Vars from 0 to n-1 inclusive
                 var_set.insert(Variable(i))
-            for i in range(2*n, m): # Vars from 2*n to m-1 inclusive (local variables)
+            # (local variables)
+            for i in range(2*n, m):  # Vars from 2*n to m-1 inclusive
                 var_set.insert(Variable(i))
-    
+
             s1.remove_dimensions(var_set)
             return s1
-    
+
         def lub(s1, s2):
             a = deepcopy(s1)
             a.poly_hull_assign(s2)
             return a
-    
-        init_node = cfg.get_init_node()    
+
+        init_node = cfg.get_init_node()
         p = lpi.C_Polyhedron(dim=Nvars)
         p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
-    
+
         for node in graph_nodes:
             nodes[node] = {
                 "state": deepcopy(p),
                 "access": 0
             }
-    
+
         nodes[init_node]["state"] = lpi.C_Polyhedron(dim=Nvars)
-    
+
         queue = [init_node]
         while len(queue) > 0:
             node = queue.pop()
@@ -200,11 +202,12 @@ def invariants(invariant_type, cfg):
                     dest_s["state"] = s2
                     if not(t["target"] in queue):
                         queue.append(t["target"])
-    
+
     OM.printif(3, "INVARIANTS")
     for n in nodes:
-        cfg.add_node_info(n, "invariant", nodes[n]["state"] )
+        cfg.add_node_info(n, "invariant", nodes[n]["state"])
         OM.printif(3, n, ": ", nodes[n]["state"].get_constraints())
+
 
 def rank(algs, CFGs, different_template=False):
     response = termination.Result()
@@ -229,7 +232,7 @@ def rank(algs, CFGs, different_template=False):
             merge_rfs(tr_rfs, R.get("tr_rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
-                CFGs = [(Cfg(pending_trs, cfg.get_var_name(), 
+                CFGs = [(Cfg(pending_trs, cfg.get_var_name(),
                              nodes_info=cfg.get_node_info(),
                              init_node=cfg.get_init_node()),
                          sccd)] + CFGs
@@ -256,18 +259,15 @@ def run_algs(algs, cfg, different_template=False):
     for t in trans:
         OM.printif(2, t["name"], t["tr_polyhedron"].get_constraints())
     for alg in algs:
-        try:
-            OM.printif(1, "-> with: " + alg['name'])
-            R = termination.run(alg, cfg, 
-                                different_template=different_template)
-            OM.printif(3, R.debug())
-            OM.printif(1, R.toString(vars_name))
-            if R.found():
-                if R.get("rfs"):
-                    f = True
-                    break
-        except:
-            pass
+        OM.printif(1, "-> with: " + alg['name'])
+        R = termination.run(alg, cfg,
+                            different_template=different_template)
+        OM.printif(3, R.debug())
+        OM.printif(1, R.toString(vars_name))
+        if R.found():
+            if R.get("rfs"):
+                f = True
+                break
 
     if f:
         pen = R.get("pending_trs")
@@ -293,6 +293,7 @@ def merge_rfs(rfs, to_add):
         else:
             new_rfs[key] = to_add[key]
     return new_rfs
+
 
 if __name__ == "__main__":
     Main(sys.argv[1:])
