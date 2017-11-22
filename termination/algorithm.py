@@ -526,10 +526,12 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                               point.coefficient(rfvars[node][di][0]))
                              for di in range(d)]
             for tr2 in all_transitions:
-                tr_rfs[tr2["name"]] = {
-                    tr2["source"]: [rfs[tr2["source"]]],
-                    tr2["target"]: [rfs[tr2["target"]]]
-                }
+                if(tr2["source"] in [tr["source"], tr["target"]] and
+                   tr2["target"] in [tr["source"], tr["target"]]):
+                    tr_rfs[tr2["name"]] = {
+                        tr2["source"]: [rfs[tr2["source"]]],
+                        tr2["target"]: [rfs[tr2["target"]]]
+                    }
 
             response.set_response(found=True,
                                   info="found",
