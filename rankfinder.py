@@ -64,6 +64,7 @@ def algorithm(value):
 
 def setArgumentParser():
     desc = _name+": a Ranking Function finder on python."
+    dt_options = ["never", "iffail", "always"]
     argParser = argparse.ArgumentParser(description=desc)
     # Program Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 4),
@@ -75,7 +76,8 @@ def setArgumentParser():
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
     # Algorithm Parameters
-    argParser.add_argument("-dt", "--different_template", action='store_true',
+    argParser.add_argument("-dt", "--different_template", required=False,
+                           choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
@@ -111,8 +113,6 @@ def Main(argv):
             aux_c -= 1
         r = '/'.join(aux_p[aux_c:])
 
-        OM.restart(dest=r)
-        OM.show_output()
         try:
             if args.dotDestination:
                 s = r.replace('/', '_')
@@ -121,20 +121,37 @@ def Main(argv):
             else:
                 cfg = prs.parse(f)
         except Exception as e:
-            print(traceback.format_exc())
-            print(e)
-            return
+            raise e
         config["vars_name"] = cfg.get_var_name()
+        OM.restart(dest=r, vars_name=config["vars_name"])
         invariants(config["invariants"], cfg)
+
+        if config["different_template"] == "always":
+            different_template = True
+        else:
+            different_template = False
+
         result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
-                      config["different_template"])
-        OM.printf(f)
+                      different_template)
+        if not result.found() and config["different_template"] == "iffail":
+            OM.printf(1, "Running algorithms with different template")
+            different_template = True
+            result = rank(config["algorithms"],
+                          [(cfg, config["scc_depth"])],
+                          different_template)
+        if(len(files) > 1):
+            OM.printf(f)
+        OM.printseparator(1)
+        OM.printf("Final Result")
+        if different_template:
+            OM.printf("Using Different Template")
         OM.printf(result.toString(cfg.get_var_name()))
         tr_rfs = result.get("tr_rfs")
         OM.printif(3, tr_rfs)
         for tr in tr_rfs:
             OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
+        OM.printseparator(1)
         OM.show_output()
     return
 
@@ -203,10 +220,11 @@ def invariants(invariant_type, cfg):
                     if not(t["target"] in queue):
                         queue.append(t["target"])
 
-    OM.printif(3, "INVARIANTS")
+    OM.printif(1, "INVARIANTS")
     for n in nodes:
         cfg.add_node_info(n, "invariant", nodes[n]["state"])
-        OM.printif(3, n, ": ", nodes[n]["state"].get_constraints())
+        OM.printif(1, "invariant of " + n, " = ",
+                   nodes[n]["state"].get_constraints())
 
 
 def rank(algs, CFGs, different_template=False):
@@ -256,8 +274,6 @@ def run_algs(algs, cfg, different_template=False):
     for t in trans:
         trs += t["name"]+","
     OM.printif(1, "Analyzing transitions: "+trs)
-    for t in trans:
-        OM.printif(2, t["name"], t["tr_polyhedron"].get_constraints())
     for alg in algs:
         OM.printif(1, "-> with: " + alg['name'])
         R = termination.run(alg, cfg,

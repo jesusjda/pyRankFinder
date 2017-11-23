@@ -37,21 +37,14 @@ def _max_dim(edges):
 
 def _add_invariant(tr_poly, src_id, cfg):
     src_invariant = cfg.get_node_info(src_id, "invariant")
-    OM.printif(3, "invariant of ", src_id, " = ",
-               src_invariant.get_constraints())
-    OM.printif(3, "dim inv = ", src_invariant.get_dimension())
-    OM.printif(3, "dim tr = ", tr_poly.get_dimension())
+
     Nvars = len(cfg.get_var_name())
     poly = C_Polyhedron(dim=Nvars)
     for c in tr_poly.get_constraints():
         poly.add_constraint(c)
     for c in src_invariant.get_constraints():
         poly.add_constraint(c)
-    OM.printif(3, "tr = ", tr_poly.get_constraints())
-    OM.printif(3, "poly with tr = ", poly.get_constraints())
-    OM.printif(3, "poly minimized = ",
-               poly._poly._poly.minimized_constraints())
-
+    poly.minimized_constraints()
     return poly
 
 
@@ -281,6 +274,7 @@ def compute_adfg_QLRF(_, cfg, different_template=False):
         rf_s = rfvars[tr["source"]]
         rf_t = rfvars[tr["target"]]
         poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
+
         Mcons = len(poly.get_constraints())
         # f_s >= 0
         lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
