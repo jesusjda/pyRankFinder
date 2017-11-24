@@ -10,11 +10,9 @@ from ppl import Variables_Set
 import sys
 import termination
 from termination.output import Output_Manager as OM
-import traceback
 
 
-# import getopt
-_version = "0.0.2"
+_version = "0.0.3"
 _name = "rankfinder"
 
 
@@ -135,7 +133,7 @@ def Main(argv):
                       [(cfg, config["scc_depth"])],
                       different_template)
         if not result.found() and config["different_template"] == "iffail":
-            OM.printf(1, "Running algorithms with different template")
+            OM.printif(1, "Running algorithms with different template")
             different_template = True
             result = rank(config["algorithms"],
                           [(cfg, config["scc_depth"])],
