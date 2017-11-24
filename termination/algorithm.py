@@ -444,12 +444,12 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
     Nvars = int(dim / 2)
 
     for tr_idx in range(len(all_transitions)):
-        tr = all_transitions[tr_idx]
+        main_tr = all_transitions[tr_idx]
         transitions = [all_transitions[j] for j in range(len(all_transitions))
                        if j != tr_idx]
-
+        OM.printif(2, "trying with : " + main_tr["name"])
         for d in range(min_d, max_d):
-            OM.printif(2, "d = ", d)
+            OM.printif(2, "\td = ", d)
             # 0 - create variables
             shifter = 0
             if different_template:
@@ -462,44 +462,43 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
             rfs = {}  # rfs coefficients (result)
             tr_rfs = {}
             # 0.4 - other stuff
-            nodeList = {}
             countVar = 0
 
             # 1 - init variables
             # 1.1 - store rfs variables
-            if not(tr["source"] in rfvars):
+            # if not(tr["source"] in rfvars):
+            f = [[Variable(i)
+                  for i in range(countVar + (Nvars + 1) * di,
+                                 countVar + (Nvars + 1) * (di + 1))]
+                 for di in range(d)]
+            rfvars[main_tr["source"]] = f
+            countVar += shifter
+            if not(main_tr["target"] in rfvars):
                 f = [[Variable(i)
                       for i in range(countVar + (Nvars + 1) * di,
                                      countVar + (Nvars + 1) * (di + 1))]
                      for di in range(d)]
-                rfvars[tr["source"]] = f
-                countVar += shifter
-            if not(tr["target"] in rfvars):
-                f = [[Variable(i)
-                      for i in range(countVar + (Nvars + 1) * di,
-                                     countVar + (Nvars + 1) * (di + 1))]
-                     for di in range(d)]
-                rfvars[tr["target"]] = f
+                rfvars[main_tr["target"]] = f
                 countVar += shifter
             if shifter == 0:
                 countVar += (Nvars + 1) * d
             # 1.2 - calculate farkas constraints
-
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
-            Mcons = len(tr["tr_polyhedron"].get_constraints())
+            print(countVar)
+            rf_s = rfvars[main_tr["source"]]
+            rf_t = rfvars[main_tr["target"]]
+            poly = _add_invariant(main_tr["tr_polyhedron"],
+                                  main_tr["source"], cfg)
+            Mcons = len(poly.get_constraints())
 
             lambdas = [[Variable(countVar + k + Mcons * di)
                         for k in range(Mcons)]
                        for di in range(d + 1)]
             countVar += Mcons * (d + 1)
             # 1.2.3 - NLRF for tr
-            farkas_constraints += farkas.NLRF(tr["tr_polyhedron"], lambdas,
+            farkas_constraints += farkas.NLRF(poly, lambdas,
                                               rf_s, rf_t)
             # 1.2.4 - df >= 0 for each tri != tr
             for tr2 in transitions:
-                if tr == tr2:
-                    continue
                 Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
                 for di in range(d):
                     lambdas = [Variable(countVar + k) for k in range(Mcons2)]
@@ -509,8 +508,8 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                     countVar += Mcons2
 
             # 2 - Polyhedron
-            poly = C_Polyhedron(Constraint_System(farkas_constraints))
-            point = poly.get_point()
+            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            point = farkas_poly.get_point()
             if point is None:
                 continue  # not found, try with next d
 
@@ -520,8 +519,8 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                               point.coefficient(rfvars[node][di][0]))
                              for di in range(d)]
             for tr2 in all_transitions:
-                if(tr2["source"] in [tr["source"], tr["target"]] and
-                   tr2["target"] in [tr["source"], tr["target"]]):
+                if(tr2["source"] in [main_tr["source"], main_tr["target"]] and
+                   tr2["target"] in [main_tr["source"], main_tr["target"]]):
                     tr_rfs[tr2["name"]] = {
                         tr2["source"]: [rfs[tr2["source"]]],
                         tr2["target"]: [rfs[tr2["target"]]]
