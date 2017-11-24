@@ -114,7 +114,7 @@ class Output:
             dim = cs.space_dimension()
             if vars_name is None:
                 vars_name = self._vars_name
-                for i in range(len(vars_name),dim):
+                for i in range(len(vars_name), dim):
                     vars_name.append("x"+str(i))
             first = True
             for v in range(dim):
@@ -140,7 +140,11 @@ class Output:
                     coeff = - coeff
                 response += str(coeff)
             if isinstance(cs, Constraint):
-                response += " >= 0"
+                if cs.is_inequality():
+                    response += " >= "
+                else:
+                    response += " == "
+                response += "0"
         else:
             response = str(cs)
         return response

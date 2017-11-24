@@ -118,7 +118,10 @@ def Main(argv):
         config["vars_name"] = cfg.get_var_name()
         OM.restart(dest=r, vars_name=config["vars_name"])
         invariants(config["invariants"], cfg)
-
+        if args.dotDestination:
+            s = r.replace('/', '_')
+            dot = os.path.join(args.dotDestination, s + ".dot")
+            cfg.toDot(OM, dot)
         if config["different_template"] == "always":
             different_template = True
         else:
@@ -146,10 +149,7 @@ def Main(argv):
             OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
         OM.printseparator(1)
         OM.show_output()
-        if args.dotDestination:
-            s = r.replace('/', '_')
-            dot = os.path.join(args.dotDestination, s + ".dot")
-            cfg.toDot(OM, dot)
+
 
     return
 

@@ -66,20 +66,20 @@ def LinearRF(_, cfg, different_template=False):
     rfs = {}
     tr_rfs = {}
     # other stuff
-    nodeList = {}
     countVar = 0
     for tr in transitions:
-        if not(tr["source"] in nodeList):
+        if not(tr["source"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["source"]] = f
             countVar += shifter
-        if not(tr["target"] in nodeList):
+        if not(tr["target"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["target"]] = f
             countVar += shifter
-            countVar += Nvars + 1
+    if shifter == 0:
+        countVar += Nvars + 1
 
     for tr in transitions:
         rf_s = rfvars[tr["source"]]
@@ -251,16 +251,15 @@ def compute_adfg_QLRF(_, cfg, different_template=False):
     tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
     # other stuff
-    nodeList = {}
     countVar = 0
     # 1.1 - store rfs variables
     for tr in transitions:
-        if not(tr["source"] in nodeList):
+        if not(tr["source"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["source"]] = f
             countVar += shifter
-        if not(tr["target"] in nodeList):
+        if not(tr["target"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["target"]] = f
@@ -346,21 +345,21 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
     # other stuff
-    nodeList = {}
     countVar = 0
     # 1.1 - store rfs variables
     for tr in transitions:
-        if not(tr["source"] in nodeList):
+        if not(tr["source"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["source"]] = f
             countVar += shifter
-        if not(tr["target"] in nodeList):
+        if not(tr["target"] in rfvars):
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["target"]] = f
             countVar += shifter
-    countVar += Nvars + 1
+    if shifter == 0:
+        countVar += Nvars + 1
     size_rfs = countVar
 
     for tr in transitions:
@@ -468,21 +467,22 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
 
             # 1 - init variables
             # 1.1 - store rfs variables
-            if not(tr["source"] in nodeList):
+            if not(tr["source"] in rfvars):
                 f = [[Variable(i)
                       for i in range(countVar + (Nvars + 1) * di,
                                      countVar + (Nvars + 1) * (di + 1))]
                      for di in range(d)]
                 rfvars[tr["source"]] = f
                 countVar += shifter
-            if not(tr["target"] in nodeList):
+            if not(tr["target"] in rfvars):
                 f = [[Variable(i)
                       for i in range(countVar + (Nvars + 1) * di,
                                      countVar + (Nvars + 1) * (di + 1))]
                      for di in range(d)]
                 rfvars[tr["target"]] = f
                 countVar += shifter
-            countVar += (Nvars + 1) * d
+            if shifter == 0:
+                countVar += (Nvars + 1) * d
             # 1.2 - calculate farkas constraints
 
             rf_s = rfvars[tr["source"]]

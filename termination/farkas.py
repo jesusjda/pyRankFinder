@@ -1,4 +1,3 @@
-from functools import reduce
 from ppl import Variable
 
 
@@ -57,7 +56,7 @@ def f(polyhedron, lambdas, f, delta):
     """
     f >= delta
     """
-    exp = f[1::] + [0 for v in f[1::]]
+    exp = f[1::] + [0 for _ in f[1::]]
     inh = f[0] - delta
     return farkas(polyhedron, lambdas, exp, inh)
 
