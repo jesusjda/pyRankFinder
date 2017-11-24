@@ -112,11 +112,6 @@ def Main(argv):
         r = '/'.join(aux_p[aux_c:])
 
         try:
-            if args.dotDestination:
-                s = r.replace('/', '_')
-                dot = os.path.join(args.dotDestination, s + ".dot")
-                cfg = prs.parse(f, dotgraph=dot)
-            else:
                 cfg = prs.parse(f)
         except Exception as e:
             raise e
@@ -151,6 +146,11 @@ def Main(argv):
             OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
         OM.printseparator(1)
         OM.show_output()
+        if args.dotDestination:
+            s = r.replace('/', '_')
+            dot = os.path.join(args.dotDestination, s + ".dot")
+            cfg.toDot(OM, dot)
+
     return
 
 
