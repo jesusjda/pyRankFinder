@@ -466,20 +466,21 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
 
             # 1 - init variables
             # 1.1 - store rfs variables
-            # if not(tr["source"] in rfvars):
-            f = [[Variable(i)
-                  for i in range(countVar + (Nvars + 1) * di,
-                                 countVar + (Nvars + 1) * (di + 1))]
-                 for di in range(d)]
-            rfvars[main_tr["source"]] = f
-            countVar += shifter
-            if not(main_tr["target"] in rfvars):
-                f = [[Variable(i)
-                      for i in range(countVar + (Nvars + 1) * di,
-                                     countVar + (Nvars + 1) * (di + 1))]
-                     for di in range(d)]
-                rfvars[main_tr["target"]] = f
-                countVar += shifter
+            for tr in all_transitions:
+                if not(tr["source"] in rfvars):
+                    f = [[Variable(i)
+                          for i in range(countVar + (Nvars + 1) * di,
+                                         countVar + (Nvars + 1) * (di + 1))]
+                         for di in range(d)]
+                    rfvars[tr["source"]] = f
+                    countVar += shifter
+                if not(tr["target"] in rfvars):
+                    f = [[Variable(i)
+                          for i in range(countVar + (Nvars + 1) * di,
+                                         countVar + (Nvars + 1) * (di + 1))]
+                         for di in range(d)]
+                    rfvars[tr["target"]] = f
+                    countVar += shifter
             if shifter == 0:
                 countVar += (Nvars + 1) * d
             # 1.2 - calculate farkas constraints
@@ -500,11 +501,13 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
             # 1.2.4 - df >= 0 for each tri != tr
             for tr2 in transitions:
                 Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
+                rf_s2 = rfvars[tr2["source"]]
+                rf_t2 = rfvars[tr2["target"]]
                 for di in range(d):
                     lambdas = [Variable(countVar + k) for k in range(Mcons2)]
                     farkas_constraints += farkas.df(tr2["tr_polyhedron"],
                                                     lambdas,
-                                                    rf_s[di], rf_t[di], 0)
+                                                    rf_s2[di], rf_t2[di], 0)
                     countVar += Mcons2
 
             # 2 - Polyhedron
