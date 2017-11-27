@@ -237,10 +237,8 @@ def rank(algs, CFGs, different_template=False):
         else:
             CFGs_aux = [current_cfg]
         for cfg in CFGs_aux:
-            
             if not cfg.has_cycle():
                 continue
-            OM.printif(3, cfg.get_edges(), cfg.has_cycle())
             R = run_algs(algs, cfg,
                          different_template=different_template)
             if not R.found():
