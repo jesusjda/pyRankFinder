@@ -484,7 +484,6 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
             if shifter == 0:
                 countVar += (Nvars + 1) * d
             # 1.2 - calculate farkas constraints
-            print(countVar)
             rf_s = rfvars[main_tr["source"]]
             rf_t = rfvars[main_tr["target"]]
             poly = _add_invariant(main_tr["tr_polyhedron"],
