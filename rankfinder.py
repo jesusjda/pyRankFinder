@@ -142,6 +142,10 @@ def Main(argv):
         OM.printf("Final Result")
         if different_template:
             OM.printf("Using Different Template")
+        no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
+        if no_lin:
+            OM.printf("Removed no linear constraints from transitions: " +
+                      str(no_lin))
         OM.printf(result.toString(cfg.get_var_name()))
         tr_rfs = result.get("tr_rfs")
         OM.printif(3, tr_rfs)
@@ -149,7 +153,6 @@ def Main(argv):
             OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
         OM.printseparator(1)
         OM.show_output()
-
 
     return
 

@@ -344,16 +344,21 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     rfs = {}  # rfs coefficients (result)
     tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
+    free_constants = []
     # other stuff
     countVar = 0
     # 1.1 - store rfs variables
     for tr in transitions:
         if not(tr["source"] in rfvars):
+            if not(countVar in free_constants):
+                free_constants.append(countVar)
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["source"]] = f
             countVar += shifter
         if not(tr["target"] in rfvars):
+            if not(countVar in free_constants):
+                free_constants.append(countVar)
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["target"]] = f
@@ -379,7 +384,8 @@ def compute_bg_QLRF(_, cfg, different_template=False):
         farkas_constraints += farkas.df(poly, lambdas,
                                         rf_s, rf_t, 0)
     farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-    result = farkas_poly.get_relative_interior_point(size_rfs)
+    result = farkas_poly.get_relative_interior_point(size_rfs,
+                                                     free_constants=free_constants)
     if result is None:
         response.set_response(found=False,
                               info="No relative interior point")
@@ -387,7 +393,6 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     for node in rfvars:
         rfs[node] = ([result[c.id()] for c in rfvars[node][1::]],
                      result[(rfvars[node][0]).id()])
-
     # check if rfs are non-trivial
     nonTrivial = False
     for tr in transitions:
@@ -400,7 +405,6 @@ def compute_bg_QLRF(_, cfg, different_template=False):
             df += Variable(i) * rf_s[0][i]
             df -= Variable(Nvars + i) * rf_t[0][i]
         answ = poly.maximize(df)
-
         if(not answ["bounded"] or
            answ["sup_n"] > -constant):
             nonTrivial = True
@@ -409,14 +413,12 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     if nonTrivial:
         no_ranked = []
         for tr in transitions:
-            poly = tr["tr_polyhedron"]
+            poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
             cons = poly.get_constraints()
             cons.insert(df+constant == 0)
             newpoly = C_Polyhedron(cons)
             if not newpoly.is_empty():
                 tr["tr_polyhedron"] = newpoly
-                tr["label"] = (tr["label"][:-1] + str(df) +
-                               "+" + str(constant) + "==0\n}")
                 no_ranked.append(tr)
             tr_rfs[tr["name"]] = {
                 tr["source"]: [rfs[tr["source"]]],
