@@ -3,6 +3,7 @@ from __future__ import print_function
 import eiol
 from ppl import Constraint
 from ppl import Constraint_System
+from ppl import Generator
 from ppl import Linear_Expression
 from ppl import Variable
 
@@ -97,7 +98,7 @@ class Output:
 
     def tostr(self, cs, vars_name=None):
         response = ""
-        if isinstance(cs, (Constraint_System, list)):
+        if isinstance(cs, Constraint_System):
             constraints = [c for c in cs]
             response += "{"
             first = True
@@ -110,15 +111,22 @@ class Output:
                 response += "\n"
             response += "}"
             return response
-        elif isinstance(cs, (Constraint, Linear_Expression)):
+        elif isinstance(cs, (Constraint, Linear_Expression, Generator)):
+            ispoint = isinstance(cs, Generator)
+            p = 0
+            if ispoint:
+                p = 1
             dim = cs.space_dimension()
             if vars_name is None:
                 vars_name = self._vars_name
                 for i in range(len(vars_name), dim):
-                    vars_name.append("x"+str(i))
+                    vars_name.append("x"+str(i+p))
             first = True
-            for v in range(dim):
-                coeff = cs.coefficient(Variable(v))
+            divisor = 1
+            if ispoint:
+                divisor = cs.divisor()
+            for v in range(dim-p):
+                coeff = cs.coefficient(Variable(v+p))
                 if not first:
                     if coeff > 0:
                         response += " + "
@@ -127,10 +135,16 @@ class Output:
                     if coeff < 0:
                         response += " - "
                         coeff = - coeff
-                    if coeff != 1:
-                        response += str(coeff) + " * "
+                    if coeff != divisor and (coeff != 1 or divisor != 1): 
+                        response += str(coeff)
+                        if divisor != 1:
+                            response += "/"+str(divisor)
+                        response += " * "
                     response += vars_name[v]
-            coeff = cs.inhomogeneous_term()
+            if ispoint:
+                coeff = cs.coefficient(Variable(0))
+            else:
+                coeff = cs.inhomogeneous_term()
             if first or coeff != 0:
                 if not first:
                     if coeff >= 0:
@@ -139,6 +153,8 @@ class Output:
                     response += " - "
                     coeff = - coeff
                 response += str(coeff)
+                if divisor != 1:
+                    response += "/"+str(divisor)
             if isinstance(cs, Constraint):
                 if cs.is_inequality():
                     response += " >= "

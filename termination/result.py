@@ -1,3 +1,8 @@
+from ppl import Generator
+
+from .output import Output_Manager as OM
+
+
 class Result:
 
     _data = {}
@@ -44,8 +49,8 @@ class Result:
 
     def _rflist2str(self, rfs, vars_name=None):
         res = ""
-        if isinstance(rfs, tuple):
-            res += self._function2str(rfs, vars_name)
+        if isinstance(rfs, Generator):
+            res += OM.tostr(rfs, vars_name)
         else:
             res += "< "
             for i in range(len(rfs)):
@@ -80,7 +85,7 @@ class Result:
             return "ERROR: " + self._data["errormsg"]
 
         if not self._data["found"]:
-            return "NOT FOUND: " + self._data["info"]
+            return "NOT FOUND " + self._data["info"]
 
         res = "FOUND"
         if "type" in self._data:

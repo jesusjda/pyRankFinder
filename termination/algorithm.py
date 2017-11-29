@@ -1,7 +1,9 @@
 from genericparser.Cfg import Cfg
 from lpi import C_Polyhedron
 from ppl import Constraint_System
+from ppl import Linear_Expression
 from ppl import Variable
+from ppl import point as pplpoint
 
 from . import farkas
 from .output import Output_Manager as OM
@@ -46,6 +48,17 @@ def _add_invariant(tr_poly, src_id, cfg):
         poly.add_constraint(c)
     poly.minimized_constraints()
     return poly
+
+
+def _get_rf(variables, point):
+    """
+    Assume variables[0] is the independent term
+    the result point has as coord(0) the indep term
+    """
+    exp = Linear_Expression(0)
+    for i in range(len(variables)):
+        exp += point.coefficient(variables[i])*Variable(i)
+    return pplpoint(exp)
 
 
 def LinearRF(_, cfg, different_template=False):
@@ -106,8 +119,8 @@ def LinearRF(_, cfg, different_template=False):
         return response
 
     for node in rfvars:
-        rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
-                     point.coefficient(rfvars[node][0]))
+        rfs[node] = _get_rf(rfvars[node], point)
+
     for tr in transitions:
         tr_rfs[tr["name"]] = {
             tr["source"]: [rfs[tr["source"]]],
@@ -308,8 +321,7 @@ def compute_adfg_QLRF(_, cfg, different_template=False):
         return response
 
     for node in rfvars:
-        rfs[node] = ([point.coefficient(c) for c in rfvars[node][1::]],
-                     point.coefficient(rfvars[node][0]))
+        rfs[node] = _get_rf(rfvars[node], point)
 
         no_ranked = [tr for tr in transitions
                      if point.coefficient(deltas[tr["name"]]) == 0]
@@ -384,15 +396,15 @@ def compute_bg_QLRF(_, cfg, different_template=False):
         farkas_constraints += farkas.df(poly, lambdas,
                                         rf_s, rf_t, 0)
     farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-    result = farkas_poly.get_relative_interior_point(size_rfs,
-                                                     free_constants=freeConsts)
-    if result is None:
+    variables = [v for v in range(size_rfs) if not(v in freeConsts)]
+    variables += freeConsts
+    point = farkas_poly.get_relative_interior_point(variables)
+    if point is None:
         response.set_response(found=False,
                               info="No relative interior point")
         return response
     for node in rfvars:
-        rfs[node] = ([result[c.id()] for c in rfvars[node][1::]],
-                     result[(rfvars[node][0]).id()])
+        rfs[node] = _get_rf(rfvars[node], point)
     # check if rfs are non-trivial
     nonTrivial = False
     dfs = {}
@@ -400,11 +412,11 @@ def compute_bg_QLRF(_, cfg, different_template=False):
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
         poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
-        df = 0
-        constant = rf_s[1] - rf_t[1]
+        df = Linear_Expression(0)
+        constant = rf_s.coefficient(Variable(0)) - rf_t.coefficient(Variable(0))
         for i in range(Nvars):
-            df += Variable(i) * rf_s[0][i]
-            df -= Variable(Nvars + i) * rf_t[0][i]
+            df += Variable(i) * rf_s.coefficient(Variable(i+1))
+            df -= Variable(Nvars + i) * rf_t.coefficient(Variable(i+1))
         dfs[tr["name"]] = df+constant
         if not nonTrivial:
             answ = poly.maximize(df)
@@ -520,9 +532,7 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                 continue  # not found, try with next d
 
             for node in rfvars:
-                rfs[node] = [([point.coefficient(c)
-                               for c in rfvars[node][di][1::]],
-                              point.coefficient(rfvars[node][di][0]))
+                rfs[node] = [_get_rf(rfvars[node][di], point)
                              for di in range(d)]
             for tr2 in all_transitions:
                 if(tr2["source"] in [main_tr["source"], main_tr["target"]] and
