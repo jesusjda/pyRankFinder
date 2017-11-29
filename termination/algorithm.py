@@ -344,21 +344,21 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     rfs = {}  # rfs coefficients (result)
     tr_rfs = {}
     no_ranked = []  # transitions sets no ranked by rfs
-    free_constants = []
+    freeConsts = []
     # other stuff
     countVar = 0
     # 1.1 - store rfs variables
     for tr in transitions:
         if not(tr["source"] in rfvars):
-            if not(countVar in free_constants):
-                free_constants.append(countVar)
+            if not(countVar in freeConsts):
+                freeConsts.append(countVar)
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["source"]] = f
             countVar += shifter
         if not(tr["target"] in rfvars):
-            if not(countVar in free_constants):
-                free_constants.append(countVar)
+            if not(countVar in freeConsts):
+                freeConsts.append(countVar)
             f = [Variable(i)
                  for i in range(countVar, countVar + Nvars + 1)]
             rfvars[tr["target"]] = f
@@ -385,7 +385,7 @@ def compute_bg_QLRF(_, cfg, different_template=False):
                                         rf_s, rf_t, 0)
     farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
     result = farkas_poly.get_relative_interior_point(size_rfs,
-                                                     free_constants=free_constants)
+                                                     free_constants=freeConsts)
     if result is None:
         response.set_response(found=False,
                               info="No relative interior point")
@@ -399,36 +399,33 @@ def compute_bg_QLRF(_, cfg, different_template=False):
     for tr in transitions:
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
-        poly = tr["tr_polyhedron"]
+        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         df = 0
         constant = rf_s[1] - rf_t[1]
         for i in range(Nvars):
             df += Variable(i) * rf_s[0][i]
             df -= Variable(Nvars + i) * rf_t[0][i]
         dfs[tr["name"]] = df+constant
-        answ = poly.maximize(df)
-        dfnotrivial = False
-        if(not answ["bounded"] or
-           answ["sup_n"] > -constant):
-            nonTrivial = True
-            dfnotrivial = True
-        dfs[tr["name"]] = (dfnotrivial, df+constant)
+        if not nonTrivial:
+            answ = poly.maximize(df)
+            if(not answ["bounded"] or
+               answ["sup_n"] > -constant):
+                nonTrivial = True
 
     if nonTrivial:
         no_ranked = []
         for tr in transitions:
-            if dfs[tr["name"]][0]:
-                poly = tr["tr_polyhedron"]
-                cons = poly.get_constraints()
-                cons.insert(dfs[tr["name"]][1] == 0)
-                newpoly = C_Polyhedron(cons)
-                if not newpoly.is_empty():
-                    tr["tr_polyhedron"] = newpoly
-                    no_ranked.append(tr)
-                tr_rfs[tr["name"]] = {
-                    tr["source"]: [rfs[tr["source"]]],
-                    tr["target"]: [rfs[tr["target"]]]
-                }
+            poly = tr["tr_polyhedron"]
+            cons = poly.get_constraints()
+            cons.insert(dfs[tr["name"]] == 0)
+            newpoly = C_Polyhedron(cons)
+            if not newpoly.is_empty():
+                tr["tr_polyhedron"] = newpoly
+                no_ranked.append(tr)
+            tr_rfs[tr["name"]] = {
+                tr["source"]: [rfs[tr["source"]]],
+                tr["target"]: [rfs[tr["target"]]]
+            }
 
         response.set_response(found=True,
                               info="found",
