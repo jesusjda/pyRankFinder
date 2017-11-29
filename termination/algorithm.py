@@ -395,35 +395,40 @@ def compute_bg_QLRF(_, cfg, different_template=False):
                      result[(rfvars[node][0]).id()])
     # check if rfs are non-trivial
     nonTrivial = False
+    dfs = {}
     for tr in transitions:
         rf_s = rfs[tr["source"]]
         rf_t = rfs[tr["target"]]
-        poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
+        poly = tr["tr_polyhedron"]
         df = 0
         constant = rf_s[1] - rf_t[1]
         for i in range(Nvars):
             df += Variable(i) * rf_s[0][i]
             df -= Variable(Nvars + i) * rf_t[0][i]
+        dfs[tr["name"]] = df+constant
         answ = poly.maximize(df)
+        dfnotrivial = False
         if(not answ["bounded"] or
            answ["sup_n"] > -constant):
             nonTrivial = True
-            break
+            dfnotrivial = True
+        dfs[tr["name"]] = (dfnotrivial, df+constant)
 
     if nonTrivial:
         no_ranked = []
         for tr in transitions:
-            poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
-            cons = poly.get_constraints()
-            cons.insert(df+constant == 0)
-            newpoly = C_Polyhedron(cons)
-            if not newpoly.is_empty():
-                tr["tr_polyhedron"] = newpoly
-                no_ranked.append(tr)
-            tr_rfs[tr["name"]] = {
-                tr["source"]: [rfs[tr["source"]]],
-                tr["target"]: [rfs[tr["target"]]]
-            }
+            if dfs[tr["name"]][0]:
+                poly = tr["tr_polyhedron"]
+                cons = poly.get_constraints()
+                cons.insert(dfs[tr["name"]][1] == 0)
+                newpoly = C_Polyhedron(cons)
+                if not newpoly.is_empty():
+                    tr["tr_polyhedron"] = newpoly
+                    no_ranked.append(tr)
+                tr_rfs[tr["name"]] = {
+                    tr["source"]: [rfs[tr["source"]]],
+                    tr["target"]: [rfs[tr["target"]]]
+                }
 
         response.set_response(found=True,
                               info="found",
