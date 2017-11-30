@@ -2,9 +2,8 @@ import argparse
 from copy import deepcopy
 from genericparser import GenericParser
 from genericparser.Cfg import Cfg
-import lpi
+from invariants import ConstraintState
 import os
-from ppl import Linear_Expression
 from ppl import Variable
 from ppl import Variables_Set
 import sys
@@ -158,7 +157,6 @@ def Main(argv):
 
 
 def invariants(invariant_type, cfg):
-    # Temporal defs to be compilable
     graph_nodes = cfg.nodes()
     nodes = {}
     Nvars = len(cfg.get_var_name())/2
@@ -167,42 +165,25 @@ def invariants(invariant_type, cfg):
        invariant_type == "none"):
         for node in graph_nodes:
             nodes[node] = {
-                "state": lpi.C_Polyhedron(dim=Nvars)
+                "state": ConstraintState(Nvars)
             }
     else:
         def apply_tr(s, tr):
-            poly_tr = tr["tr_polyhedron"]
-            m = poly_tr.get_dimension()
-            n = s.get_dimension()
-            s1 = deepcopy(s)
-            s1.add_dimensions(m - n)
-            s1.intersection_assign(poly_tr)
-            var_set = Variables_Set()
-            for i in range(0, n):  # Vars from 0 to n-1 inclusive
-                var_set.insert(Variable(i))
-            # (local variables)
-            for i in range(2*n, m):  # Vars from 2*n to m-1 inclusive
-                var_set.insert(Variable(i))
-
-            s1.remove_dimensions(var_set)
-            return s1
+            return s.apply_tr(tr, copy=True)
 
         def lub(s1, s2):
-            a = deepcopy(s1)
-            a.poly_hull_assign(s2)
-            return a
+            return s1.lub(s2, copy=True)
 
         init_node = cfg.get_init_node()
-        p = lpi.C_Polyhedron(dim=Nvars)
-        p.add_constraint(Linear_Expression(0) == Linear_Expression(1))
+        p = ConstraintState(Nvars, bottom=True)
 
         for node in graph_nodes:
             nodes[node] = {
-                "state": deepcopy(p),
+                "state": p.copy(),
                 "access": 0
             }
 
-        nodes[init_node]["state"] = lpi.C_Polyhedron(dim=Nvars)
+        nodes[init_node]["state"] = ConstraintState(Nvars)
 
         queue = [init_node]
         while len(queue) > 0:
@@ -215,7 +196,7 @@ def invariants(invariant_type, cfg):
                 if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
                     dest_s["access"] += 1
                     if dest_s["access"] >= 3:
-                        s2.widening_assign(dest_s["state"])
+                        s2.widening(dest_s["state"])
                         dest_s["access"] = 0
                     dest_s["state"] = s2
                     if not(t["target"] in queue):
