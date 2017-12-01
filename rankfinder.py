@@ -1,11 +1,8 @@
 import argparse
-from copy import deepcopy
 from genericparser import GenericParser
 from genericparser.Cfg import Cfg
 from invariants import ConstraintState
 import os
-from ppl import Variable
-from ppl import Variables_Set
 import sys
 import termination
 from termination.output import Output_Manager as OM
