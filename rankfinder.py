@@ -43,6 +43,8 @@ def algorithm(value):
     del fn_dict['args']
     fn_dict['arg'] = [arg.strip() for arg in fn_dict['arg'].split('_')]
     if fn_dict['name'] in ["qnlrf", "qnlrfv2"]:
+        if fn_dict['name'] == "qnlrfv2":
+            ver = 2
         algth['name'] = "qnlrf"
         if len(fn_dict['arg']) > 0:
             algth['max_depth'] = int(fn_dict['arg'][0])
@@ -258,7 +260,11 @@ def run_algs(algs, cfg, different_template=False):
         trs += t["name"]+","
     OM.printif(1, "Analyzing transitions: "+trs)
     for alg in algs:
-        OM.printif(1, "-> with: " + alg['name'])
+        if "version" in alg:
+            OM.printif(1, "-> with: " + alg['name'] +
+                       "version: " + str(alg["version"]))
+        else:
+            OM.printif(1, "-> with: " + alg['name'])
         R = termination.run(alg, cfg,
                             different_template=different_template)
         OM.printif(3, R.debug())
