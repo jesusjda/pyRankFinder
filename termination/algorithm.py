@@ -456,6 +456,7 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
 
     max_d = algorithm["max_depth"] + 1
     min_d = algorithm["min_depth"]
+    version = algorithm["version"]
     dim = _max_dim(all_transitions)
     Nvars = int(dim / 2)
 
@@ -511,8 +512,12 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                        for di in range(d + 1)]
             countVar += Mcons * (d + 1)
             # 1.2.3 - NLRF for tr
-            farkas_constraints += farkas.NLRF(poly, lambdas,
-                                              rf_s, rf_t)
+            if version == 2:
+                farkas_constraints += farkas.QNLRF(poly, lambdas,
+                                                   rf_s, rf_t, 0)
+            else:
+                farkas_constraints += farkas.NLRF(poly, lambdas,
+                                                  rf_s, rf_t)
             # 1.2.4 - df >= 0 for each tri != tr
             for tr2 in transitions:
                 Mcons2 = len(tr2["tr_polyhedron"].get_constraints())

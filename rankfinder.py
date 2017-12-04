@@ -23,11 +23,14 @@ def algorithm(value):
     algs = ["qlrf_bg", "qlrf_adfg", "lrf_pr"]
     if value in algs:
         return {"name": value}
-
-    if value == "qnlrf":
-        return {"name": value,
+    ver = 1
+    if value == "qnlrfv2":
+        ver = 2
+    if value in ["qnlrf", "qnlrfv2"]:
+        return {"name": "qnlrf",
                 "max_depth": 5,
-                "min_depth": 1
+                "min_depth": 1,
+                "version": ver
                 }
     import re
     algth = {}
@@ -39,7 +42,7 @@ def algorithm(value):
     fn_dict = alg.groupdict()
     del fn_dict['args']
     fn_dict['arg'] = [arg.strip() for arg in fn_dict['arg'].split('_')]
-    if fn_dict['name'] == "qnlrf":
+    if fn_dict['name'] in ["qnlrf", "qnlrfv2"]:
         algth['name'] = "qnlrf"
         if len(fn_dict['arg']) > 0:
             algth['max_depth'] = int(fn_dict['arg'][0])
@@ -51,6 +54,7 @@ def algorithm(value):
             raise argparse.ArgumentTypeError("qnlrf allows 2 " +
                                              "arguments at most (given " +
                                              str(len(fn_dict['arg'])) + ")")
+        algth['version'] = ver
         return algth
 
     raise argparse.ArgumentTypeError("Unknown algorithm (" + value + ")")
