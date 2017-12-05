@@ -262,7 +262,7 @@ def run_algs(algs, cfg, different_template=False):
     for alg in algs:
         if "version" in alg:
             OM.printif(1, "-> with: " + alg['name'] +
-                       "version: " + str(alg["version"]))
+                       " version: " + str(alg["version"]))
         else:
             OM.printif(1, "-> with: " + alg['name'])
         R = termination.run(alg, cfg,
@@ -296,7 +296,7 @@ def merge_rfs(rfs, to_add):
                 new_rfs[key] = [new_rfs[key]]
             new_rfs[key].append(to_add[key])
         else:
-            new_rfs[key] = to_add[key]
+            new_rfs[key] = [to_add[key]]
     return new_rfs
 
 
