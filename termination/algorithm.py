@@ -456,6 +456,7 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
 
     max_d = algorithm["max_depth"] + 1
     min_d = algorithm["min_depth"]
+    version = algorithm["version"]
     dim = _max_dim(all_transitions)
     Nvars = int(dim / 2)
 
@@ -512,18 +513,27 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
             countVar += Mcons * (d + 1)
             # 1.2.3 - NLRF for tr
             farkas_constraints += farkas.NLRF(poly, lambdas,
-                                              rf_s, rf_t)
+                                                  rf_s, rf_t)
             # 1.2.4 - df >= 0 for each tri != tr
+
             for tr2 in transitions:
                 Mcons2 = len(tr2["tr_polyhedron"].get_constraints())
                 rf_s2 = rfvars[tr2["source"]]
                 rf_t2 = rfvars[tr2["target"]]
-                for di in range(d):
-                    lambdas = [Variable(countVar + k) for k in range(Mcons2)]
-                    farkas_constraints += farkas.df(tr2["tr_polyhedron"],
-                                                    lambdas,
-                                                    rf_s2[di], rf_t2[di], 0)
-                    countVar += Mcons2
+                if version == 2:
+                    lambdas = [[Variable(countVar + k + Mcons2 * di)
+                                for k in range(Mcons2)]
+                               for di in range(d)]
+                    countVar += Mcons2 * d
+                    farkas_constraints += farkas.QNLRF(tr2["tr_polyhedron"], lambdas,
+                                                       rf_s, rf_t, 0)
+                else:
+                    for di in range(d):
+                        lambdas = [Variable(countVar + k) for k in range(Mcons2)]
+                        farkas_constraints += farkas.df(tr2["tr_polyhedron"],
+                                                        lambdas,
+                                                        rf_s2[di], rf_t2[di], 0)
+                        countVar += Mcons2
 
             # 2 - Polyhedron
             farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
