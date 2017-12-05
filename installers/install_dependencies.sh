@@ -72,6 +72,8 @@ if [ "$UnixPKG" == "true" ]; then
     install_all libgmp-dev libmpfr-dev libmpc-dev
 
     if exists ppl-config; then
+	echo "PPL already installed"
+    else
 	mkdir /tmp/ppl
 	pushd /tmp/ppl
 	wget http://bugseng.com/products/ppl/download/ftp/releases/1.2/ppl-1.2.tar.gz
