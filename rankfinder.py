@@ -255,9 +255,7 @@ def run_algs(algs, cfg, different_template=False):
     R = None
     f = False
     trans = cfg.get_edges()
-    trs = ""
-    for t in trans:
-        trs += t["name"]+","
+    trs = ', '.join(sorted([t["name"] for t in trans]))
     OM.printif(1, "Analyzing transitions: "+trs)
     for alg in algs:
         if "version" in alg:

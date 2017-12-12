@@ -42,14 +42,15 @@ class ConstraintState(AbstractState):
     _state = None
 
     def __init__(self, arg1, bottom=False):
-        if isinstance(arg1, int):
-            dim = arg1
-            cs = Constraint_System()
-        elif isinstance(arg1, C_Polyhedron):
+        if isinstance(arg1, C_Polyhedron):
             dim = arg1.space_dimension()
             cs = arg1.get_constraints()
         else:
-            raise TypeError("Only int or lpi.C_Polyhedron")
+            try:
+                dim = int(arg1)
+                cs = Constraint_System()
+            except ValueError:
+                raise TypeError("Only int or lpi.C_Polyhedron")
         self._state = C_Polyhedron(cs, dim=dim)
         if bottom:
             false = Linear_Expression(0) == Linear_Expression(1)
