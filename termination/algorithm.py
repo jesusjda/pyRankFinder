@@ -413,7 +413,8 @@ def compute_bg_QLRF(_, cfg, different_template=False):
         rf_t = rfs[tr["target"]]
         poly = _add_invariant(tr["tr_polyhedron"], tr["source"], cfg)
         df = Linear_Expression(0)
-        constant = rf_s.coefficient(Variable(0)) - rf_t.coefficient(Variable(0))
+        constant = (rf_s.coefficient(Variable(0))
+                    - rf_t.coefficient(Variable(0)))
         for i in range(Nvars):
             df += Variable(i) * rf_s.coefficient(Variable(i+1))
             df -= Variable(Nvars + i) * rf_t.coefficient(Variable(i+1))
@@ -513,7 +514,7 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
             countVar += Mcons * (d + 1)
             # 1.2.3 - NLRF for tr
             farkas_constraints += farkas.NLRF(poly, lambdas,
-                                                  rf_s, rf_t)
+                                              rf_s, rf_t)
             # 1.2.4 - df >= 0 for each tri != tr
 
             for tr2 in transitions:
@@ -525,14 +526,16 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
                                 for k in range(Mcons2)]
                                for di in range(d)]
                     countVar += Mcons2 * d
-                    farkas_constraints += farkas.QNLRF(tr2["tr_polyhedron"], lambdas,
-                                                       rf_s, rf_t, 0)
+                    farkas_constraints += farkas.QNLRF(tr2["tr_polyhedron"],
+                                                       lambdas, rf_s2,
+                                                       rf_t2, 0)
                 else:
                     for di in range(d):
-                        lambdas = [Variable(countVar + k) for k in range(Mcons2)]
+                        lambdas = [Variable(countVar + k)
+                                   for k in range(Mcons2)]
                         farkas_constraints += farkas.df(tr2["tr_polyhedron"],
-                                                        lambdas,
-                                                        rf_s2[di], rf_t2[di], 0)
+                                                        lambdas, rf_s2[di],
+                                                        rf_t2[di], 0)
                         countVar += Mcons2
 
             # 2 - Polyhedron
