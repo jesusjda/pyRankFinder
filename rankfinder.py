@@ -100,63 +100,77 @@ def Main(argv):
         print(_name + " version: " + _version)
         return
     config = vars(args)
-    prs = GenericParser()
-    files = args.files
-    for f in files:
-        aux_p = f.split('/')
-        aux_c = len(aux_p) - 1
-        while aux_c > 0:
-            if aux_p[aux_c] == "examples":
-                break
-            if aux_p[aux_c] == "User_Projects":
-                break
-            aux_c -= 1
-        r = '/'.join(aux_p[aux_c:])
-
-        try:
-                cfg = prs.parse(f)
-        except Exception as e:
-            raise e
-        config["vars_name"] = cfg.get_var_name()
-        OM.restart(dest=r, vars_name=config["vars_name"])
-        invariants(config["invariants"], cfg)
-        if args.dotDestination:
-            s = r.replace('/', '_')
-            dot = os.path.join(args.dotDestination, s + ".dot")
-            cfg.toDot(OM, dot)
-        if config["different_template"] == "always":
-            different_template = True
+    try:
+        launch(config)
+    except Exception as e:
+        OM.show_output()
+        e.traceback()
+        return
+    
+    
+def launch(config):
+    files = config["files"]
+    outs = config["outs"]
+    for i in len(files):
+        if(len(files) > 1):
+            OM.printf(files[i])
+        if len(outs) < i:
+            o = None
         else:
-            different_template = False
+            o = outs[i]
+        launch_file(config, files[i], o)
+        
+def launch_file(config, f, out):
+    prs = GenericParser()
+    aux_p = f.split('/')
+    aux_c = len(aux_p) - 1
+    while aux_c > 0:
+        if aux_p[aux_c] == "examples":
+            break
+        if aux_p[aux_c] == "User_Projects":
+            break
+        aux_c -= 1
+    r = '/'.join(aux_p[aux_c:])
+    o = out
+    cfg = prs.parse(f)
+    config["vars_name"] = cfg.get_var_name()
+    OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    invariants(config["invariants"], cfg)
+    if config["dotDestination"]:
+        s = r.replace('/', '_')
+        dot = os.path.join(config["dotDestination"], s + ".dot")
+        cfg.toDot(OM, dot)
+    if config["different_template"] == "always":
+        different_template = True
+    else:
+        different_template = False
 
+    result = rank(config["algorithms"],
+                  [(cfg, config["scc_depth"])],
+                  different_template)
+    if not result.found() and config["different_template"] == "iffail":
+        OM.printif(1, "Running algorithms with different template")
+        different_template = True
         result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
                       different_template)
-        if not result.found() and config["different_template"] == "iffail":
-            OM.printif(1, "Running algorithms with different template")
-            different_template = True
-            result = rank(config["algorithms"],
-                          [(cfg, config["scc_depth"])],
-                          different_template)
-        if(len(files) > 1):
-            OM.printf(f)
-        OM.printseparator(1)
-        OM.printf("Final Result")
-        if different_template:
-            OM.printf("Using Different Template")
-        no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
-        if no_lin:
-            OM.printf("Removed no linear constraints from transitions: " +
-                      str(no_lin))
-        OM.printf(result.toString(cfg.get_var_name()))
-        tr_rfs = result.get("tr_rfs")
-        OM.printif(3, tr_rfs)
-        for tr in tr_rfs:
-            OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
-        OM.printseparator(1)
-        OM.show_output()
+    OM.printseparator(1)
+    OM.printf("Final Result")
+    if different_template:
+        OM.printf("Using Different Template")
+    no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
+    if no_lin:
+        OM.printf("Removed no linear constraints from transitions: " +
+                  str(no_lin))
+    OM.printf(result.toString(cfg.get_var_name()))
+    tr_rfs = result.get("tr_rfs")
+    OM.printif(3, tr_rfs)
+    for tr in tr_rfs:
+        OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
+    OM.printseparator(1)
+    OM.show_output()
 
-    return
+    return result.found()
 
 
 def invariants(invariant_type, cfg):

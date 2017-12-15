@@ -1,96 +1,104 @@
 import os
 import sys
-import traceback
-import getopt
 import argparse
-import termination
-from genericparser import GenericParser
-
-_version = "0.1"
-_name = "runOne"
+import rankfinder
+from multiprocessing import Process
+from multiprocessing import Manager
 
 
 def setArgumentParser():
-    algorithms = ["pr", "bg", "adfg", "lex_bg", "lex_adfg",
-                  "bms_lrf", "bms_nlrf", "nlrf"]
-    scc_strategies = ["global", "local", "incremental"]
-    desc = _name+": a Ranking Function finder on python."
+    desc = "Generator"
     argParser = argparse.ArgumentParser(description=desc)
     # Program Parameters
-    argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 4),
+    argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
-    argParser.add_argument("-ver", "--version", required=False,
-                           action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
     # Algorithm Parameters
-    argParser.add_argument("-dt", "--different_template", action='store_true',
-                           help="Use different templates on each node")
-
+    argParser.add_argument("-to", "--timeout", type=int, default=None,
+                           help="Strategy based on SCC to go through the CFG.")
+    argParser.add_argument("-sccd", "--scc_depth", type=int, choices=range(0,10),
+                           default=5,
+                           help="Strategy based on SCC to go through the CFG.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
-                           help="Files to be analysed.")
-    argParser.add_argument("-a", "--algorithm", choices=algorithms,
-                           required=True, help="Algorithm to be apply.")
+                           help="File to be analysed.")
+    argParser.add_argument("-c", "--cache", required=True,
+                           help="Folder cache.")
     return argParser
 
 
-def Main(argv):
-    argParser = setArgumentParser()
-    args = argParser.parse_args(argv)
-    config = vars(args)
-    if args.version:
-        print(_name + " version: " + _version)
-        return
-    prs = GenericParser()
-    files = args.files
-    for f in files:
-        try:
-            if args.dotDestination:
-                dot = os.path.join(args.dotDestination, f + ".dot")
-                cfg = prs.parse(f, dot=dot)
-                os.system("xdot " + args.dotDestination + " &")
-            else:
-                cfg = prs.parse(f)
-        except Exception as e:
-            print(traceback.format_exc())
-            print(e)
-            return
-        config["transitions"] = cfg.get_edges()
-        internal_config = set_config(config)
+def timeout(func, args=(), kwargs={}, time_segs=60, default=None):
+    manager = Manager()
+    return_dict = manager.dict()
+    def worker(work, returndata):
+        returndata[0] = work(*args)
+        return 0
 
-        result = termination.run(internal_config)
-        print(f)
-        print(result)
-    return
-
-
-def set_config(data):
-    algs = data["algorithm"].split('_')
-    dt = data["different_template"]
-    trans = data["transitions"]
-    inner_alg = None
-    config = {}
-    for alg in reversed(algs):
-        config = {
-            "algorithm": alg,
-            "different_template": dt,
-            "transitions": trans
-        }
-        if not (inner_alg is None):
-            config["inner_alg"] = inner_alg
-            if alg == "bms":
-                config["inner_alg"]["min_depth"] = 1
-                config["inner_alg"]["max_depth"] = 5
-        if alg == "nlrf":
-            config["min_depth"] = 1
-            config["max_depth"] = 5
-        if alg == "lrf":
-            config["min_depth"] = 1
-            config["max_depth"] = 1
-
-        inner_alg = config
-    return config
+    p = Process(target=worker, args=(func, return_dict,), kwargs=kwargs)
+    p.start()
+    p.join(time_segs)
+    if p.is_alive():
+        p.terminate()
+        print("TIMEOUT")
+        return default
+    return return_dict[0]
 
 if __name__ == "__main__":
-    Main(sys.argv[1:])
+    argParser = setArgumentParser()
+    args = argParser.parse_args(sys.argv[1:])
+    ar = vars(args)
+    cachedir = os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), ar["cache"])
+    files = ar["files"]
+    sccd = ar["scc_depth"]
+    dotF = ar["dotDestination"]
+    verb = ar["verbosity"]
+    tout = int(ar["timeout"])
+
+    inv = ["none", "basic"]
+    dt = ["never", "always"]
+    algs = []
+    algs.append([{"name": "lrf_pr"}])
+    for i in range(1,4):
+        algs.append([{"max_depth": i, "min_depth": i,
+                      "version": 1, "name": "qnlrf"}])
+    algs.append([{"name": "qlrf_bg"}])
+    
+    for f in files:
+        found = False
+        for a in algs:
+            for i in inv:
+                for d in dt:
+                    name = os.path.basename(f)
+                    print(a)
+                    tag = a[0]["name"]
+                    if "max_depth" in a[0]:
+                        tag += "_" + str([a[0]["max_depth"]])
+                    tag += "_" + d[0] + "_" + i[0]
+                    o = name + "." + tag + ".cache"
+                    o = os.path.join(cachedir, o)
+                    if os.path.isfile(o):
+                        os.remove(o)
+                    if found:
+                        continue
+                    config = {
+                        "scc_depth": sccd,
+                        "dotDestination": dotF,
+                        "verbosity": verb,
+                        "ei_out": False,
+                        "algorithms": a,
+                        "invariants": i,
+                        "different_template": d,
+                        "files": [f],
+                        "output": [o]
+                    }
+                    if tout is None:
+                        found = rankfinder.launch_file(config, f, o)
+                    else:
+                        found = timeout(rankfinder.launch_file, time_segs=tout,
+                                        args=(config, f, o), default=False)
+        if found:
+            print("SOLVED: "+name)
+        else:
+            print("NOT SOLVED: "+name)

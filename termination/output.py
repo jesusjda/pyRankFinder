@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import eiol
+import os
 from ppl import Constraint
 from ppl import Constraint_System
 from ppl import Generator
@@ -16,20 +17,29 @@ class Output:
     verbosity = 0
     _ei_commands = None
     _ei_actions = None
-
+    destination = None
+    outtxt = ""
+    
     def __init__(self):
         self.ei = False
         self.verbosity = 0
+        self.destination = None
         self.restart()
+        self.outtxt = ""
 
-    def restart(self, dest=None, vars_name=[]):
-        if dest is None:
-            self._ei_commands = eiol.eicommands()
-            self._ei_actions = eiol.eiactions()
-        else:
-            self._ei_commands = eiol.eicommands(dest=dest)
-            self._ei_actions = eiol.eiactions(dest=dest)
+    def restart(self, ei=None, odest=None, cdest=None, vars_name=[]):
+        if ei is not None:
+            self.ei = ei
+        self.destination=odest
+        if self.ei:
+            if cdest is None:
+                self._ei_commands = eiol.eicommands()
+                self._ei_actions = eiol.eiactions()
+            else:
+                self._ei_commands = eiol.eicommands(dest=cdest)
+                self._ei_actions = eiol.eiactions(dest=cdest)
         self._vars_name = vars_name
+        self.outtxt = ""
 
     def printf(self, *kwargs):
         self.printif(0, *kwargs)
@@ -50,6 +60,8 @@ class Output:
         if self.ei:
             c = eiol.content(format="text", text=msg)
             self._ei_commands.append(eiol.command_print(content=c))
+        elif self.destination is not None:
+            self.outtxt += msg + '\n'
         else:
             print(msg)
 
@@ -88,12 +100,24 @@ class Output:
                                        text=content,
                                        filename=str(r))
             self._ei_commands.append(c)
+        else:
+            tmpfile = os.path.join(os.path.curdir, path)
+            with open(tmpfile, "w") as f:
+                f.write(c)
 
     def show_output(self):
         if self.ei:
             # root = eiol.create_output(eicommands=self._ei_commands)
-            print(ET.tostring(self._ei_commands,
-                              encoding='utf8', method='xml'))
+            out = ET.tostring(self._ei_commands,
+                              encoding='utf8', method='xml')
+        else:
+            out = self.outtxt
+        if self.destination is not None:
+            tmpfile = os.path.join(os.path.curdir, self.destination)
+            with open(tmpfile, "w") as f:
+                f.write(out)
+        else:
+            print(out)
         return
 
     def tostr(self, cs, vars_name=None):
