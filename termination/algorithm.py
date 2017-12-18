@@ -61,13 +61,19 @@ def _get_rf(variables, point):
     return pplpoint(exp)
 
 
-def LinearRF(_, cfg, different_template=False):
+def _get_use_z3(algorithm):
+    if "lib" in algorithm:
+        return algorithm["lib"] == "z3"
+    return False
+
+
+def LinearRF(algorithm, cfg, different_template=False):
     transitions = cfg.get_edges()
 
     dim = _max_dim(transitions)
     Nvars = int(dim / 2)
     response = Result()
-
+    use_z3 = _get_use_z3(algorithm)
     shifter = 0
     if different_template:
         shifter = Nvars + 1
@@ -111,7 +117,7 @@ def LinearRF(_, cfg, different_template=False):
                                          rf_s, rf_t)
 
     farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-    point = farkas_poly.get_point()
+    point = farkas_poly.get_point(use_z3=use_z3)
 
     if point is None:
         response.set_response(found=False,
@@ -454,7 +460,7 @@ def compute_bg_QLRF(_, cfg, different_template=False):
 def compute_bms_NLRF(algorithm, cfg, different_template=False):
     response = Result()
     all_transitions = cfg.get_edges()
-
+    use_z3 = _get_use_z3(algorithm)
     max_d = algorithm["max_depth"] + 1
     min_d = algorithm["min_depth"]
     version = algorithm["version"]
@@ -540,7 +546,7 @@ def compute_bms_NLRF(algorithm, cfg, different_template=False):
 
             # 2 - Polyhedron
             farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-            point = farkas_poly.get_point()
+            point = farkas_poly.get_point(use_z3=use_z3)
             if point is None:
                 continue  # not found, try with next d
 

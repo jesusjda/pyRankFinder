@@ -1,9 +1,9 @@
+import argparse
+from multiprocessing import Manager
+from multiprocessing import Process
 import os
 import sys
-import argparse
 import rankfinder
-from multiprocessing import Process
-from multiprocessing import Manager
 
 
 def setArgumentParser():
@@ -17,8 +17,8 @@ def setArgumentParser():
     # Algorithm Parameters
     argParser.add_argument("-to", "--timeout", type=int, default=None,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sccd", "--scc_depth", type=int, choices=range(0,10),
-                           default=5,
+    argParser.add_argument("-sccd", "--scc_depth", type=int,
+                           choices=range(0, 10), default=5,
                            help="Strategy based on SCC to go through the CFG.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
@@ -28,9 +28,10 @@ def setArgumentParser():
     return argParser
 
 
-def timeout(func, args=(), kwargs={}, time_segs=60, default=None):
+def timeout(func, args=(), kwargs={}, time_segs=60, out=None, default=None):
     manager = Manager()
     return_dict = manager.dict()
+
     def worker(work, returndata):
         returndata[0] = work(*args)
         return 0
@@ -41,8 +42,13 @@ def timeout(func, args=(), kwargs={}, time_segs=60, default=None):
     if p.is_alive():
         p.terminate()
         print("TIMEOUT")
+        if out is not None:
+            tmpfile = os.path.join(os.path.curdir, out)
+            with open(tmpfile, "w") as f:
+                f.write("TIMEOUT\n")
         return default
     return return_dict[0]
+
 
 if __name__ == "__main__":
     argParser = setArgumentParser()
@@ -55,50 +61,64 @@ if __name__ == "__main__":
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
     tout = int(ar["timeout"])
-
+    lib = ["ppl", "z3"]
     inv = ["none", "basic"]
     dt = ["never", "always"]
     algs = []
     algs.append([{"name": "lrf_pr"}])
-    for i in range(1,4):
+    for i in range(1, 4):
         algs.append([{"max_depth": i, "min_depth": i,
                       "version": 1, "name": "qnlrf"}])
     algs.append([{"name": "qlrf_bg"}])
-    
-    for f in files:
-        found = False
+
+    status = {}
+    for l in lib:
         for a in algs:
+            a[0]["lib"] = l
             for i in inv:
                 for d in dt:
-                    name = os.path.basename(f)
-                    print(a)
-                    tag = a[0]["name"]
-                    if "max_depth" in a[0]:
-                        tag += "_" + str([a[0]["max_depth"]])
-                    tag += "_" + d[0] + "_" + i[0]
-                    o = name + "." + tag + ".cache"
-                    o = os.path.join(cachedir, o)
-                    if os.path.isfile(o):
-                        os.remove(o)
-                    if found:
-                        continue
-                    config = {
-                        "scc_depth": sccd,
-                        "dotDestination": dotF,
-                        "verbosity": verb,
-                        "ei_out": False,
-                        "algorithms": a,
-                        "invariants": i,
-                        "different_template": d,
-                        "files": [f],
-                        "output": [o]
-                    }
-                    if tout is None:
-                        found = rankfinder.launch_file(config, f, o)
-                    else:
-                        found = timeout(rankfinder.launch_file, time_segs=tout,
-                                        args=(config, f, o), default=False)
-        if found:
-            print("SOLVED: "+name)
-        else:
-            print("NOT SOLVED: "+name)
+                    for f in files:
+                        print("Launching: "+f)
+                        name = os.path.basename(f)
+                        tag = a[0]["name"]
+                        if "max_depth" in a[0]:
+                            tag += "_" + str(a[0]["max_depth"])
+                        tag += "_" + d[0] + "_" + i[0]
+                        o = name + "." + tag + "_" + l + ".cache"
+                        o = os.path.join(cachedir, o)
+                        if not(f in status):
+                            status[f] = False
+                        if status[f]:
+                            if os.path.isfile(o):
+                                os.remove(o)
+                            continue
+                        if l == "z3":
+                            tmpfile = name + "." + tag + "_ppl.cache"
+                            tmpfile = os.path.join(cachedir, tmpfile)
+                            if os.path.isfile(tmpfile):
+                                if not('TIMEOUT' in open(tmpfile).read()):
+                                    if os.path.isfile(o):
+                                        os.remove(o)
+                                    continue
+                        tag += "_" + l
+                        if os.path.isfile(o):
+                            continue
+                        print("Trying with : " + tag)
+                        config = {
+                            "scc_depth": sccd,
+                            "dotDestination": dotF,
+                            "verbosity": verb,
+                            "ei_out": False,
+                            "algorithms": a,
+                            "invariants": i,
+                            "different_template": d,
+                            "files": [f],
+                            "output": [o]
+                        }
+                        if tout is None:
+                            found = rankfinder.launch_file(config, f, o)
+                        else:
+                            found = timeout(rankfinder.launch_file, time_segs=tout,
+                                            args=(config, f, o), out=o,
+                                            default=False)
+                        status[f] = found
