@@ -62,14 +62,14 @@ if __name__ == "__main__":
     verb = ar["verbosity"]
     tout = int(ar["timeout"])
     lib = ["ppl", "z3"]
-    inv = ["none", "basic"]
-    dt = ["never", "always"]
+    inv = ["basic"]
+    dt = ["always"]
     algs = []
-    algs.append([{"name": "lrf_pr"}])
-    for i in range(1, 4):
+    #algs.append([{"name": "lrf_pr"}])
+    for i in range(1, 2):
         algs.append([{"max_depth": i, "min_depth": i,
                       "version": 1, "name": "qnlrf"}])
-    algs.append([{"name": "qlrf_bg"}])
+    #algs.append([{"name": "qlrf_bg"}])
 
     status = {}
     for l in lib:

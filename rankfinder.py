@@ -111,11 +111,15 @@ def Main(argv):
 
 def launch(config):
     files = config["files"]
-    outs = config["outs"]
-    for i in len(files):
+    print(files)
+    if "outs" in config:
+        outs = config["outs"]
+    else: 
+        outs = []
+    for i in range(len(files)):
         if(len(files) > 1):
             OM.printf(files[i])
-        if len(outs) < i:
+        if len(outs) <= i:
             o = None
         else:
             o = outs[i]
@@ -180,6 +184,9 @@ def launch_file(config, f, out):
             with open(tmpfile, "w") as f:
                 print(tmpfile)
                 f.write(str(traceback.format_exc()))
+        else:
+            OM.printf(str(traceback.format_exc()))
+            OM.show_output()
     finally:
         pass
     return result
