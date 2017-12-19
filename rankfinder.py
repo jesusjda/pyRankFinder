@@ -147,24 +147,12 @@ def launch_file(config, f, out):
             s = r.replace('/', '_')
             dot = os.path.join(config["dotDestination"], s + ".dot")
             cfg.toDot(OM, dot)
-        if config["different_template"] == "always":
-            different_template = True
-        else:
-            different_template = False
 
         result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
-                      different_template)
-        if not result.found() and config["different_template"] == "iffail":
-            OM.printif(1, "Running algorithms with different template")
-            different_template = True
-            result = rank(config["algorithms"],
-                          [(cfg, config["scc_depth"])],
-                          different_template)
+                      config["different_template"])
         OM.printseparator(1)
         OM.printf("Final Result")
-        if different_template:
-            OM.printf("Using Different Template")
         no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
         if no_lin:
             OM.printf("Removed no linear constraints from transitions: " +
@@ -245,7 +233,11 @@ def invariants(invariant_type, cfg):
                    nodes[n]["state"].get_constraints())
 
 
-def rank(algs, CFGs, different_template=False):
+def rank(algs, CFGs, different_template="never"):
+    if different_template == "always":
+        dt = True
+    else:
+        dt = False
     response = termination.Result()
     rfs = {}
     tr_rfs = {}
@@ -259,8 +251,11 @@ def rank(algs, CFGs, different_template=False):
         for cfg in CFGs_aux:
             if not cfg.has_cycle():
                 continue
-            R = run_algs(algs, cfg,
-                         different_template=different_template)
+            R = run_algs(algs, cfg, different_template=dt)
+            if not R.found():
+                if different_template == "iffail":
+                    OM.printif(1, "Using Different Template")
+                    R = run_algs(algs, cfg, different_template=True)
             if not R.found():
                 fail = True
                 break
