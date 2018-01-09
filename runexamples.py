@@ -20,6 +20,8 @@ def setArgumentParser():
     argParser.add_argument("-sccd", "--scc_depth", type=int,
                            choices=range(0, 10), default=5,
                            help="Strategy based on SCC to go through the CFG.")
+    argParser.add_argument("-sc", "--simplify_constraints", required=False,
+                           action='store_true', help="Simplify constraints")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -60,10 +62,13 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    tout = int(ar["timeout"])
     lib = ["ppl"]
     inv = ["none", "basic"]
     dt = ["iffail"]
+    if "timeout" in ar:
+        tout = int(ar["timeout"])
+    else:
+        tout = None
     algs = []
     algs.append([{"name": "lrf_pr"}])
     for i in range(1, 3):

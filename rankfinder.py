@@ -7,9 +7,10 @@ import sys
 import termination
 from termination.output import Output_Manager as OM
 import traceback
+from lpi.Lazy_Polyhedron import C_Polyhedron
 
 
-_version = "0.0.3"
+_version = "0.0.4"
 _name = "rankfinder"
 
 
@@ -82,6 +83,8 @@ def setArgumentParser():
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
+    argParser.add_argument("-sc", "--simplify_constraints", required=False,
+                           action='store_true', help="Simplify constraints")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -90,23 +93,6 @@ def setArgumentParser():
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
     return argParser
-
-
-def Main(argv):
-    argParser = setArgumentParser()
-    args = argParser.parse_args(argv)
-    OM.verbosity = args.verbosity
-    OM.ei = args.ei_out
-    if args.version:
-        print(_name + " version: " + _version)
-        return
-    config = vars(args)
-    try:
-        launch(config)
-    except Exception as e:
-        OM.show_output()
-        e.traceback()
-        return
 
 
 def launch(config):
@@ -142,11 +128,12 @@ def launch_file(config, f, out):
         cfg = prs.parse(f)
         config["vars_name"] = cfg.get_var_name()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
-        invariants(config["invariants"], cfg)
-        if config["dotDestination"]:
-            s = r.replace('/', '_')
-            dot = os.path.join(config["dotDestination"], s + ".dot")
-            cfg.toDot(OM, dot)
+
+        # Pre algorithm
+        compute_invariants(config["invariants"], cfg)
+        simplify_constraints(config["simplify_constraints"], cfg)
+        write_dotfile(config["dotDestination"], r, cfg)
+
 
         result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
@@ -165,7 +152,7 @@ def launch_file(config, f, out):
         OM.printseparator(1)
         OM.show_output()
         result = result.found()
-    except Exception as e:
+    except Exception as _:
         result = False
         if out is not None:
             tmpfile = os.path.join(os.path.curdir, out)
@@ -180,11 +167,23 @@ def launch_file(config, f, out):
     return result
 
 
-def invariants(invariant_type, cfg):
+def write_dotfile(dotDestination, name, cfg):
+    if dotDestination:
+            s = name.replace('/', '_')
+            dot = os.path.join(dotDestination, s + ".dot")
+            cfg.toDot(OM, dot)
+
+
+def simplify_constraints(simplify, cfg):
+    if simplify:
+        for e in cfg.get_edges():
+            e["polyhedron"].minimized_constraints()
+
+
+def compute_invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
     Nvars = len(cfg.get_var_name())/2
-    OM.printif(2, "invariant type = ", invariant_type)
     if(invariant_type is None or
        invariant_type == "none"):
         for node in graph_nodes:
@@ -231,6 +230,22 @@ def invariants(invariant_type, cfg):
         cfg.add_node_info(n, "invariant", nodes[n]["state"])
         OM.printif(1, "invariant of " + n, " = ",
                    nodes[n]["state"].get_constraints())
+
+    edges = cfg.get_edges()
+    Nvars = len(cfg.get_var_name())
+    OM.printif(3, Nvars)
+    for e in edges:
+        tr_cons = e["tr_polyhedron"].get_constraints()
+        inv = nodes[e["source"]]["state"].get_constraints()
+        tr_poly = C_Polyhedron(dim=Nvars)
+        for c in tr_cons:
+            tr_poly.add_constraint(c)
+        for c in inv:
+            tr_poly.add_constraint(c)
+        OM.printif(3, tr_poly.get_dimension())
+        cfg.add_edge_info(src=e["source"], trg=e["target"], name=e["name"],
+                          key="polyhedron", value=tr_poly)
+    OM.printif(3, cfg.get_edges())
 
 
 def rank(algs, CFGs, different_template="never"):
@@ -286,13 +301,15 @@ def run_algs(algs, cfg, different_template=False):
     trs = ', '.join(sorted([t["name"] for t in trans]))
     OM.printif(1, "Analyzing transitions: "+trs)
     for alg in algs:
+        
+        cad_alg = "-> with: " + alg['name']
         if "version" in alg:
-            OM.printif(1, "-> with: " + alg['name'] +
-                       " version: " + str(alg["version"]))
-        else:
-            OM.printif(1, "-> with: " + alg['name'])
+            cad_alg +=  " version: " + str(alg["version"])
+        OM.printif(1, cad_alg)
+
         R = termination.run(alg, cfg,
                             different_template=different_template)
+
         OM.printif(3, R.debug())
         OM.printif(1, R.toString(vars_name))
         if R.found():
@@ -327,4 +344,18 @@ def merge_rfs(rfs, to_add):
 
 
 if __name__ == "__main__":
-    Main(sys.argv[1:])
+    argv = sys.argv[1:]
+    argParser = setArgumentParser()
+    args = argParser.parse_args(argv)
+    OM.verbosity = args.verbosity
+    OM.ei = args.ei_out
+    if args.version:
+        print(_name + " version: " + _version)
+        exit(0)
+    config = vars(args)
+    try:
+        launch(config)
+    except Exception as e:
+        OM.show_output()
+        e.traceback()
+        exit(-1)
