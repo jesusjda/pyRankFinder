@@ -61,12 +61,12 @@ if __name__ == "__main__":
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
     tout = int(ar["timeout"])
-    lib = ["ppl", "z3"]
-    inv = ["basic"]
-    dt = ["always"]
+    lib = ["ppl"]
+    inv = ["none", "basic"]
+    dt = ["iffail"]
     algs = []
-    #algs.append([{"name": "lrf_pr"}])
-    for i in range(1, 2):
+    algs.append([{"name": "lrf_pr"}])
+    for i in range(1, 3):
         algs.append([{"max_depth": i, "min_depth": i,
                       "version": 1, "name": "qnlrf"}])
     #algs.append([{"name": "qlrf_bg"}])
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                                     continue
                         tag += "_" + l
                         if os.path.isfile(o):
-                            continue
+                            os.remove(o)
                         print("Trying with : " + tag)
                         config = {
                             "scc_depth": sccd,
