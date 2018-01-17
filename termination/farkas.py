@@ -1,4 +1,5 @@
 from ppl import Variable
+from ppl import Linear_Expression
 
 
 def LRF(polyhedron, lambdas, f1, f2):
@@ -64,9 +65,9 @@ def f(polyhedron, lambdas, f, delta):
 def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     """Returns a list of Constraints, corresponding with the farkas
     constraints for the expressions in `expr`.
-    polyhedron of (dimension <= n) with its variables (x1,...,xn)
-    polyhedron ==> (e1 x1 + ... + en xn + e0 >= 0)
-
+    polyhedron of (dimension >= n) with its global variables (x1,...,xn)
+    and local variables (y1, ...,y(dim-n))
+    polyhedron ==> (e1 x1 + ... + en xn + 0 y1 + ... + 0 y(dim-n) + e0 >= 0)
     :param polyhedron: Polyhedron
     :type polyhedron: `LPi.C_polyhedron`
     :param expressions: [e1,...,en] where ei is a linear expression
@@ -76,27 +77,38 @@ def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     :param lambdas: List of lambdas
     :type lambdas: `list` of `ppl.Variable`
     """
-    dim = len(expressions)
+    n = len(expressions)
+    dim = polyhedron.get_dimension()
+    print("---->", dim, n, len(lambdas))
     cs = polyhedron.get_constraints()
     num_constraints = len(cs)
+    print(expressions)
     constraint_list = []
-    # each variable restriction
-    for i in range(dim):
-        exp = 0
+    # each global variable restriction
+    for i in range(n):
+        exp = Linear_Expression(0)
         for j in range(num_constraints):
             exp = exp + cs[j].coefficient(Variable(i)) * lambdas[j]
 
         constraint_list.append(exp == expressions[i])
 
+    # each local variable restriction
+    for i in range(n, dim):
+        exp = Linear_Expression(0)
+        for j in range(num_constraints):
+            exp = exp + cs[j].coefficient(Variable(i)) * lambdas[j]
+
+        constraint_list.append(exp == Linear_Expression(0))
+
     # inhomogeneous restriction
-    exp = 0
+    exp = Linear_Expression(0)
     for j in range(num_constraints):
         exp = exp + cs[j].inhomogeneous_term() * lambdas[j]
-    constraint_list.append(exp - inhomogeneous <= 0)
+    constraint_list.append(exp - inhomogeneous <= Linear_Expression(0))
 
     # lambda >= 0 restrictions if is inequality
     for j in range(num_constraints):
         if cs[j].is_inequality():
-            constraint_list.append(lambdas[j] >= 0)
+            constraint_list.append(lambdas[j] >= Linear_Expression(0))
 
     return constraint_list

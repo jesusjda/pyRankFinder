@@ -233,11 +233,13 @@ def compute_invariants(invariant_type, cfg):
 
     edges = cfg.get_edges()
     Nvars = len(cfg.get_var_name())
+
     OM.printif(3, Nvars)
     for e in edges:
+        Nlocal_vars = len(e["local_vars"])
         tr_cons = e["tr_polyhedron"].get_constraints()
         inv = nodes[e["source"]]["state"].get_constraints()
-        tr_poly = C_Polyhedron(dim=Nvars)
+        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
         for c in tr_cons:
             tr_poly.add_constraint(c)
         for c in inv:

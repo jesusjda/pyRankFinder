@@ -32,6 +32,7 @@ def _max_dim(edges):
     maximum = 0
     for e in edges:
         d = e["polyhedron"].get_dimension()
+        d -= len(e["local_vars"])
         if d > maximum:
             maximum = d
     return maximum
@@ -317,7 +318,7 @@ def compute_adfg_QLRF(_, cfg, different_template=False):
         rfs[node] = _get_rf(rfvars[node], point)
 
         no_ranked = [tr for tr in transitions
-                     if point.coefficient(deltas[tr["name"]]) == 0]
+                     if point.coefficient(deltas[tr["name"]]) == Linear_Expression(0)]
     for tr in transitions:
         tr_rfs[tr["name"]] = {
             tr["source"]: [rfs[tr["source"]]],
