@@ -83,7 +83,7 @@ def setArgumentParser():
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify_constraints", required=False,
+    argParser.add_argument("-sc", "--simplify_constraints", required=False, default=False,
                            action='store_true', help="Simplify constraints")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
