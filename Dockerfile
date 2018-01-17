@@ -9,8 +9,8 @@ RUN mkdir /opt/tools && chmod -R 755 /opt/tools
 ADD https://api.github.com/repos/jesusjda/pyRankFinder/git/refs/heads/master version1.json
 ENV PYRANKFINDER_HOME /opt/tools/pyRankFinder
 RUN git clone https://github.com/jesusjda/pyRankFinder /opt/tools/pyRankFinder
-RUN cd /opt/tools/pyRankFinder && ./installers/install_dependencies.sh -p=2
-RUN cd /opt/tools/pyRankFinder && ./installers/install_modules.sh -p=2
+RUN cd /opt/tools/pyRankFinder && ./installers/install_dependencies.sh -p=3
+RUN cd /opt/tools/pyRankFinder && ./installers/install_modules.sh -p=3
 ADD https://api.github.com/repos/jesusjda/easyinterface-config/git/refs/heads/master version2.json
 RUN git clone https://github.com/jesusjda/easyinterface-config.git /opt/tools/easyinterface-config \ 
  && cd /opt/tools/easyinterface-config && ./install.sh --ei-home=/var/www/easyinterface --install-ei \
