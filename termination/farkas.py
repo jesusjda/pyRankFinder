@@ -79,10 +79,8 @@ def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     """
     n = len(expressions)
     dim = polyhedron.get_dimension()
-    print("---->", dim, n, len(lambdas))
     cs = polyhedron.get_constraints()
     num_constraints = len(cs)
-    print(expressions)
     constraint_list = []
     # each global variable restriction
     for i in range(n):
