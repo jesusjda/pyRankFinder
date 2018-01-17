@@ -117,6 +117,7 @@ if __name__ == "__main__":
                             "algorithms": a,
                             "invariants": i,
                             "different_template": d,
+                            "simplify_constraints": True,
                             "files": [f],
                             "output": [o]
                         }
