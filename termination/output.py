@@ -107,9 +107,10 @@ class Output:
 
     def show_output(self):
         if self.ei:
-            # root = eiol.create_output(eicommands=self._ei_commands)
+            root = eiol.create_output(eicommands=self._ei_commands)
             out = ET.tostring(self._ei_commands,
                               encoding='utf8', method='xml')
+            out = out.decode("utf-8")
         else:
             out = self.outtxt
         if self.destination is not None:

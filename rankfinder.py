@@ -2,12 +2,12 @@ import argparse
 from genericparser import GenericParser
 from genericparser.Cfg import Cfg
 from invariants import ConstraintState
+from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
 import sys
 import termination
 from termination.output import Output_Manager as OM
 import traceback
-from lpi.Lazy_Polyhedron import C_Polyhedron
 
 
 _version = "0.0.4"
@@ -97,7 +97,6 @@ def setArgumentParser():
 
 def launch(config):
     files = config["files"]
-    print(files)
     if "outs" in config:
         outs = config["outs"]
     else: 
@@ -128,12 +127,10 @@ def launch_file(config, f, out):
         cfg = prs.parse(f)
         config["vars_name"] = cfg.get_var_name()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
-
         # Pre algorithm
         compute_invariants(config["invariants"], cfg)
         simplify_constraints(config["simplify_constraints"], cfg)
         write_dotfile(config["dotDestination"], r, cfg)
-
 
         result = rank(config["algorithms"],
                       [(cfg, config["scc_depth"])],
@@ -303,10 +300,9 @@ def run_algs(algs, cfg, different_template=False):
     trs = ', '.join(sorted([t["name"] for t in trans]))
     OM.printif(1, "Analyzing transitions: "+trs)
     for alg in algs:
-        
         cad_alg = "-> with: " + alg['name']
         if "version" in alg:
-            cad_alg +=  " version: " + str(alg["version"])
+            cad_alg += " version: " + str(alg["version"])
         OM.printif(1, cad_alg)
 
         R = termination.run(alg, cfg,
