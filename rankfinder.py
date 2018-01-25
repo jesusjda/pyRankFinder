@@ -99,7 +99,7 @@ def launch(config):
     files = config["files"]
     if "outs" in config:
         outs = config["outs"]
-    else: 
+    else:
         outs = []
     for i in range(len(files)):
         if(len(files) > 1):
@@ -262,9 +262,20 @@ def rank(algs, CFGs, different_template="never"):
             CFGs_aux = current_cfg.get_sccs()
         else:
             CFGs_aux = [current_cfg]
+        CFGs_aux.sort()
         for cfg in CFGs_aux:
             if not cfg.has_cycle():
                 continue
+            trs_poly = [t["polyhedron"] for t in cfg.get_edges()]
+            skip = False
+            for tr_p in trs_poly:
+                if tr_p.is_empty():
+                    OM.printif(2, "Skipped because one transition is False.")
+                    skip = True
+                    break
+            if skip:
+                continue
+
             R = run_algs(algs, cfg, different_template=dt)
             if not R.found():
                 if different_template == "iffail":
