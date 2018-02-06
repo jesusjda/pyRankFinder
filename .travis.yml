@@ -36,11 +36,11 @@ matrix:
 #        # python 3.6.1
 #        - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/0c07502e530bae1ca8811a3a27ab0583fbb396b0/Formula/python3.rb
 #        - virtualenv env -p python3
-
-    - langage: python
-      python: 2.7
-      os: linux
-      dist: trusty
+#
+#    - langage: python
+#      python: 2.7
+#      os: linux
+#      dist: trusty
 
     - langage: python
       python: 3.4
