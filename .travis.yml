@@ -79,6 +79,7 @@ install: # command to install dependencies
   - pip install --user matplotlib scipy numpy
   - pip install --user networkx
   - pip install --user arpeggio
+  - pip install --user pyleri
   - mkdir -p /tmp/pyeiol
   - pushd /tmp/pyeiol
   - git clone https://github.com/abstools/easyinterface.git .
