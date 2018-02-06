@@ -25,7 +25,7 @@ class PR(Algorithm):
         dim = max_dim(transitions)
         Nvars = int(dim / 2)
         response = Result()
-        use_z3 = get_use_z3({}, use_z3)
+        use_z3 = get_use_z3(self.props, use_z3)
         shifter = 0
         if different_template:
             shifter = Nvars + 1
