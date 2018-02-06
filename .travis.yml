@@ -86,8 +86,8 @@ install: # command to install dependencies
   - git clone https://github.com/abstools/easyinterface.git .
   - git checkout develop
   - cd ./outputlanguage/python
-  - pip install --user .
+  - pip3 install --user .
   - popd
-  - pip install --user git+https://github.com/jesusjda/pyParser --verbose --no-index;
-  - pip install . --user --verbose --no-index;
+  - pip3 install --user git+https://github.com/jesusjda/pyParser --verbose --no-index;
+  - pip3 install . --user --verbose --no-index;
 script: nosetests -v
