@@ -5,8 +5,9 @@ from invariants import ConstraintState
 from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
 import sys
-import termination
-from termination.output import Output_Manager as OM
+from termination import Algorithm_Manager as AM
+from termination import Output_Manager as OM
+from termination import Result
 import traceback
 
 
@@ -22,54 +23,25 @@ def positive(value):
 
 
 def algorithm(value):
-    algs = ["qlrf_bg", "qlrf_adfg", "lrf_pr"]
-    if value in algs:
-        return {"name": value}
-    ver = 1
-    if value == "qnlrfv2":
-        ver = 2
-    if value in ["qnlrf", "qnlrfv2"]:
-        return {"name": "qnlrf",
-                "max_depth": 5,
-                "min_depth": 1,
-                "version": ver
-                }
-    import re
-    algth = {}
-    alg = re.match((r"(?P<name>[a-zA-Z0-9]+)\_"
-                    "(?P<arg>(?P<args>[a-zA-Z0-9]+(\_)?)+)"),
-                   value)
-    if alg is None:
-        raise argparse.ArgumentTypeError("Unknown algorithm (" + value + ")")
-    fn_dict = alg.groupdict()
-    del fn_dict['args']
-    fn_dict['arg'] = [arg.strip() for arg in fn_dict['arg'].split('_')]
-    if fn_dict['name'] in ["qnlrf", "qnlrfv2"]:
-        if fn_dict['name'] == "qnlrfv2":
-            ver = 2
-        algth['name'] = "qnlrf"
-        if len(fn_dict['arg']) > 0:
-            algth['max_depth'] = int(fn_dict['arg'][0])
-        if len(fn_dict['arg']) > 1:
-            algth['min_depth'] = int(fn_dict['arg'][1])
-        else:
-            algth['min_depth'] = 1
-        if len(fn_dict['arg']) > 2:
-            raise argparse.ArgumentTypeError("qnlrf allows 2 " +
-                                             "arguments at most (given " +
-                                             str(len(fn_dict['arg'])) + ")")
-        algth['version'] = ver
-        return algth
+    try:
+        return AM.get_algorithm(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError() from e
 
-    raise argparse.ArgumentTypeError("Unknown algorithm (" + value + ")")
+
+def algorithm_desc():
+    return ("Algorithms to be apply.\n\t"
+            + "\n\t".join(AM.options(True)))
 
 
 def setArgumentParser():
     desc = _name+": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
-    argParser = argparse.ArgumentParser(description=desc)
+    argParser = argparse.ArgumentParser(
+        description=desc,
+        formatter_class=argparse.RawTextHelpFormatter)
     # Program Parameters
-    argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 4),
+    argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
     argParser.add_argument("-ver", "--version", required=False,
                            action='store_true', help="Shows the version.")
@@ -83,13 +55,14 @@ def setArgumentParser():
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify_constraints", required=False, default=False,
-                           action='store_true', help="Simplify constraints")
+    argParser.add_argument("-sc", "--simplify_constraints", required=False,
+                           default=False, action='store_true',
+                           help="Simplify constraints")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-a", "--algorithms", type=algorithm, nargs='+',
-                           required=True, help="Algorithms to be apply.")
+                           required=True, help=algorithm_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
     return argParser
@@ -252,7 +225,7 @@ def rank(algs, CFGs, different_template="never"):
         dt = True
     else:
         dt = False
-    response = termination.Result()
+    response = Result()
     rfs = {}
     tr_rfs = {}
     fail = False
@@ -303,7 +276,7 @@ def rank(algs, CFGs, different_template="never"):
 
 
 def run_algs(algs, cfg, different_template=False):
-    response = termination.Result()
+    response = Result()
     vars_name = cfg.get_var_name()
     R = None
     f = False
@@ -311,13 +284,10 @@ def run_algs(algs, cfg, different_template=False):
     trs = ', '.join(sorted([t["name"] for t in trans]))
     OM.printif(1, "Analyzing transitions: "+trs)
     for alg in algs:
-        cad_alg = "-> with: " + alg['name']
-        if "version" in alg:
-            cad_alg += " version: " + str(alg["version"])
-        OM.printif(1, cad_alg)
+        OM.printif(1, "-> with: " + str(alg))
 
-        R = termination.run(alg, cfg,
-                            different_template=different_template)
+        R = alg.run(cfg,
+                    different_template=different_template)
 
         OM.printif(3, R.debug())
         OM.printif(1, R.toString(vars_name))
