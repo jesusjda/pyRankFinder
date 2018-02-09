@@ -8,6 +8,7 @@ import sys
 from termination import Algorithm_Manager as AM
 from termination import Output_Manager as OM
 from termination import Result
+from termination import TerminationResult as TR
 import traceback
 
 
@@ -61,6 +62,8 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
+    argParser.add_argument("-n", "--nontermination", type=algorithm, nargs='+',
+                           required=False, help=algorithm_desc())
     argParser.add_argument("-a", "--algorithms", type=algorithm, nargs='+',
                            required=True, help=algorithm_desc())
     argParser.add_argument("-i", "--invariants", required=False,
@@ -85,45 +88,21 @@ def launch(config):
 
 
 def launch_file(config, f, out):
+    prs = GenericParser()
+    aux_p = f.split('/')
+    aux_c = len(aux_p) - 1
+    while aux_c > 0:
+        if aux_p[aux_c] == "examples":
+            break
+        if aux_p[aux_c] == "User_Projects":
+            break
+        aux_c -= 1
+    r = '/'.join(aux_p[aux_c:])
+    o = out
     try:
-        prs = GenericParser()
-        aux_p = f.split('/')
-        aux_c = len(aux_p) - 1
-        while aux_c > 0:
-            if aux_p[aux_c] == "examples":
-                break
-            if aux_p[aux_c] == "User_Projects":
-                break
-            aux_c -= 1
-        r = '/'.join(aux_p[aux_c:])
-        o = out
         cfg = prs.parse(f)
-        config["vars_name"] = cfg.get_var_name()
-        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
-        # Pre algorithm
-        compute_invariants(config["invariants"], cfg)
-        simplify_constraints(config["simplify_constraints"], cfg)
-        write_dotfile(config["dotDestination"], r, cfg)
-
-        result = rank(config["algorithms"],
-                      [(cfg, config["scc_depth"])],
-                      config["different_template"])
-        OM.printseparator(1)
-        OM.printf("Final Result")
-        no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
-        if no_lin:
-            OM.printf("Removed no linear constraints from transitions: " +
-                      str(no_lin))
-        OM.printf(result.toString(cfg.get_var_name()))
-        tr_rfs = result.get("tr_rfs")
-        OM.printif(3, tr_rfs)
-        for tr in tr_rfs:
-            OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
-        OM.printseparator(1)
-        OM.show_output()
-        result = result.found()
-    except Exception as _:
-        result = False
+    except Exception as e:
+        OM.restart(odest=o, cdest=r, vars_name=[])
         if out is not None:
             tmpfile = os.path.join(os.path.curdir, out)
             with open(tmpfile, "w") as f:
@@ -132,8 +111,40 @@ def launch_file(config, f, out):
         else:
             OM.printf(str(traceback.format_exc()))
             OM.show_output()
-    finally:
-        pass
+        raise Exception() from e
+
+    config["vars_name"] = cfg.get_var_name()
+    OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+
+    # Pre compute
+
+    compute_invariants(config["invariants"], cfg)
+    simplify_constraints(config["simplify_constraints"], cfg)
+    write_dotfile(config["dotDestination"], r, cfg)
+
+    # Compute
+
+    result = rank(config["algorithms"],
+                  [(cfg, config["scc_depth"])],
+                  config["different_template"])
+
+    # Print
+
+    OM.printseparator(1)
+    OM.printf("Final Result")
+    no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
+    if no_lin:
+        OM.printf("Removed no linear constraints from transitions: " +
+                  str(no_lin))
+    OM.printf(result.toString(cfg.get_var_name()))
+    tr_rfs = result.get("tr_rfs")
+    OM.printif(3, tr_rfs)
+    for tr in tr_rfs:
+        OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
+    OM.printseparator(1)
+    OM.show_output()
+    result = result.found()
+
     return result
 
 
@@ -332,9 +343,5 @@ if __name__ == "__main__":
         print(_name + " version: " + _version)
         exit(0)
     config = vars(args)
-    try:
-        launch(config)
-    except Exception as e:
-        OM.show_output()
-        e.traceback()
-        exit(-1)
+    launch(config)
+    OM.show_output()

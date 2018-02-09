@@ -3,7 +3,7 @@ from termination.result import Result
 
 from termination.algorithm.factory import Algorithm
 
-from .factory import Manager
+from termination.algorithm.manager import Manager
 
 
 class Lex(Algorithm):
@@ -93,7 +93,7 @@ class Lex(Algorithm):
 class BMS(Algorithm):
     ID = "bms"
     NAME = "BMS"
-    DESC = "BMS Ranking Function over lrf_pr or qnlrf"
+    DESC = "Bradley-Manna-Sipma Ranking Function algorithm over lrf_pr or qnlrf"
 
     def __init__(self, properties={}):
         self.props = properties

@@ -1,10 +1,9 @@
-from termination.algorithm.factory import Algorithm
-
-from .factory import Manager
 from .lrf import LinearRF
-from termination.algorithm.structured import Structured
+from .manager import Algorithm
+from .manager import Manager
 from .qlrf import QuasiLinearRF
 from .qnlrf import QuasiNestedLRF
+from .structured import Structured
 
 
 __all__ = ["Algorithm_Manager"]

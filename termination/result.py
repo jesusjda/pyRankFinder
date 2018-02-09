@@ -1,6 +1,14 @@
+from enum import Enum
 from ppl import Generator
 
 from .output import Output_Manager as OM
+
+
+class TerminationResult(Enum):
+    TERMINATE = "Terminate"
+    NONTERMINATE = "Non-Terminate"
+    UNKNOWN = "Unknown"
+    ERROR = "Error"
 
 
 class Result:

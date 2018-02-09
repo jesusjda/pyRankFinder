@@ -19,7 +19,7 @@ class Output:
     _ei_actions = None
     destination = None
     outtxt = ""
-    
+
     def __init__(self):
         self.ei = False
         self.verbosity = 0
@@ -30,7 +30,7 @@ class Output:
     def restart(self, ei=None, odest=None, cdest=None, vars_name=[]):
         if ei is not None:
             self.ei = ei
-        self.destination=odest
+        self.destination = odest
         if self.ei:
             if cdest is None:
                 self._ei_commands = eiol.eicommands()

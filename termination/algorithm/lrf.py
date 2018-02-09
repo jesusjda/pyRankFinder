@@ -4,8 +4,8 @@ from ppl import Variable
 from termination import farkas
 from termination.result import Result
 
-from termination.algorithm.factory import Algorithm
-from .factory import Manager
+from .manager import Algorithm
+from .manager import Manager
 from .utils import get_rf
 from .utils import get_use_z3
 from .utils import max_dim
