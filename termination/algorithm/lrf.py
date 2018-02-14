@@ -16,9 +16,6 @@ class PR(Algorithm):
     NAME = "lrf_pr"
     DESC = "Podelski-Rybalchenko Algorithm for Linear Ranking Functions"
 
-    def __init__(self, properties={}):
-        self.props = properties
-
     def run(self, cfg, different_template=False, use_z3=None):
         transitions = cfg.get_edges()
 

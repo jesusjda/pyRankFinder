@@ -1,9 +1,9 @@
 from genericparser.Cfg import Cfg
 from termination.result import Result
 
-from termination.algorithm.factory import Algorithm
+from .manager import Algorithm
 
-from termination.algorithm.manager import Manager
+from .manager import Manager
 
 
 class Lex(Algorithm):
@@ -20,7 +20,7 @@ class Lex(Algorithm):
            data[0] != cls.ID):
             return None
         if data[0] == cls.ID:
-            from . import Algorithm_Manager as AM
+            from . import Termination_Algorithm_Manager as AM
             properties = {}
             properties["inner_alg"] = AM.get_algorithm(data[1::])
             return cls(properties)
@@ -104,7 +104,7 @@ class BMS(Algorithm):
            data[0] != cls.ID):
             return None
         if data[0] == cls.ID:
-            from . import Algorithm_Manager as AM
+            from . import Termination_Algorithm_Manager as AM
             properties = {}
             properties["inner_alg"] = AM.get_algorithm(data[1::])
             return cls(properties)

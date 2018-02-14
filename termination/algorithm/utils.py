@@ -31,3 +31,10 @@ def get_use_z3(algorithm, use_z3=None):
         return False
     else:
         return use_z3
+
+
+def str_to_constraint(text, vars, pvars, use_z3=True):
+    if use_z3:
+        from z3 import Real
+    
+    

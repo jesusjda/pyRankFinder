@@ -16,7 +16,7 @@ class BASIC(Algorithm):
         self.props = properties
 
     def run(self, cfg, different_template=False, use_z3=None):
-        cycles = cfg.cycle_basis()
+        cycles = cfg.simple_cycles()
         if not cycles:
             return TerminationResult.TERMINATE
         dim = max_dim(cfg.get_edges())
@@ -30,11 +30,10 @@ class BASIC(Algorithm):
                         continue
                     for i in range(Nvars):
                         poly.add_constraint(Variable(i) == Variable(Nvars+i))
-                    if not poly.is_empty():
+                    if poly.is_empty():
                         return TerminationResult.NONTERMINATE
         return TerminationResult.UNKNOWN
 
-
 class NonTermination(Manager):
-    ALGORITHMS = []
+    ALGORITHMS = [BASIC]
     ID = "non"

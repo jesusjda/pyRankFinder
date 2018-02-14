@@ -1,5 +1,8 @@
 class Algorithm(object):
 
+    def __init__(self, properties={}):
+        self.props = properties
+
     def run(self, cfg, different_template=False, use_z3=None):
         raise NotImplementedError()
 
@@ -27,6 +30,15 @@ class Algorithm(object):
         if "version" in self.props:
             cad_alg += " version: " + str(self.props["version"])
         return cad_alg
+
+    def set_prop(self, key, value):
+        self.props[key] = value
+
+    def get_prop(self, key):
+        return self.props[key]
+
+    def has_prop(self, key):
+        return key in self.props
 
 
 class Manager:

@@ -5,10 +5,12 @@ from invariants import ConstraintState
 from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
 import sys
-from termination import Algorithm_Manager as AM
+from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 from termination import Result
 from termination import TerminationResult as TR
+from termination import Termination_Algorithm_Manager as TAM
+import termination
 import traceback
 
 
@@ -23,16 +25,28 @@ def positive(value):
     return ivalue
 
 
-def algorithm(value):
+def termination_alg(value):
     try:
-        return AM.get_algorithm(value)
+        return TAM.get_algorithm(value)
     except ValueError as e:
         raise argparse.ArgumentTypeError() from e
 
 
-def algorithm_desc():
-    return ("Algorithms to be apply.\n\t"
-            + "\n\t".join(AM.options(True)))
+def termination_alg_desc():
+    return ("Algorithms allowed:\n\t"
+            + "\n\t".join(TAM.options(True)))
+
+
+def nontermination_alg(value):
+    try:
+        return NTAM.get_algorithm(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError() from e
+
+
+def nontermination_alg_desc():
+    return ("Algorithms allowed:\n\t"
+            + "\n\t".join(NTAM.options(True)))
 
 
 def setArgumentParser():
@@ -62,10 +76,12 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
-    argParser.add_argument("-n", "--nontermination", type=algorithm, nargs='+',
-                           required=False, help=algorithm_desc())
-    argParser.add_argument("-a", "--algorithms", type=algorithm, nargs='+',
-                           required=True, help=algorithm_desc())
+    argParser.add_argument("-n", "--nontermination", type=nontermination_alg,
+                           nargs='+', required=False,
+                           help=nontermination_alg_desc())
+    argParser.add_argument("-a", "--algorithms", type=termination_alg,
+                           nargs='+', required=True,
+                           help=termination_alg_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
     return argParser
@@ -129,7 +145,11 @@ def launch_file(config, f, out):
                   config["different_template"])
 
     # Print
-
+    if not result.found():
+        b = termination.algorithm.nonTermination.BASIC({})
+        r = b.run(cfg)
+        OM.printf(r)
+        return result
     OM.printseparator(1)
     OM.printf("Final Result")
     no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]

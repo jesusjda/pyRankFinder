@@ -3,6 +3,8 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import os
 import sys
+import termination
+
 import rankfinder
 
 
@@ -15,8 +17,10 @@ def setArgumentParser():
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
     # Algorithm Parameters
+    argParser.add_argument("-mo", "--memoryout", type=int, default=None,
+                           help="")
     argParser.add_argument("-to", "--timeout", type=int, default=None,
-                           help="Strategy based on SCC to go through the CFG.")
+                           help="")
     argParser.add_argument("-sccd", "--scc_depth", type=int,
                            choices=range(0, 10), default=5,
                            help="Strategy based on SCC to go through the CFG.")
@@ -30,15 +34,20 @@ def setArgumentParser():
     return argParser
 
 
-def timeout(func, args=(), kwargs={}, time_segs=60, out=None, default=None):
+def vm(func, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
     manager = Manager()
     return_dict = manager.dict()
 
-    def worker(work, returndata):
+    def worker(work, memory_mb, returndata):
+        import resource
+        if memory_mb:
+            memory_mb *= 1024*1024
+            _, hard = resource.getrlimit(resource.RLIMIT_DATA)
+            resource.setrlimit(resource.RLIMIT_DATA, (memory_mb, hard))
         returndata[0] = work(*args)
         return 0
 
-    p = Process(target=worker, args=(func, return_dict,), kwargs=kwargs)
+    p = Process(target=worker, args=(func, memory_mb, return_dict,), kwargs=kwargs)
     p.start()
     p.join(time_segs)
     if p.is_alive():
@@ -48,6 +57,15 @@ def timeout(func, args=(), kwargs={}, time_segs=60, out=None, default=None):
             tmpfile = os.path.join(os.path.curdir, out)
             with open(tmpfile, "w") as f:
                 f.write("TIMEOUT\n")
+        return default
+    if not return_dict:
+        print("TIMEOUT")
+        print("MEMORYOUT")
+        if out is not None:
+            tmpfile = os.path.join(os.path.curdir, out)
+            with open(tmpfile, "w") as f:
+                f.write("TIMEOUT\n")
+                f.write("MEMORYOUT\n")
         return default
     return return_dict[0]
 
@@ -62,32 +80,36 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    lib = ["ppl"]
+    lib = ["z3"]
     inv = ["none", "basic"]
     dt = ["iffail"]
-    if "timeout" in ar:
+    if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
         tout = None
+    if "memoryout" in ar and ar["memoryout"]:
+        mout = int(ar["memoryout"])
+    else:
+        mout = None
     algs = []
-    algs.append([{"name": "lrf_pr"}])
+    algs.append([termination.algorithm.lrf.PR()])
     for i in range(1, 3):
-        algs.append([{"max_depth": i, "min_depth": i,
-                      "version": 1, "name": "qnlrf"}])
+        algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
+                                                        "version": 1})])
     #algs.append([{"name": "qlrf_bg"}])
 
     status = {}
     for l in lib:
         for a in algs:
-            a[0]["lib"] = l
+            a[0].set_prop("lib",l)
             for i in inv:
                 for d in dt:
                     for f in files:
                         print("Launching: "+f)
                         name = os.path.basename(f)
-                        tag = a[0]["name"]
-                        if "max_depth" in a[0]:
-                            tag += "_" + str(a[0]["max_depth"])
+                        tag = a[0].NAME
+                        if a[0].has_prop("max_depth"):
+                            tag += "_" + str(a[0].get_prop("max_depth"))
                         tag += "_" + d[0] + "_" + i[0]
                         o = name + "." + tag + "_" + l + ".cache"
                         o = os.path.join(cachedir, o)
@@ -102,9 +124,14 @@ if __name__ == "__main__":
                             tmpfile = os.path.join(cachedir, tmpfile)
                             if os.path.isfile(tmpfile):
                                 if not('TIMEOUT' in open(tmpfile).read()):
+                                    print("Skip")
                                     if os.path.isfile(o):
                                         os.remove(o)
                                     continue
+                            else:
+                                if os.path.isfile(o):
+                                        os.remove(o)
+                                continue
                         tag += "_" + l
                         if os.path.isfile(o):
                             os.remove(o)
@@ -124,7 +151,7 @@ if __name__ == "__main__":
                         if tout is None:
                             found = rankfinder.launch_file(config, f, o)
                         else:
-                            found = timeout(rankfinder.launch_file, time_segs=tout,
-                                            args=(config, f, o), out=o,
-                                            default=False)
+                            found = vm(rankfinder.launch_file, time_segs=tout,
+                                       args=(config, f, o), out=o,
+                                       memory_mb=mout, default=False)
                         status[f] = found
