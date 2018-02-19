@@ -5,38 +5,6 @@ notifications:
     on_failure: never
 matrix:
   include:
-#    Tests on osx are working but are slow. Uncomment to run them.
-#    - language: generic
-#      os: osx
-#      before_install: # command to install dependencies
-#        - brew update
-#        # python 2.7.12
-#        - virtualenv env -p python
-#
-#    - language: generic
-#      os: osx
-#      before_install: # command to install dependencies
-#        - brew update
-#        # python 3.4.3_2
-#        - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6051bbe8a67698f3b7e1aad48466c67f77ec04a1/Formula/python3.rb
-#        - virtualenv env -p python3
-#
-#    - language: generic
-#      os: osx
-#      before_install: # command to install dependencies
-#        - brew update
-#        # python 3.5.2_3
-#        - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
-#        - virtualenv env -p python3
-#
-#    - language: generic
-#      os: osx
-#      before_install: # command to install dependencies
-#        - brew update
-#        # python 3.6.1
-#        - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/0c07502e530bae1ca8811a3a27ab0583fbb396b0/Formula/python3.rb
-#        - virtualenv env -p python3
-#
 #    - langage: python
 #      python: 2.7
 #      os: linux
@@ -58,12 +26,7 @@ matrix:
       dist: trusty
 
 install: # command to install dependencies
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source env/bin/activate; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mpfr; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libmpc; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ppl; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qq update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install python3-nose; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install python3-pip; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libgmp-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libmpfr-dev; fi
@@ -89,5 +52,5 @@ install: # command to install dependencies
   - popd
   - pip3 install --user git+https://github.com/jesusjda/pyParser --verbose --no-index;
   - pip3 install . --user --verbose --no-index;
-script: # nosetests -V && nosetests -v
+script:
   - echo "DONE!"
