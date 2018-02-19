@@ -69,17 +69,17 @@ install: # command to install dependencies
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libmpfr-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libmpc-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libppl-dev; fi
-  - pip install --user 'Cython==0.26';
-  - pip install --user git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0 --no-index --verbose;
-  - pip install --user cysignals;
-  - pip install --user git+https://github.com/jesusjda/pplpy --no-index --verbose
-  - pip install --user z3-solver
-  - pip install --user git+https://github.com/jesusjda/pyLPi --verbose --no-index;
-  - pip install --user pydotplus
-  - pip install --user pydot
-  - pip install --user matplotlib scipy numpy
-  - pip install --user networkx
-  - pip install --user arpeggio
+  - pip3 install --user 'Cython==0.26';
+  - pip3 install --user git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0 --no-index --verbose;
+  - pip3 install --user cysignals;
+  - pip3 install --user git+https://github.com/jesusjda/pplpy --no-index --verbose
+  - pip3 install --user z3-solver
+  - pip3 install --user git+https://github.com/jesusjda/pyLPi --verbose --no-index;
+  - pip3 install --user pydotplus
+  - pip3 install --user pydot
+  - pip3 install --user matplotlib scipy numpy
+  - pip3 install --user networkx
+  - pip3 install --user arpeggio
   - pip3 install --user pyleri
   - mkdir -p /tmp/pyeiol
   - pushd /tmp/pyeiol
