@@ -1,6 +1,8 @@
 from ppl import Linear_Expression
 from ppl import Variable
 from ppl import point as pplpoint
+from ppl import Constraint_System
+from lpi import C_Polyhedron
 
 
 def max_dim(edges):
@@ -33,8 +35,12 @@ def get_use_z3(algorithm, use_z3=None):
         return use_z3
 
 
-def str_to_constraint(text, vars, pvars, use_z3=True):
-    if use_z3:
-        from z3 import Real
-    
-    
+def get_ppl_transition_polyhedron(tr, global_vars):
+    local_vars = tr["local_vars"]
+    dim = len(global_vars)+len(local_vars)
+    all_vars = global_vars + local_vars
+    cons = tr["constraints"]
+    constrs = [c.transform(all_vars, lib="ppl")
+               for c in cons if c.is_linear()]
+    tr_poly = C_Polyhedron(Constraint_System(constrs), dim)
+    return tr_poly

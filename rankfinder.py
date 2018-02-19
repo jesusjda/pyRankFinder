@@ -12,6 +12,7 @@ from termination import TerminationResult as TR
 from termination import Termination_Algorithm_Manager as TAM
 import termination
 import traceback
+from termination.algorithm.utils import get_ppl_transition_polyhedron
 
 
 _version = "0.0.4"
@@ -133,7 +134,7 @@ def launch_file(config, f, out):
     OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
 
     # Pre compute
-
+    build_ppl_polyhedrons(cfg)
     compute_invariants(config["invariants"], cfg)
     simplify_constraints(config["simplify_constraints"], cfg)
     write_dotfile(config["dotDestination"], r, cfg)
@@ -181,10 +182,20 @@ def simplify_constraints(simplify, cfg):
             e["polyhedron"].minimized_constraints()
 
 
+def build_ppl_polyhedrons(cfg):
+    edges = cfg.get_edges()
+    global_vars = cfg.get_var_name()
+    for e in edges:
+        tr_poly = get_ppl_transition_polyhedron(e, global_vars)
+        cfg.add_edge_info(src=e["source"], trg=e["target"], name=e["name"],
+                          key="tr_polyhedron", value=tr_poly)
+
+
 def compute_invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
-    Nvars = len(cfg.get_var_name())/2
+    global_vars = cfg.get_var_name()
+    Nvars = len(global_vars)/2
     if(invariant_type is None or
        invariant_type == "none"):
         for node in graph_nodes:
