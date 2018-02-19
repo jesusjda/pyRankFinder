@@ -77,7 +77,6 @@ install: # command to install dependencies
   - pip3 install --user git+https://github.com/jesusjda/pyLPi --verbose --no-index;
   - pip3 install --user pydotplus
   - pip3 install --user pydot
-  - pip3 install --user matplotlib scipy numpy
   - pip3 install --user networkx
   - pip3 install --user arpeggio
   - pip3 install --user pyleri
