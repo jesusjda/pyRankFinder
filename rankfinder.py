@@ -8,7 +8,6 @@ import sys
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 from termination import Result
-from termination import TerminationResult as TR
 from termination import Termination_Algorithm_Manager as TAM
 import termination
 import traceback
@@ -63,6 +62,8 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
+    argParser.add_argument("--prologDestination", required=False,
+                           help="Folder to save prolog source.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
     # Algorithm Parameters
@@ -77,11 +78,11 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
-    argParser.add_argument("-n", "--nontermination", type=nontermination_alg,
+    argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
                            nargs='+', required=False,
                            help=nontermination_alg_desc())
-    argParser.add_argument("-a", "--algorithms", type=termination_alg,
-                           nargs='+', required=True,
+    argParser.add_argument("-t", "--termination", type=termination_alg,
+                           nargs='+', required=False,
                            help=termination_alg_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
@@ -130,7 +131,7 @@ def launch_file(config, f, out):
             OM.show_output()
         raise Exception() from e
 
-    config["vars_name"] = cfg.get_var_name()
+    config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
 
     # Pre compute
@@ -138,36 +139,67 @@ def launch_file(config, f, out):
     compute_invariants(config["invariants"], cfg)
     simplify_constraints(config["simplify_constraints"], cfg)
     write_dotfile(config["dotDestination"], r, cfg)
+    write_prologfile(config["prologDestination"], r, cfg)
+    
+    OM.show_output()
+    OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
 
-    # Compute
+    # Compute Termination
+    termination_result = None
+    nontermination_result = None
+    if config["termination"]:
+        termination_result = study_termination(config, cfg)
+        OM.show_output()
+        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    if config["nontermination"]:
+        nontermination_result = study_nontermination(config, cfg, termination_result)
+        OM.show_output()
+        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    if termination_result:
+        show_termination_result(termination_result, cfg)
+        OM.show_output()
+        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    if nontermination_result:
+        show_nontermination_result(nontermination_result, cfg)
+        OM.show_output()
+    return termination_result
 
-    result = rank(config["algorithms"],
-                  [(cfg, config["scc_depth"])],
-                  config["different_template"])
 
-    # Print
-    if not result.found():
-        b = termination.algorithm.nonTermination.BASIC({})
-        r = b.run(cfg)
-        OM.printf(r)
-        return result
+def study_termination(config, cfg):
+    return rank(config["termination"],
+                [(cfg, config["scc_depth"])],
+                config["different_template"])
+
+
+def study_nontermination(config, cfg, termination_result):
+    sols = []
+    for alg in config["nontermination"]:
+        sols += alg.run(cfg)
+    return sols
+
+def show_termination_result(result, cfg):
     OM.printseparator(1)
-    OM.printf("Final Result")
+    OM.printf("Final Termination Result")
     no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
     if no_lin:
         OM.printf("Removed no linear constraints from transitions: " +
                   str(no_lin))
-    OM.printf(result.toString(cfg.get_var_name()))
-    tr_rfs = result.get("tr_rfs")
-    OM.printif(3, tr_rfs)
-    for tr in tr_rfs:
-        OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
+    OM.printf(result.toString(cfg.get_info("global_vars")))
+    # tr_rfs = result.get("tr_rfs")
+    # OM.printif(3, tr_rfs)
+    # for tr in tr_rfs:
+    #     OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
     OM.printseparator(1)
     OM.show_output()
     result = result.found()
 
-    return result
-
+def show_nontermination_result(result, cfg):
+    OM.printseparator(1)
+    OM.printf("Final NON-Termination Result")
+    for n, m in result:
+        OM.printf("{} : {}".format(n,m))
+    OM.show_output()
+    OM.printseparator(1)
 
 def write_dotfile(dotDestination, name, cfg):
     if dotDestination:
@@ -175,6 +207,11 @@ def write_dotfile(dotDestination, name, cfg):
             dot = os.path.join(dotDestination, s + ".dot")
             cfg.toDot(OM, dot)
 
+def write_prologfile(prologDestination, name, cfg):
+    if prologDestination:
+            s = name.replace('/', '_')
+            dot = os.path.join(prologDestination, s + ".pl")
+            cfg.toProlog(dot)
 
 def simplify_constraints(simplify, cfg):
     if simplify:
@@ -184,17 +221,18 @@ def simplify_constraints(simplify, cfg):
 
 def build_ppl_polyhedrons(cfg):
     edges = cfg.get_edges()
-    global_vars = cfg.get_var_name()
+    global_vars = cfg.get_info("global_vars")
     for e in edges:
         tr_poly = get_ppl_transition_polyhedron(e, global_vars)
-        cfg.add_edge_info(src=e["source"], trg=e["target"], name=e["name"],
+        # get_z3_transition_polyhedron(e, global_vars)
+        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="tr_polyhedron", value=tr_poly)
 
 
 def compute_invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
-    global_vars = cfg.get_var_name()
+    global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
     if(invariant_type is None or
        invariant_type == "none"):
@@ -209,7 +247,7 @@ def compute_invariants(invariant_type, cfg):
         def lub(s1, s2):
             return s1.lub(s2, copy=True)
 
-        init_node = cfg.get_init_node()
+        init_node = cfg.get_info("init_node")
         p = ConstraintState(Nvars, bottom=True)
 
         for node in graph_nodes:
@@ -224,7 +262,7 @@ def compute_invariants(invariant_type, cfg):
         while len(queue) > 0:
             node = queue.pop()
             s = nodes[node]["state"]
-            for t in cfg.get_edges(src=node):
+            for t in cfg.get_edges(source=node):
                 dest_s = nodes[t["target"]]
                 s1 = apply_tr(s, t)
                 s2 = lub(dest_s["state"], s1)
@@ -239,12 +277,12 @@ def compute_invariants(invariant_type, cfg):
 
     OM.printif(1, "INVARIANTS")
     for n in nodes:
-        cfg.add_node_info(n, "invariant", nodes[n]["state"])
+        cfg.nodes[n]["invariant"] = nodes[n]["state"]
         OM.printif(1, "invariant of " + n, " = ",
                    nodes[n]["state"].get_constraints())
 
     edges = cfg.get_edges()
-    Nvars = len(cfg.get_var_name())
+    Nvars = len(cfg.get_info("global_vars"))
 
     OM.printif(3, Nvars)
     for e in edges:
@@ -257,7 +295,7 @@ def compute_invariants(invariant_type, cfg):
         for c in inv:
             tr_poly.add_constraint(c)
         OM.printif(3, tr_poly.get_dimension())
-        cfg.add_edge_info(src=e["source"], trg=e["target"], name=e["name"],
+        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="polyhedron", value=tr_poly)
     OM.printif(3, cfg.get_edges())
 
@@ -274,7 +312,7 @@ def rank(algs, CFGs, different_template="never"):
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if sccd > 0:
-            CFGs_aux = current_cfg.get_sccs()
+            CFGs_aux = current_cfg.get_scc()
         else:
             CFGs_aux = [current_cfg]
         CFGs_aux.sort()
@@ -303,9 +341,7 @@ def rank(algs, CFGs, different_template="never"):
             merge_rfs(tr_rfs, R.get("tr_rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
-                CFGs = [(Cfg(pending_trs, cfg.get_var_name(),
-                             nodes_info=cfg.get_node_info(),
-                             init_node=cfg.get_init_node()),
+                CFGs = [(cfg.edge_data_subgraph(pending_trs),
                          sccd)] + CFGs
     if fail:
         response.set_response(found=False)
@@ -319,7 +355,7 @@ def rank(algs, CFGs, different_template="never"):
 
 def run_algs(algs, cfg, different_template=False):
     response = Result()
-    vars_name = cfg.get_var_name()
+    vars_name = cfg.get_info("global_vars")
     R = None
     f = False
     trans = cfg.get_edges()
@@ -339,14 +375,13 @@ def run_algs(algs, cfg, different_template=False):
                 break
 
     if f:
-        pen = R.get("pending_trs")
         response.set_response(found=True,
                               info="Found",
                               rfs=R.get("rfs"),
                               tr_rfs=R.get("tr_rfs"),
-                              pending_trs=pen)
+                              pending_trs=R.get("pending_trs"))
         return response
-
+    
     response.set_response(found=False,
                           info="Not Found")
     return response
@@ -365,14 +400,18 @@ def merge_rfs(rfs, to_add):
 
 
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    argParser = setArgumentParser()
-    args = argParser.parse_args(argv)
-    OM.verbosity = args.verbosity
-    OM.ei = args.ei_out
-    if args.version:
-        print(_name + " version: " + _version)
-        exit(0)
-    config = vars(args)
-    launch(config)
-    OM.show_output()
+    try:
+        argv = sys.argv[1:]
+        argParser = setArgumentParser()
+        args = argParser.parse_args(argv)
+        OM.restart(verbosity=args.verbosity, ei=args.ei_out)
+        if args.version:
+            print(_name + " version: " + _version)
+            exit(0)
+        config = vars(args)
+        # if(not(config["termination"]) and
+        #   not(config["nontermination"])):
+        #    argParser.error("Either --termination or --nontermination algorithms is required.")
+        launch(config)
+    finally:
+        OM.show_output()
