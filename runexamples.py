@@ -141,7 +141,7 @@ if __name__ == "__main__":
                             "dotDestination": dotF,
                             "verbosity": verb,
                             "ei_out": False,
-                            "algorithms": a,
+                            "termination": a,
                             "invariants": i,
                             "different_template": d,
                             "simplify_constraints": True,
