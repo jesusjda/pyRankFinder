@@ -46,9 +46,7 @@ class Lex(Algorithm):
         while no_ranked_trs:  # while not empty
             i += 1
             trs = [tr.copy() for tr in no_ranked_trs]
-            inner_cfg = Cfg(trs, cfg.get_var_name(),
-                            nodes_info=cfg.get_node_info(),
-                            init_node=cfg.get_init_node())
+            inner_cfg = cfg.edge_data_subgraph(trs)
             result = inner_alg.run(inner_cfg,
                                    different_template=different_template,
                                    use_z3=use_z3)
@@ -137,9 +135,7 @@ class BMS(Algorithm):
             trs = [tr.copy() for tr in no_ranked_trs]
 
             if len(trs) > 0:
-                inner_cfg = Cfg(trs, cfg.get_var_name(),
-                                nodes_info=cfg.get_node_info(),
-                                init_node=cfg.get_init_node())
+                inner_cfg = cfg.edge_data_subgraph(trs)
                 # Run BMS
                 bmsresult = self.run(inner_cfg,
                                      different_template=different_template)
