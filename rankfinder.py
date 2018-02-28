@@ -138,8 +138,10 @@ def launch_file(config, f, out):
     build_ppl_polyhedrons(cfg)
     compute_invariants(config["invariants"], cfg)
     simplify_constraints(config["simplify_constraints"], cfg)
-    write_dotfile(config["dotDestination"], r, cfg)
-    write_prologfile(config["prologDestination"], r, cfg)
+    if "dotDestination" in config: 
+        write_dotfile(config["dotDestination"], r, cfg)
+    if "prologDestination" in config:
+        write_prologfile(config["prologDestination"], r, cfg)
     
     OM.show_output()
     OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
@@ -147,11 +149,11 @@ def launch_file(config, f, out):
     # Compute Termination
     termination_result = None
     nontermination_result = None
-    if config["termination"]:
+    if "termination" in config and config["termination"]:
         termination_result = study_termination(config, cfg)
         OM.show_output()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
-    if config["nontermination"]:
+    if "nontermination" in config and config["nontermination"]:
         nontermination_result = study_nontermination(config, cfg, termination_result)
         OM.show_output()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
