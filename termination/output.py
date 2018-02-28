@@ -25,9 +25,8 @@ class Output:
         self.verbosity = 0
         self.destination = None
         self.restart()
-        self.outtxt = ""
 
-    def restart(self, ei=None, odest=None, cdest=None, vars_name=[]):
+    def restart(self, ei=None, odest=None, cdest=None, vars_name=[], verbosity=None):
         if ei is not None:
             self.ei = ei
         self.destination = odest
@@ -40,6 +39,8 @@ class Output:
                 self._ei_actions = eiol.eiactions(dest=cdest)
         self._vars_name = vars_name
         self.outtxt = ""
+        if verbosity is not None:
+            self.verbosity = verbosity
 
     def printf(self, *kwargs):
         self.printif(0, *kwargs)
@@ -107,10 +108,12 @@ class Output:
 
     def show_output(self):
         if self.ei:
-            root = eiol.create_output(eicommands=self._ei_commands)
+            #root = eiol.create_output(eicommands=self._ei_commands)
             out = ET.tostring(self._ei_commands,
                               encoding='utf8', method='xml')
+            import re
             out = out.decode("utf-8")
+            out = re.sub(r'<\?.*\?>','',out)
         else:
             out = self.outtxt
         if self.destination is not None:
