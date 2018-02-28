@@ -80,7 +80,7 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    lib = ["z3"]
+    lib = ["ppl"]
     inv = ["none", "basic"]
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
