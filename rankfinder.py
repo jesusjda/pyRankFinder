@@ -313,6 +313,10 @@ def rank(algs, CFGs, different_template="never"):
     fail = False
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
+        for t in current_cfg.get_edges():
+            if t["polyhedron"].is_empty():
+                OM.printif(2, "Transition ("+t["name"]+") removed because is False.")
+                current_cfg.remove_edge(t["source"], t["target"], t["name"])
         if sccd > 0:
             CFGs_aux = current_cfg.get_scc()
         else:
@@ -321,16 +325,6 @@ def rank(algs, CFGs, different_template="never"):
         for cfg in CFGs_aux:
             if not cfg.has_cycle():
                 continue
-            trs_poly = [t["polyhedron"] for t in cfg.get_edges()]
-            skip = False
-            for tr_p in trs_poly:
-                if tr_p.is_empty():
-                    OM.printif(2, "Skipped because one transition is False.")
-                    skip = True
-                    break
-            if skip:
-                continue
-
             R = run_algs(algs, cfg, different_template=dt)
             if not R.found():
                 if different_template == "iffail":
