@@ -52,22 +52,20 @@ def vm(func, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default
     p.join(time_segs)
     if p.is_alive():
         p.terminate()
-        print("TIMEOUT")
-        if out is not None:
-            tmpfile = os.path.join(os.path.curdir, out)
-            with open(tmpfile, "w") as f:
-                f.write("TIMEOUT\n")
-        return default
-    if not return_dict:
-        print("TIMEOUT")
-        print("MEMORYOUT")
-        if out is not None:
-            tmpfile = os.path.join(os.path.curdir, out)
-            with open(tmpfile, "w") as f:
-                f.write("TIMEOUT\n")
-                f.write("MEMORYOUT\n")
-        return default
-    return return_dict[0]
+    if p.exitcode is not None and p.exitcode == 0 and return_dict:
+        return return_dict[0]
+    if p.exitcode is not None and p.exitcode < 0:
+        msg = "TIMEOUT"
+    elif not return_dict:
+        msg = "TIMEOUT or MEMORYOUT"
+    else:
+        msg = "ERROR"
+    print(msg)
+    if out:
+        tmpfile = os.path.join(os.path.curdir, out)
+        with open(tmpfile, "w") as f:
+            f.write(msg+"\n")
+    return default
 
 
 if __name__ == "__main__":
@@ -155,3 +153,5 @@ if __name__ == "__main__":
                                        args=(config, f, o), out=o,
                                        memory_mb=mout, default=False)
                         status[f] = found
+
+
