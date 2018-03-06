@@ -207,7 +207,7 @@ def write_dotfile(dotDestination, name, cfg):
     if dotDestination:
             s = name.replace('/', '_')
             dot = os.path.join(dotDestination, s + ".dot")
-            cfg.toDot(OM, dot)
+            cfg.toDot(dot)
 
 def write_prologfile(prologDestination, name, cfg):
     if prologDestination:

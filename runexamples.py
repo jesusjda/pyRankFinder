@@ -34,42 +34,72 @@ def setArgumentParser():
     return argParser
 
 
-def vm(func, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
+def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
+    def worker(task, r_dict, *args, **kwargs):
+        try:
+            r_dict[0] = task(*args, **kwargs)
+            r_dict["status"] = "ok"
+        except MemoryError as e:
+            r_dict["status"] = "MemoryLimit"
+        except Exception as e:
+            r_dict["status"] = "ERROR " + type(e).__name__
+            raise Exception() from e
+    def returnHandler(exitcode, r_dict, usage=None, out=None, default=None):
+        msg = ""
+        ret = default
+        try:
+            if exitcode == -24:
+                msg += "TIMEOUT"
+            elif exitcode <0:
+                msg += "ERROR"
+            elif r_dict["status"] == "ok":
+                msg += str(r_dict[0])
+                ret = r_dict[0]
+            else:
+                msg += r_dict["status"]
+        except Exception as e:
+            msg += "ERROR while processing output "
+            msg += type(e).__name__
+        finally:
+            if usage:
+                msg += "Time: {}s\n Mem: {} B".format(usage[0]+usage[1], usage[2])
+            print(msg)
+            if out is not None:
+                tmpfile = os.path.join(os.path.curdir, out)
+                with open(tmpfile, "w") as f:
+                    f.write(msg)
+            return ret
+                
     manager = Manager()
-    return_dict = manager.dict()
-
-    def worker(work, memory_mb, returndata):
-        import resource
-        if memory_mb:
-            memory_mb *= 1024*1024
-            _, hard = resource.getrlimit(resource.RLIMIT_DATA)
-            resource.setrlimit(resource.RLIMIT_DATA, (memory_mb, hard))
-        returndata[0] = work(*args)
-        return 0
-
-    p = Process(target=worker, args=(func, memory_mb, return_dict,), kwargs=kwargs)
-    p.start()
-    p.join(time_segs)
-    if p.is_alive():
-        p.terminate()
-        print("TIMEOUT")
-        if out is not None:
-            tmpfile = os.path.join(os.path.curdir, out)
-            with open(tmpfile, "w") as f:
-                f.write("TIMEOUT\n")
-        return default
-    if not return_dict:
-        print("TIMEOUT")
-        print("MEMORYOUT")
-        if out is not None:
-            tmpfile = os.path.join(os.path.curdir, out)
-            with open(tmpfile, "w") as f:
-                f.write("TIMEOUT\n")
-                f.write("MEMORYOUT\n")
-        return default
-    return return_dict[0]
-
-
+    r_dict = manager.dict()   
+    import resource
+    if memory_mb:
+        bML = 1024*1024*memory_mb
+    else:
+        bML = resource.RLIM_INFINITY
+    if time_segs:
+        sTL = time_segs
+    else:
+        sTL = resource.RLIM_INFINITY
+    softM, hardM = resource.getrlimit(resource.RLIMIT_DATA)
+    softT, hardT = resource.getrlimit(resource.RLIMIT_CPU)
+    p=Process(target=worker, args=(task, r_dict, *args), kwargs=kwargs)
+    try: 
+        from resource import prlimit
+        p.start()
+        prlimit(p.pid, resource.RLIMIT_CPU, (sTL, hardT))
+        prlimit(p.pid, resource.RLIMIT_DATA, (bML, hardM))
+    except ImportError:
+        resource.setrlimit(resource.RLIMIT_CPU, (sTL, hardT))
+        resource.setrlimit(resource.RLIMIT_DATA, (bML, hardM))
+        p.start()
+    finally:
+        p.join()
+        usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+        resource.setrlimit(resource.RLIMIT_CPU, (softT, hardT))
+        resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
+        return returnHandler(p.exitcode, r_dict, usage, out=out, default=default)  
+        
 if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
@@ -123,7 +153,9 @@ if __name__ == "__main__":
                             tmpfile = name + "." + tag + "_ppl.cache"
                             tmpfile = os.path.join(cachedir, tmpfile)
                             if os.path.isfile(tmpfile):
-                                if not('TIMEOUT' in open(tmpfile).read()):
+                                if not('TIMEOUT' in open(tmpfile).read() or
+                                       'MemoryLimit' in open(tmpfile).read() or
+                                       'ERROR' in open(tmpfile).read()):
                                     print("Skip")
                                     if os.path.isfile(o):
                                         os.remove(o)
@@ -148,10 +180,7 @@ if __name__ == "__main__":
                             "files": [f],
                             "output": [o]
                         }
-                        if tout is None:
-                            found = rankfinder.launch_file(config, f, o)
-                        else:
-                            found = vm(rankfinder.launch_file, time_segs=tout,
-                                       args=(config, f, o), out=o,
-                                       memory_mb=mout, default=False)
-                        status[f] = found
+                        status[f] = sandbox(rankfinder.launch_file, args=(config, f, o),
+                                            time_segs=tout, memory_mb=mout,
+                                            out=o, default=False)
+                         
