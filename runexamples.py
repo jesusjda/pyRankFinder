@@ -62,7 +62,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
             msg += type(e).__name__
         finally:
             if usage:
-                msg += "Time: {}s\n Mem: {} B".format(usage[0]+usage[1], usage[2])
+                msg += "\n\nTime: {}s\n Mem: {}B".format(usage[0]+usage[1], usage[2])
             print(msg)
             if out is not None:
                 tmpfile = os.path.join(os.path.curdir, out)
@@ -99,7 +99,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
         resource.setrlimit(resource.RLIMIT_CPU, (softT, hardT))
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
         return returnHandler(p.exitcode, r_dict, usage, out=out, default=default)  
-        
+
 if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                             "files": [f],
                             "output": [o]
                         }
+
                         status[f] = sandbox(rankfinder.launch_file, args=(config, f, o),
                                             time_segs=tout, memory_mb=mout,
                                             out=o, default=False)
-                         
