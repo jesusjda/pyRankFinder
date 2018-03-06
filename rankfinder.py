@@ -79,10 +79,10 @@ def setArgumentParser():
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
-                           nargs='+', required=False,
+                           nargs='*', required=False,
                            help=nontermination_alg_desc())
     argParser.add_argument("-t", "--termination", type=termination_alg,
-                           nargs='+', required=False,
+                           nargs='*', required=False,
                            help=termination_alg_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
