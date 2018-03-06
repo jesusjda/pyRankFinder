@@ -62,16 +62,16 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
             msg += type(e).__name__
         finally:
             if usage:
-                msg += "\n\nTime: {}s\n Mem: {}B".format(usage[0]+usage[1], usage[2])
+                msg += "\n\nTime: {}s\n Mem: {}B\n".format(usage[0]+usage[1], usage[2])
             print(msg)
             if out is not None:
                 tmpfile = os.path.join(os.path.curdir, out)
                 with open(tmpfile, "w") as f:
                     f.write(msg)
             return ret
-                
+
     manager = Manager()
-    r_dict = manager.dict()   
+    r_dict = manager.dict()
     import resource
     if memory_mb:
         bML = 1024*1024*memory_mb
@@ -84,7 +84,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
     softM, hardM = resource.getrlimit(resource.RLIMIT_DATA)
     softT, hardT = resource.getrlimit(resource.RLIMIT_CPU)
     p=Process(target=worker, args=(task, r_dict, *args), kwargs=kwargs)
-    try: 
+    try:
         from resource import prlimit
         p.start()
         prlimit(p.pid, resource.RLIMIT_CPU, (sTL, hardT))
@@ -98,7 +98,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
         usage = resource.getrusage(resource.RUSAGE_CHILDREN)
         resource.setrlimit(resource.RLIMIT_CPU, (softT, hardT))
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
-        return returnHandler(p.exitcode, r_dict, usage, out=out, default=default)  
+        return returnHandler(p.exitcode, r_dict, usage, out=out, default=default)
 
 if __name__ == "__main__":
     argParser = setArgumentParser()
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    lib = ["ppl"]
+    lib = ["ppl", "z3"]
     inv = ["none", "basic"]
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
