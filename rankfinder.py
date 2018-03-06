@@ -164,7 +164,10 @@ def launch_file(config, f, out):
     if nontermination_result:
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
-    return termination_result.found()
+    if termination_result:
+        return termination_result.found()
+    else:
+        return False
 
 
 def study_termination(config, cfg):
