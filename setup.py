@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from setuptools import setup
-import sys
 import os
 
 base = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +20,9 @@ ter_name = 'termination'
 inv_dir = os.path.join(base, 'invariants')
 inv_name = 'invariants'
 
+pe_dir = os.path.join(base, 'partialevaluation')
+pe_name = 'partialevaluation'
+
 setup(
     name='pytermination',
     version=VERSION,
@@ -33,23 +35,23 @@ setup(
     license='GPL v3',
     platforms=['any'],
     packages=[ter_name, inv_name],
-    package_dir={ter_name: ter_dir, inv_name: inv_dir},
-    package_data={ter_name: ['*.py'], inv_name: ['*.py']},
+    package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir},
+    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: ['*.py','bin/pe.sh', 'bin/*.pe']},
     install_requires=requires,
     dependency_links=dependency_links,
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Programming Language :: C++",
         "Programming Language :: Python",
         "Development Status :: 3 - Alpha",
         "Operating System :: Unix",
         "Intended Audience :: Science/Research",
-#        "Programming Language :: Python :: 2",
-#        'Programming Language :: Python :: 2.7',
+        "Programming Language :: Python :: 2",
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'
     ],
-    keywords=['termination', 'ranking functions', 'static analysis'],
+    keywords=['termination', 'ranking functions', 'static analysis', 'invariants', 'partial evaluation'],
 )

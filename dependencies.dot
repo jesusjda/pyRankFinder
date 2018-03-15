@@ -8,17 +8,12 @@ digraph dependencies {
 	pyParser;
 	/* Python Modules */
 	node [shape=ellipse,style=rounded,color="black"];
-	arpeggio;
+	"lark-parser";
 	pydotplus;
 	networkx;
 	cysignals;
 	z3;
 	cython;
-	pillow;
-	node [shape=ellipse,style=rounded,color=".8 .8 .8"];
-	numpy;
-	matplotlib;
-	scipy;
 	// Special Python Modules 
 	node [shape=doubleoctagon,style=rounded,color="red"];
 	gmpy2;
@@ -43,16 +38,10 @@ digraph dependencies {
 	pyRankFinder -> pyLPi;
 
 	// pyParser
-	pyParser -> pyLPi;
-	pyParser -> arpeggio;
-	arpeggio -> pillow;
+	pyParser -> "lark-parser";
 	pyParser -> pydotplus;
 	pyParser -> networkx;
-	pyParser -> numpy;
-	networkx -> numpy;
-	networkx -> matplotlib;
 	networkx -> pydotplus;
-	networkx -> scipy;
 	
 	// pyLPi
 	pyLPi -> pplpy;

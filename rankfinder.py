@@ -9,6 +9,7 @@ from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 from termination import Result
 from termination import Termination_Algorithm_Manager as TAM
+from partialevaluation import partialevaluate
 import termination
 import traceback
 from termination.algorithm.utils import get_ppl_transition_polyhedron
@@ -149,11 +150,13 @@ def launch_file(config, f, out):
     # Compute Termination
     termination_result = None
     nontermination_result = None
-    if "termination" in config and config["termination"]:
+    has_to_run = lambda key: key in config and config[key]
+
+    if has_to_run("termination"):
         termination_result = study_termination(config, cfg)
         OM.show_output()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
-    if "nontermination" in config and config["nontermination"]:
+    if has_to_run("nontermination"):
         nontermination_result = study_nontermination(config, cfg, termination_result)
         OM.show_output()
         OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
@@ -328,6 +331,7 @@ def rank(algs, CFGs, different_template="never"):
         for cfg in CFGs_aux:
             if not cfg.has_cycle():
                 continue
+            partialevaluate(cfg)
             R = run_algs(algs, cfg, different_template=dt)
             if not R.found():
                 if different_template == "iffail":
