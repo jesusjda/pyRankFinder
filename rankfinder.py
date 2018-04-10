@@ -1,6 +1,5 @@
 import argparse
 from genericparser import GenericParser
-from genericparser.Cfg import Cfg
 from invariants import ConstraintState
 from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
@@ -10,10 +9,23 @@ from termination import Output_Manager as OM
 from termination import Result
 from termination import Termination_Algorithm_Manager as TAM
 from partialevaluation import partialevaluate
-import termination
 import traceback
 from termination.algorithm.utils import get_ppl_transition_polyhedron
+import cProfile
+from termination.profiler import register_as
 
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            #profile.print_stats('time', 'name')
+            profile.print_stats('launch_file')
+    return profiled_func
 
 _version = "0.0.4"
 _name = "rankfinder"
@@ -53,6 +65,7 @@ def nontermination_alg_desc():
 def setArgumentParser():
     desc = _name+": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
+    pe_options = ["none", "simple", "complete", "full"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -71,6 +84,9 @@ def setArgumentParser():
     argParser.add_argument("-dt", "--different_template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
+    argParser.add_argument("-pe", "--partial_evaluation", required=False, nargs='*',
+                           choices=pe_options, default=[pe_options[0]],
+                           help="List of levels of Partial evaluation in the order that you want to apply them.")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
@@ -106,8 +122,14 @@ def launch(config):
         launch_file(config, files[i], o)
 
 
+@register_as("parse")
+def parse_file(f):
+    return GenericParser().parse(f)
+
+
+#@do_cprofile
+@register_as("launch_file")
 def launch_file(config, f, out):
-    prs = GenericParser()
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
     while aux_c > 0:
@@ -117,11 +139,10 @@ def launch_file(config, f, out):
             break
         aux_c -= 1
     r = '/'.join(aux_p[aux_c:])
-    o = out
     try:
-        cfg = prs.parse(f)
+        cfg = parse_file(f)
     except Exception as e:
-        OM.restart(odest=o, cdest=r, vars_name=[])
+        OM.restart(odest=out, cdest=r, vars_name=[])
         if out is not None:
             tmpfile = os.path.join(os.path.curdir, out)
             with open(tmpfile, "w") as f:
@@ -133,7 +154,7 @@ def launch_file(config, f, out):
         raise Exception() from e
 
     config["vars_name"] = cfg.get_info("global_vars")
-    OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
 
     # Pre compute
     build_ppl_polyhedrons(cfg)
@@ -145,7 +166,7 @@ def launch_file(config, f, out):
         write_prologfile(config["prologDestination"], r, cfg)
     
     OM.show_output()
-    OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
 
     # Compute Termination
     termination_result = None
@@ -155,15 +176,15 @@ def launch_file(config, f, out):
     if has_to_run("termination"):
         termination_result = study_termination(config, cfg)
         OM.show_output()
-        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
         nontermination_result = study_nontermination(config, cfg, termination_result)
         OM.show_output()
-        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if termination_result:
         show_termination_result(termination_result, cfg)
         OM.show_output()
-        OM.restart(odest=o, cdest=r, vars_name=config["vars_name"])
+        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if nontermination_result:
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
@@ -176,7 +197,8 @@ def launch_file(config, f, out):
 def study_termination(config, cfg):
     return rank(config["termination"],
                 [(cfg, config["scc_depth"])],
-                config["different_template"])
+                pe_modes=config["partial_evaluation"],
+                different_template=config["different_template"])
 
 
 def study_nontermination(config, cfg, termination_result):
@@ -220,13 +242,13 @@ def write_prologfile(prologDestination, name, cfg):
             s = name.replace('/', '_')
             dot = os.path.join(prologDestination, s + ".pl")
             cfg.toProlog(dot)
-
+@register_as("simplifyconstraints")
 def simplify_constraints(simplify, cfg):
     if simplify:
         for e in cfg.get_edges():
             e["polyhedron"].minimized_constraints()
 
-
+@register_as("buildpplpolyhedrons")
 def build_ppl_polyhedrons(cfg):
     edges = cfg.get_edges()
     global_vars = cfg.get_info("global_vars")
@@ -236,7 +258,7 @@ def build_ppl_polyhedrons(cfg):
         cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="tr_polyhedron", value=tr_poly)
 
-
+@register_as("computeinvariants")
 def compute_invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
@@ -307,12 +329,28 @@ def compute_invariants(invariant_type, cfg):
                           key="polyhedron", value=tr_poly)
     OM.printif(3, cfg.get_edges())
 
+def dd(cfg):
+    edges = cfg.get_edges()
+    Nvars = len(cfg.get_info("global_vars"))
 
-def rank(algs, CFGs, different_template="never"):
+    OM.printif(3, Nvars)
+    for e in edges:
+        Nlocal_vars = len(e["local_vars"])
+        tr_cons = e["tr_polyhedron"].get_constraints()
+        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
+        for c in tr_cons:
+            tr_poly.add_constraint(c)
+        OM.printif(3, tr_poly.get_dimension())
+        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
+                          key="polyhedron", value=tr_poly)
+@register_as("rank")
+def rank(algs, CFGs, pe_modes=["none"], different_template="never"):
     if different_template == "always":
-        dt = True
+        dt_modes = [True]
+    elif different_template == "iffail":
+        dt_modes = [False, True]
     else:
-        dt = False
+        dt_modes = [False]
     response = Result()
     rfs = {}
     tr_rfs = {}
@@ -329,15 +367,10 @@ def rank(algs, CFGs, different_template="never"):
             CFGs_aux = [current_cfg]
         CFGs_aux.sort()
         for cfg in CFGs_aux:
-            if not cfg.has_cycle():
+            R = analize_scc(algs, cfg, pe_modes=pe_modes, dt_modes=dt_modes)
+            if R is None:
                 continue
-            partialevaluate(cfg)
-            R = run_algs(algs, cfg, different_template=dt)
-            if not R.found():
-                if different_template == "iffail":
-                    OM.printif(1, "Using Different Template")
-                    R = run_algs(algs, cfg, different_template=True)
-            if not R.found():
+            if not R:
                 fail = True
                 break
             merge_rfs(rfs, R.get("rfs"))
@@ -355,17 +388,49 @@ def rank(algs, CFGs, different_template="never"):
                           pending_cfgs=CFGs)
     return response
 
+@register_as("oneSCC")
+def analize_scc(algs, cfg, pe_modes=["none"], dt_modes=[False]):
+    trans = cfg.get_edges()
+    nodes = ', '.join(sorted(cfg.get_nodes()))
+    trs = ', '.join(sorted([t["name"] for t in trans]))
+    OM.printif(1, "Transitions: {}\nNodes: {}".format(trs, nodes))
+    if not trans:
+        OM.printif(1, "-> Terminate because it has not transitions.")
+        return None
+    if not cfg.has_cycle():
+        OM.printif(1, "-> Terminate because it has not cycles.")
+        return None
+    found = False
+    for level in pe_modes:
+        OM.printif(1, "\t- Partial Evaluation mode: {}".format(level))
+        pe_cfg = partialevaluate(cfg, level=level)
+        if level != "none":
+            build_ppl_polyhedrons(pe_cfg)
+            dd(pe_cfg)
+        for dt in dt_modes:
+            if dt:
+                OM.printif(1, "\t- Using Different Template") 
+            R = run_algs(algs, pe_cfg, different_template=dt)
+            if R.found():
+                OM.printif(2, "--> Found with dt={} and pe={}.\n".format(dt,level))
+                found = True
+                break
+        if found:
+            break
+    if found:
+        return R
+    else:
+        return False
 
+@register_as("callalgorithms")
 def run_algs(algs, cfg, different_template=False):
     response = Result()
     vars_name = cfg.get_info("global_vars")
     R = None
     f = False
-    trans = cfg.get_edges()
-    trs = ', '.join(sorted([t["name"] for t in trans]))
-    OM.printif(1, "Analyzing transitions: "+trs)
+    
     for alg in algs:
-        OM.printif(1, "-> with: " + str(alg))
+        OM.printif(1, "\t-> with: " + str(alg))
 
         R = alg.run(cfg,
                     different_template=different_template)
@@ -418,3 +483,5 @@ if __name__ == "__main__":
         launch(config)
     finally:
         OM.show_output()
+        from termination.profiler import OP
+        OM.printif(2,OP.toString(maxdepth=2))

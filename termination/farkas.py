@@ -1,7 +1,8 @@
 from ppl import Variable
 from ppl import Linear_Expression
-
-
+from .output import Output_Manager as OM
+from .profiler import register_as
+@register_as("farkasLRF")
 def LRF(polyhedron, lambdas, f1, f2):
     """
     f1 >= 0
@@ -11,7 +12,7 @@ def LRF(polyhedron, lambdas, f1, f2):
     constraints += f(polyhedron, lambdas[1], f1, 0)
     return constraints
 
-
+@register_as("farkasQNLRF")
 def QNLRF(polyhedron, lambdas, fs, ft, right=1):
     """
     fs[0] - ft[0] >= right
@@ -28,7 +29,7 @@ def QNLRF(polyhedron, lambdas, fs, ft, right=1):
                           fx, fxp, right)
     return constraints
 
-
+@register_as("farkasNLRF")
 def NLRF(polyhedron, lambdas, fs, ft):
     """
     fs[0] - ft[0] >= 1
@@ -42,7 +43,7 @@ def NLRF(polyhedron, lambdas, fs, ft):
     constraints += f(polyhedron, lambdas[-1], fs[-1], 0)
     return constraints
 
-
+@register_as("farkasdf")
 def df(polyhedron, lambdas, f1, f2, delta):
     """
     f1 - f2 >= delta
@@ -52,7 +53,7 @@ def df(polyhedron, lambdas, f1, f2, delta):
     inh = f1[0] - f2[0] - delta
     return farkas(polyhedron, lambdas, exp, inh)
 
-
+@register_as("farkasf")
 def f(polyhedron, lambdas, f, delta):
     """
     f >= delta
@@ -61,7 +62,7 @@ def f(polyhedron, lambdas, f, delta):
     inh = f[0] - delta
     return farkas(polyhedron, lambdas, exp, inh)
 
-
+@register_as("farkas")
 def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     """Returns a list of Constraints, corresponding with the farkas
     constraints for the expressions in `expr`.
@@ -78,10 +79,12 @@ def farkas(polyhedron, lambdas, expressions, inhomogeneous):
     :type lambdas: `list` of `ppl.Variable`
     """
     n = len(expressions)
+    polyhedron.minimized_constraints()
     dim = polyhedron.get_dimension()
     cs = polyhedron.get_constraints()
     num_constraints = len(cs)
     constraint_list = []
+    OM.printif(3, "farkas numconstraints({})".format(num_constraints))
     # each global variable restriction
     for i in range(n):
         exp = Linear_Expression(0)

@@ -1,10 +1,17 @@
+from termination.profiler import register_as
+@register_as("pe")
 def partialevaluate(cfg, level="full"):
-    if level not in ["full", "simple"]:
+    if level == "none":
+        return cfg
+    if level == "complete":
+        level = "full"
+    if not(level in ["full", "simple"]):
         raise ValueError("PE level unknown: {}.".format(level))
     import os
     import tempfile
     from subprocess import PIPE
     from subprocess import Popen
+    from genericparser.Parser_fc import Parser_fc
     pepath = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), 'bin','pe.sh')
     
@@ -14,11 +21,9 @@ def partialevaluate(cfg, level="full"):
     cfg.toProlog(path=tmpplfile)
     pipe = Popen([pepath, tmpplfile, level, tmppropsfile],
                  stdout=PIPE, stderr=PIPE)
-    out, err = pipe.communicate()
-    print("#"*40)
-    print("out: "+str(out))
-    print("#"*40)
-    print("#"*40)
-    print("err: "+str(err))
-    print("#"*40)
+    fcpeprogram, err = pipe.communicate()
+    if err is not None and err:
+            raise Exception(err)
+    pfc = Parser_fc()
+    return pfc.parse_string(fcpeprogram.decode("utf-8"))
     

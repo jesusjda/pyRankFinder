@@ -1,8 +1,9 @@
+from termination.profiler import register_as
 class Algorithm(object):
 
     def __init__(self, properties={}):
         self.props = properties
-
+    @register_as("runalgorithm")
     def run(self, cfg, different_template=False, use_z3=None):
         raise NotImplementedError()
 
@@ -42,8 +43,9 @@ class Algorithm(object):
 
 
 class Manager:
-
+    
     @classmethod
+    @register_as("getalgorithm")
     def get_algorithm(cls, token):
         if isinstance(token, str):
             data = token.split("_")

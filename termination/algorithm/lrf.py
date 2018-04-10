@@ -9,7 +9,7 @@ from .manager import Manager
 from .utils import get_rf
 from .utils import get_use_z3
 from .utils import max_dim
-
+from termination.output import Output_Manager as OM
 
 class PR(Algorithm):
     ID = "pr"
@@ -57,6 +57,7 @@ class PR(Algorithm):
 
             # f_s >= 0
             # f_s - f_t >= 1
+            OM.printif(3, "Add:\n\tf_{s} >= 0 \n\tf_{s} - f_{t} >= 1".format(s=tr["source"], t=tr["target"]) )
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
             countVar += Mcons + 1
             lambdas2 = [Variable(k) for k in range(countVar, countVar + Mcons)]
@@ -64,10 +65,11 @@ class PR(Algorithm):
             farkas_constraints += farkas.LRF(poly,
                                              [lambdas, lambdas2],
                                              rf_s, rf_t)
-
+        OM.printif(3, "build poly")
         farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+        OM.printif(3, "get point")
         point = farkas_poly.get_point(use_z3=use_z3)
-
+        OM.printif(3, "fin get point")
         if point is None:
             response.set_response(found=False,
                                   info="Farkas Polyhedron is empty.",

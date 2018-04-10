@@ -7,7 +7,7 @@ from ppl import Constraint_System
 from ppl import Generator
 from ppl import Linear_Expression
 from ppl import Variable
-
+import time
 import xml.etree.ElementTree as ET
 
 
@@ -21,6 +21,10 @@ class Output:
     outtxt = ""
 
     def __init__(self):
+        self.inittime =  time.time()
+        self.initproctime = time.process_time()
+        self.prevtime =  self.inittime
+        self.prevproctime = self.initproctime
         self.ei = False
         self.verbosity = 0
         self.destination = None
@@ -52,6 +56,13 @@ class Output:
         if self.verbosity < verbosity:
             return
         msg = ""
+        acttime = time.time()
+        actproctime = time.process_time()
+        if verbosity > 2:
+            msg+= "time -> program:{0:0>8}|step:{1:0>8}\n".format(acttime-self.inittime, acttime-self.prevtime)
+            msg+= "proc -> program:{0:0>8}|step:{1:0>8}\n".format(actproctime-self.initproctime, actproctime-self.prevproctime)
+        self.prevtime = acttime
+        self.prevproctime = actproctime
         first = True
         for m in kwargs:
             if not first:
