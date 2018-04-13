@@ -92,6 +92,8 @@ def setArgumentParser():
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
                            default=False, action='store_true',
                            help="Simplify constraints")
+    argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
+                           default="ppl", help="select lib")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -195,6 +197,10 @@ def launch_file(config, f, out):
 
 
 def study_termination(config, cfg):
+    algs = config["termination"]
+    if "lib" in config:
+        for alg in algs:
+            alg.set_prop("lib", config["lib"])
     return rank(config["termination"],
                 [(cfg, config["scc_depth"])],
                 pe_modes=config["partial_evaluation"],
