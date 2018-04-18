@@ -29,7 +29,6 @@ def setArgumentParser():
 def toKoat(ar, cachedir):
     files = ar["files"]
     verb = ar["verbosity"]
-    goals = ar["goals"]
     pe_modes = ar["partial_evaluate"]
     for f in files:
         print("Launching: "+f)
@@ -39,20 +38,14 @@ def toKoat(ar, cachedir):
                 try:
                     print("  >  > pe = "+str(pe))
                     name = os.path.basename(f)
-                    o = name + "."+g[0:6]+"_"+pe+".koat"
+                    o = name + "."+g[0:6]+"_"+pe+".fc"
                     o = os.path.join(cachedir, o)
                     if os.path.isfile(o):
                         os.remove(o)
                     from genericparser import GenericParser
                     precfg = GenericParser().parse(f)
-                    precfg.toProlog(path=o+".pl")
-                    cfg = partialevaluate(precfg, level=pe)
-                    if g == "COMPLEXITY":
-                        goal_complexity = True
-                    else:
-                        goal_complexity = False
-                    cfg.toKoat(path=o, goal_complexity=goal_complexity)
-                    #cfg.toDot(o+".dot")
+
+                    partialevaluate(precfg, level=pe, fcpath=o)
                 except Exception as e:
                     print(e)
                     raise Exception() from e

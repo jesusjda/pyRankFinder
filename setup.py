@@ -34,7 +34,7 @@ setup(
     download_url ='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
-    packages=[ter_name, inv_name],
+    packages=[ter_name, inv_name, pe_name],
     package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir},
     package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: ['*.py','bin/pe.sh', 'bin/*.pe']},
     install_requires=requires,
