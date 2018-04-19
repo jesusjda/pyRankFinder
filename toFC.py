@@ -19,37 +19,30 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
-    argParser.add_argument("-g", "--goals", nargs='+', required=False, choices=["COMPLEXITY", "TERMINATION"],
-                           help="Goals.", default=["COMPLEXITY"])
     argParser.add_argument("-c", "--cache", required=True,
                            help="Folder cache.")
     return argParser
 
 
-def toKoat(ar, cachedir):
+def toFc(ar, cachedir):
     files = ar["files"]
     verb = ar["verbosity"]
     pe_modes = ar["partial_evaluate"]
     for f in files:
         print("Launching: "+f)
-        for g in goals:
-            print("  > "+str(g))
-            for pe in pe_modes:
-                try:
-                    print("  >  > pe = "+str(pe))
-                    name = os.path.basename(f)
-                    o = name + "."+g[0:6]+"_"+pe+".fc"
-                    o = os.path.join(cachedir, o)
-                    if os.path.isfile(o):
-                        os.remove(o)
-                    from genericparser import GenericParser
-                    precfg = GenericParser().parse(f)
-
-                    partialevaluate(precfg, level=pe, fcpath=o)
-                except Exception as e:
-                    print(e)
-                    raise Exception() from e
-
+        for pe in pe_modes:
+            try:
+                print("  >  > pe = "+str(pe))
+                name = os.path.basename(f)
+                o = name + "." + pe + ".fc"
+                o = os.path.join(cachedir, o)
+                if os.path.isfile(o):
+                    os.remove(o)
+                from genericparser import GenericParser
+                precfg = GenericParser().parse(f)
+                partialevaluate(precfg, level=pe, fcpath=o)
+            except Exception as e:
+                print(e)
 
 if __name__ == '__main__':
     import os
@@ -59,4 +52,4 @@ if __name__ == '__main__':
     ar = vars(args)
     cachedir = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), ar["cache"])
-    toKoat(ar, cachedir)
+    toFc(ar, cachedir)
