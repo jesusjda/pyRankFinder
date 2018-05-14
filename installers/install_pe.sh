@@ -9,7 +9,12 @@ install_ciao(){
 
     mkdir -p /tmp/ciao
     git clone https://github.com/ciao-lang/ciao.git /tmp/ciao
-    /tmp/ciao/ciao-boot.sh local-install
+    pushd /tmp/ciao
+    SHELL_BACKUP=$SHELL
+    export SHELL=/bin/sh # (otherwise build fails)
+    ./ciao-boot.sh local-install --with-docs=no
+    export SHELL=$SHELL_BACKUP
+    popd
 }
 
 install_ciao_libs(){
@@ -35,9 +40,7 @@ install_pe(){
 }
 
 PEPATH=${PEPATH:-"/opt/pe"}
-PETOOL=$PEPATH/pecfg.sh
 
 install_ciao
 install_pe
 
-echo "consider to add PETOOL=$PETOOL to the environment"

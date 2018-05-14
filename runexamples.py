@@ -37,6 +37,8 @@ def setArgumentParser():
 
 
 def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
+    manager = Manager()
+    r_dict = manager.dict()
     def worker(task, r_dict, *args, **kwargs):
         try:
             r_dict[0],r_dict[1] = task(*args, **kwargs)
@@ -74,8 +76,6 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
                     f.write(msg)
             return ret
 
-    manager = Manager()
-    r_dict = manager.dict()
     import resource
     if memory_mb:
         bML = 1024*1024*memory_mb
