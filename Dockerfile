@@ -10,6 +10,7 @@ RUN mkdir /opt/tools && chmod -R 755 /opt/tools
 ENV PYRANKFINDER_HOME /opt/tools/pyRankFinder
 # RUN git clone https://github.com/jesusjda/pyRankFinder /opt/tools/pyRankFinder
 ADD . $PYRANKFINDER_HOME
+RUN cd $PYRANKFINDER_HOME && ./installers/install_pe.sh
 RUN cd $PYRANKFINDER_HOME && ./installers/install_dependencies.sh -p=3
 RUN cd $PYRANKFINDER_HOME && ./installers/install_modules.sh -p=3
 ADD https://api.github.com/repos/jesusjda/easyinterface-config/git/refs/heads/master version2.json
