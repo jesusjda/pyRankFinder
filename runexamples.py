@@ -3,7 +3,7 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import os
 import sys
-import termination
+import termination.algorithm
 
 import rankfinder
 
@@ -27,6 +27,8 @@ def setArgumentParser():
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
                            action='store_true', help="Simplify constraints")
     # IMPORTANT PARAMETERS
+    argParser.add_argument("-pe", "--partial_evaluation", type=int, required=False, nargs='+',
+                           choices=range(0,5), default=[0])
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-c", "--cache", required=True,
@@ -37,14 +39,14 @@ def setArgumentParser():
 def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
     def worker(task, r_dict, *args, **kwargs):
         try:
-            r_dict[0] = task(*args, **kwargs)
+            r_dict[0],r_dict[1] = task(*args, **kwargs)
             r_dict["status"] = "ok"
         except MemoryError as e:
             r_dict["status"] = "MemoryLimit"
         except Exception as e:
             r_dict["status"] = "ERROR " + type(e).__name__
             raise Exception() from e
-    def returnHandler(exitcode, r_dict, usage=None, out=None, default=None):
+    def returnHandler(exitcode, r_dict, usage=None, usage_old=[0,0,0], out=None, default=None):
         msg = ""
         ret = default
         try:
@@ -52,8 +54,10 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
                 msg += "TIMEOUT"
             elif exitcode <0:
                 msg += "ERROR"
+            elif not("status" in r_dict):
+                msg += "TIMEOUT" 
             elif r_dict["status"] == "ok":
-                msg += str(r_dict[0])
+                msg += str(r_dict[1])
                 ret = r_dict[0]
             else:
                 msg += r_dict["status"]
@@ -62,7 +66,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
             msg += type(e).__name__
         finally:
             if usage:
-                msg += "\n\nTime: {}s\n Mem: {}B\n".format(usage[0]+usage[1], usage[2])
+                msg += "\n\nTime: {}s\n Mem: {}B\n".format(usage[0]+usage[1]-usage_old[0]-usage_old[1], usage[2]-usage_old[2])
             print(msg)
             if out is not None:
                 tmpfile = os.path.join(os.path.curdir, out)
@@ -83,6 +87,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
         sTL = resource.RLIM_INFINITY
     softM, hardM = resource.getrlimit(resource.RLIMIT_DATA)
     softT, hardT = resource.getrlimit(resource.RLIMIT_CPU)
+    usage_old = resource.getrusage(resource.RUSAGE_CHILDREN)
     p=Process(target=worker, args=(task, r_dict, *args), kwargs=kwargs)
     try:
         from resource import prlimit
@@ -98,7 +103,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
         usage = resource.getrusage(resource.RUSAGE_CHILDREN)
         resource.setrlimit(resource.RLIMIT_CPU, (softT, hardT))
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
-        return returnHandler(p.exitcode, r_dict, usage, out=out, default=default)
+        return returnHandler(p.exitcode, r_dict, usage, usage_old, out=out, default=default)
 
 if __name__ == "__main__":
     argParser = setArgumentParser()
@@ -110,8 +115,8 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    lib = ["ppl", "z3"]
-    inv = ["none", "basic"]
+    lib = ["ppl"]
+    inv = ["none"]
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
@@ -127,22 +132,25 @@ if __name__ == "__main__":
         algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
                                                         "version": 1})])
     #algs.append([{"name": "qlrf_bg"}])
-
+    numm = len(files)
     status = {}
     for l in lib:
         for a in algs:
             a[0].set_prop("lib",l)
             for i in inv:
                 for d in dt:
+                    ite=0
                     for f in files:
-                        print("Launching: "+f)
-                        name = os.path.basename(f)
+                        
+                        name = os.path.basename(f) #.replace("/","_")
                         tag = a[0].NAME
                         if a[0].has_prop("max_depth"):
                             tag += "_" + str(a[0].get_prop("max_depth"))
-                        tag += "_" + d[0] + "_" + i[0]
+                        tag += "_" + d[0] + "_b" #+ i[0]
                         o = name + "." + tag + "_" + l + ".cache"
                         o = os.path.join(cachedir, o)
+                        print("{}({}/{}) {}".format(tag, ite,numm,f))
+                        ite+=1
                         if not(f in status):
                             status[f] = False
                         if status[f]:
@@ -156,7 +164,6 @@ if __name__ == "__main__":
                                 if not('TIMEOUT' in open(tmpfile).read() or
                                        'MemoryLimit' in open(tmpfile).read() or
                                        'ERROR' in open(tmpfile).read()):
-                                    print("Skip")
                                     if os.path.isfile(o):
                                         os.remove(o)
                                     continue
@@ -166,6 +173,7 @@ if __name__ == "__main__":
                                 continue
                         tag += "_" + l
                         if os.path.isfile(o):
+                            continue
                             os.remove(o)
                         print("Trying with : " + tag)
                         config = {
@@ -177,6 +185,7 @@ if __name__ == "__main__":
                             "invariants": i,
                             "different_template": d,
                             "simplify_constraints": True,
+                            "partial_evaluation": [0],
                             "files": [f],
                             "output": [o]
                         }
