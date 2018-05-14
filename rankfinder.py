@@ -65,7 +65,6 @@ def nontermination_alg_desc():
 def setArgumentParser():
     desc = _name+": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
-    pe_options = ["none", "simple", "complete", "full"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -84,8 +83,8 @@ def setArgumentParser():
     argParser.add_argument("-dt", "--different_template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-pe", "--partial_evaluation", required=False, nargs='*',
-                           choices=pe_options, default=[pe_options[0]],
+    argParser.add_argument("-pe", "--partial_evaluation", type=int, required=False, nargs='+',
+                           choices=range(0,5), default=[0],
                            help="List of levels of Partial evaluation in the order that you want to apply them.")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
@@ -191,7 +190,7 @@ def launch_file(config, f, out):
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
     if termination_result:
-        return termination_result.found()
+        return termination_result.found() , termination_result.toString(config["vars_name"])
     else:
         return False
 
@@ -291,7 +290,6 @@ def compute_invariants(invariant_type, cfg):
                 "state": p.copy(),
                 "access": 0
             }
-
         nodes[init_node]["state"] = ConstraintState(Nvars)
 
         queue = [init_node]
@@ -302,7 +300,7 @@ def compute_invariants(invariant_type, cfg):
                 dest_s = nodes[t["target"]]
                 s1 = apply_tr(s, t)
                 s2 = lub(dest_s["state"], s1)
-                if not s2 <= dest_s["state"]:  # lte(s2, dest_s["state"]):
+                if not(s2 <= dest_s["state"]):  # lte(s2, dest_s["state"]):
                     dest_s["access"] += 1
                     if dest_s["access"] >= 3:
                         s2.widening(dest_s["state"])
@@ -363,6 +361,9 @@ def rank(algs, CFGs, pe_modes=["none"], different_template="never"):
     fail = False
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
+        if len(current_cfg.get_edges()) == 0:
+            OM.printif(2, "CFG ranked beacuse it is empty.")
+            continue
         for t in current_cfg.get_edges():
             if t["polyhedron"].is_empty():
                 OM.printif(2, "Transition ("+t["name"]+") removed because is False.")
@@ -410,7 +411,7 @@ def analize_scc(algs, cfg, pe_modes=["none"], dt_modes=[False]):
     for level in pe_modes:
         OM.printif(1, "\t- Partial Evaluation mode: {}".format(level))
         pe_cfg = partialevaluate(cfg, level=level)
-        if level != "none":
+        if level != 0:
             build_ppl_polyhedrons(pe_cfg)
             dd(pe_cfg)
         for dt in dt_modes:
@@ -434,7 +435,13 @@ def run_algs(algs, cfg, different_template=False):
     vars_name = cfg.get_info("global_vars")
     R = None
     f = False
-    
+    if len(cfg.get_edges()) == 0:
+        response.set_response(found=True,
+                              info="Empty Cfg",
+                              rfs=[],
+                              tr_rfs=[],
+                              pending_trs=[])
+        return response
     for alg in algs:
         OM.printif(1, "\t-> with: " + str(alg))
 
