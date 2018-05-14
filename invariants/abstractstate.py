@@ -91,3 +91,9 @@ class ConstraintState(AbstractState):
     def __le__(self, s2):
         self._assert_same_type(s2)
         return self._state <= s2._state
+    
+    def toString(self, vars_name=None, eq_symb="==", geq_symb=">="):
+        return self._state.toString(vars_name=vars_name, eq_symb=eq_symb, geq_symb=geq_symb)
+
+    def __repr__(self):
+        return "{{{}}}".format(", ".join(self.toString()))
