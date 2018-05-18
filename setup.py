@@ -22,7 +22,7 @@ inv_name = 'invariants'
 
 pe_dir = os.path.join(base, 'partialevaluation')
 pe_name = 'partialevaluation'
-
+pe_pkg_data= ['*.py','bin/*']
 setup(
     name='pytermination',
     version=VERSION,
@@ -36,7 +36,7 @@ setup(
     platforms=['any'],
     packages=[ter_name, inv_name, pe_name],
     package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir},
-    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: ['*.py','bin/pe.sh', 'bin/*.pe']},
+    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: pe_pkg_data},
     install_requires=requires,
     dependency_links=dependency_links,
     classifiers=[
