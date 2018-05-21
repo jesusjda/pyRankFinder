@@ -80,7 +80,7 @@ class ConstraintState(AbstractState):
         for i in range(0, n):  # Vars from 0 to n-1 inclusive
             var_set.insert(Variable(i))
         # (local variables)
-        for i in range(2*n, m):  # Vars from 2*n to m-1 inclusive
+        for i in range(2 * n, m):  # Vars from 2*n to m-1 inclusive
             var_set.insert(Variable(i))
         s1._state.remove_dimensions(var_set)
         return s1

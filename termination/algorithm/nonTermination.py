@@ -21,25 +21,25 @@ class Renaming(Algorithm):
         if not cycles:
             return []
         global_vars = cfg.get_info("global_vars")
-        Nvars = int(len(global_vars)/2)
+        Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
         pvs = global_vars[Nvars:]
         solutions = []
         s = Solver()
         
         cys = "\n\t".join([" -> ".join(c) for c in cycles])
-        OM.printif(2, "Cycles:\n\t"+cys)
+        OM.printif(2, "Cycles:\n\t" + cys)
         for cycle in cycles:
             cys = ' -> '.join(cycle)
-            OM.printif(2, "Analyzing cycle: "+str(cys))
+            OM.printif(2, "Analyzing cycle: " + str(cys))
             sols = []
             if len(cycle) == 1:
                 trs = cfg.get_edges(source=cycle[0], target=cycle[0])
                 for tr in trs:
                     s.push()
-                    rename = [(Real(c), Real(d)) for c,d in zip(vs, pvs)]
-                    rename += [(Real(c), Real(d)) for c,d in zip(pvs, vs)]
-                    for c in get_z3_transition_polyhedron(tr, vs+pvs):
+                    rename = [(Real(c), Real(d)) for c, d in zip(vs, pvs)]
+                    rename += [(Real(c), Real(d)) for c, d in zip(pvs, vs)]
+                    for c in get_z3_transition_polyhedron(tr, vs + pvs):
                         s.add(c)
                         s.add(substitute(c, rename))
                     if s.check() == sat:
@@ -51,7 +51,7 @@ class Renaming(Algorithm):
                 ppvs = pvs
                 primetoken = "'"
                 for _ in range(2, len(cycle)):
-                    ppvs = [v+primetoken for v in ppvs]
+                    ppvs = [v + primetoken for v in ppvs]
                     names.append(ppvs)
                 names.append(vs)
                 nodes = cycle + [cycle[0]]
@@ -73,9 +73,9 @@ class Renaming(Algorithm):
         solutions = []
         for tr in trs:
             solver.push()
-            rename = [(Real(c),Real(d)) for c,d in zip(vs,names[0])]
-            rename += [(Real(c),Real(d)) for c,d in zip(pvs,names[1])]
-            for c in get_z3_transition_polyhedron(tr, vs+pvs):
+            rename = [(Real(c), Real(d)) for c, d in zip(vs, names[0])]
+            rename += [(Real(c), Real(d)) for c, d in zip(pvs, names[1])]
+            for c in get_z3_transition_polyhedron(tr, vs + pvs):
                 solver.add(substitute(c, rename))
             sols = self._rec_rename(solver, cfg, vs, pvs, nodes[1::], names[1::])
             if sols:

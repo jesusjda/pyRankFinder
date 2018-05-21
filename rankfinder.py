@@ -41,8 +41,8 @@ def positive(value):
 def termination_alg(value):
     try:
         return TAM.get_algorithm(value)
-    except ValueError as e:
-        raise argparse.ArgumentTypeError() from e
+    except ValueError:
+        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value))
 
 
 def termination_alg_desc():
@@ -53,8 +53,8 @@ def termination_alg_desc():
 def nontermination_alg(value):
     try:
         return NTAM.get_algorithm(value)
-    except ValueError as e:
-        raise argparse.ArgumentTypeError() from e
+    except ValueError:
+        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value)) 
 
 
 def nontermination_alg_desc():
@@ -142,7 +142,7 @@ def launch_file(config, f, out):
     r = '/'.join(aux_p[aux_c:])
     try:
         cfg = parse_file(f)
-    except Exception as e:
+    except Exception:
         OM.restart(odest=out, cdest=r, vars_name=[])
         if out is not None:
             tmpfile = os.path.join(os.path.curdir, out)
@@ -152,7 +152,7 @@ def launch_file(config, f, out):
         else:
             OM.printf(str(traceback.format_exc()))
             OM.show_output()
-        raise Exception() from e
+        raise
 
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])

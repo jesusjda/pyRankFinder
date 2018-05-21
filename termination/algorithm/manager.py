@@ -1,8 +1,11 @@
 from termination.profiler import register_as
+
+
 class Algorithm(object):
 
     def __init__(self, properties={}):
         self.props = properties
+
     @register_as("runalgorithm")
     def run(self, cfg, different_template=False, use_z3=None):
         raise NotImplementedError()
@@ -14,8 +17,8 @@ class Algorithm(object):
         if data[0] == cls.ID:
             try:
                 c = cls()
-            except Exception as e:
-                raise Exception() from e
+            except Exception:
+                raise 
             return c
         return None
 

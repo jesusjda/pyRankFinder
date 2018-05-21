@@ -6,6 +6,7 @@ import getopt
 import argparse
 from genericparser import Parser_smt2
 
+
 def positive(value):
     ivalue = int(value)
     if ivalue < 0:
@@ -67,7 +68,7 @@ def Main(argv):
 
         # smt2 to T2
         ps = Parser_smt2.Parser_smt2()
-        t2program,err = ps.toT2(f)
+        t2program, err = ps.toT2(f)
         if err is not None and err != "":
             raise Exception(err)
         print("###############################")

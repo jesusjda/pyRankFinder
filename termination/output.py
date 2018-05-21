@@ -21,9 +21,12 @@ class Output:
     outtxt = ""
 
     def __init__(self):
-        self.inittime =  time.time()
-        self.initproctime = time.process_time()
-        self.prevtime =  self.inittime
+        self.inittime = time.time()
+        try:
+            self.initproctime = time.process_time()
+        except AttributeError:
+            self.initproctime = time.clock()
+        self.prevtime = self.inittime
         self.prevproctime = self.initproctime
         self.ei = False
         self.verbosity = 0
@@ -57,10 +60,13 @@ class Output:
             return
         msg = ""
         acttime = time.time()
-        actproctime = time.process_time()
+        try:
+            actproctime = time.process_time()
+        except AttributeError:
+            actproctime = time.clock()
         if verbosity > 2:
-            msg+= "time -> program:{0:0>8}|step:{1:0>8}\n".format(acttime-self.inittime, acttime-self.prevtime)
-            msg+= "proc -> program:{0:0>8}|step:{1:0>8}\n".format(actproctime-self.initproctime, actproctime-self.prevproctime)
+            msg += "time -> program:{0:0>8}|step:{1:0>8}\n".format(acttime - self.inittime, acttime - self.prevtime)
+            msg += "proc -> program:{0:0>8}|step:{1:0>8}\n".format(actproctime - self.initproctime, actproctime - self.prevproctime)
         self.prevtime = acttime
         self.prevproctime = actproctime
         first = True
@@ -106,7 +112,7 @@ class Output:
                 if aux_p[aux_c] == "User_Projects":
                     break
                 aux_c -= 1
-            aux_t = ["translations"] + aux_p[aux_c+1:]
+            aux_t = ["translations"] + aux_p[aux_c + 1:]
             r = '/'.join(aux_t)
             c = eiol.command_writefile(overwrite="true",
                                        text=content,
@@ -119,12 +125,12 @@ class Output:
 
     def show_output(self):
         if self.ei:
-            #root = eiol.create_output(eicommands=self._ei_commands)
+            # root = eiol.create_output(eicommands=self._ei_commands)
             out = ET.tostring(self._ei_commands,
                               encoding='utf8', method='xml')
             import re
             out = out.decode("utf-8")
-            out = re.sub(r'<\?.*\?>','',out)
+            out = re.sub(r'<\?.*\?>', '', out)
         else:
             out = self.outtxt
         if self.destination is not None:
@@ -159,13 +165,13 @@ class Output:
             if vars_name is None:
                 vars_name = self._vars_name
                 for i in range(len(vars_name), dim):
-                    vars_name.append("x"+str(i+p))
+                    vars_name.append("x" + str(i + p))
             first = True
             divisor = 1
             if ispoint:
                 divisor = cs.divisor()
-            for v in range(dim-p):
-                coeff = cs.coefficient(Variable(v+p))
+            for v in range(dim - p):
+                coeff = cs.coefficient(Variable(v + p))
                 if not first:
                     if coeff > 0:
                         response += " + "
@@ -173,11 +179,11 @@ class Output:
                     first = False
                     if coeff < 0:
                         response += " - "
-                        coeff = - coeff
+                        coeff = -coeff
                     if coeff != divisor and (coeff != 1 or divisor != 1): 
                         response += str(coeff)
                         if divisor != 1:
-                            response += "/"+str(divisor)
+                            response += "/" + str(divisor)
                         response += " * "
                     response += vars_name[v]
             if ispoint:
@@ -190,10 +196,10 @@ class Output:
                         response += " + "
                 if coeff < 0:
                     response += " - "
-                    coeff = - coeff
+                    coeff = -coeff
                 response += str(coeff)
                 if divisor != 1:
-                    response += "/"+str(divisor)
+                    response += "/" + str(divisor)
             if isinstance(cs, Constraint):
                 if cs.is_inequality():
                     response += " >= "

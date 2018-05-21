@@ -92,7 +92,7 @@ class QLRF_ADFG(Algorithm):
                 zeros = False
         if point is None or zeros:
             response.set_response(found=False,
-                                  info="F === 0 "+str(point))
+                                  info="F === 0 " + str(point))
             return response
 
         for node in rfvars:
@@ -201,9 +201,9 @@ class QLRF_BG(Algorithm):
             constant = (rf_s.coefficient(Variable(0))
                         - rf_t.coefficient(Variable(0)))
             for i in range(Nvars):
-                df += Variable(i) * rf_s.coefficient(Variable(i+1))
-                df -= Variable(Nvars + i) * rf_t.coefficient(Variable(i+1))
-            dfs[tr["name"]] = df+constant
+                df += Variable(i) * rf_s.coefficient(Variable(i + 1))
+                df -= Variable(Nvars + i) * rf_t.coefficient(Variable(i + 1))
+            dfs[tr["name"]] = df + constant
             if not nonTrivial:
                 answ = poly.maximize(df)
                 if(not answ["bounded"] or

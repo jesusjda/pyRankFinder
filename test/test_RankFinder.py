@@ -5,6 +5,7 @@ import lpi
 
 
 class TestKey(unittest.TestCase):
+
     def test_import(self):
         self.assertEqual(1, 1)
 

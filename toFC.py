@@ -14,7 +14,7 @@ def setArgumentParser():
     argParser.add_argument("-to", "--timeout", type=int, default=None,
                            help="")
     argParser.add_argument("-pe", "--partial_evaluate", type=int, required=False, nargs='+',
-                           default=[0], choices=range(0,5), help="Partial Evaluate")
+                           default=[0], choices=range(0, 5), help="Partial Evaluate")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -28,10 +28,10 @@ def toFc(ar, cachedir):
     verb = ar["verbosity"]
     pe_modes = ar["partial_evaluate"]
     for f in files:
-        print("Launching: "+f)
+        print("Launching: " + f)
         for pe in pe_modes:
             try:
-                print("  >  > pe = "+str(pe))
+                print("  >  > pe = " + str(pe))
                 name = os.path.basename(f)
                 o = name + "." + pe + ".fc"
                 o = os.path.join(cachedir, o)
@@ -43,12 +43,13 @@ def toFc(ar, cachedir):
             except Exception as e:
                 print(e)
 
+
 def toDot(ar):
     files = ar["files"]
     count = 1
     num = len(files)
     for f in files:
-        print("({}/{}){}".format(count,num,f))
+        print("({}/{}){}".format(count, num, f))
         count += 1
         try:
             
@@ -57,9 +58,10 @@ def toDot(ar):
                 os.remove(o)
             from genericparser import GenericParser
             cfg = GenericParser().parse(f)
-            cfg.toDot(o+".dot", minimize=False, invariants=False)
+            cfg.toDot(o + ".dot", minimize=False, invariants=False)
         except Exception as e:
             print(e)
+
 
 if __name__ == '__main__':
     import os
@@ -70,4 +72,4 @@ if __name__ == '__main__':
     cachedir = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), ar["cache"])
     toDot(ar)
-    #toDot(ar, cachedir)
+    # toDot(ar, cachedir)

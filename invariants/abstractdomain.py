@@ -1,4 +1,5 @@
 
+
 class AbstractDomain:
 
     def lub(self, s1, s2):

@@ -64,15 +64,15 @@ class QNLRF(Algorithm):
                 for tr in all_transitions:
                     if not(tr["source"] in rfvars):
                         f = [[Variable(i)
-                              for i in range(countVar + (Nvars+1) * di,
-                                             countVar + (Nvars+1) * (di + 1))]
+                              for i in range(countVar + (Nvars + 1) * di,
+                                             countVar + (Nvars + 1) * (di + 1))]
                              for di in range(d)]
                         rfvars[tr["source"]] = f
                         countVar += shifter
                     if not(tr["target"] in rfvars):
                         f = [[Variable(i)
-                              for i in range(countVar + (Nvars+1) * di,
-                                             countVar + (Nvars+1) * (di + 1))]
+                              for i in range(countVar + (Nvars + 1) * di,
+                                             countVar + (Nvars + 1) * (di + 1))]
                              for di in range(d)]
                         rfvars[tr["target"]] = f
                         countVar += shifter
@@ -142,7 +142,7 @@ class QNLRF(Algorithm):
                 return response
 
         response.set_response(found=False,
-                              info="Not found: max_d = " + str(max_d-1) + " .",
+                              info="Not found: max_d = " + str(max_d - 1) + " .",
                               pending_trs=transitions)
         return response
 

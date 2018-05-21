@@ -1,9 +1,11 @@
 from termination.profiler import register_as
+
+
 @register_as("pe")
 def partialevaluate(cfg, level=4, fcpath=None, debug=True):
     if level == 0:
         return cfg
-    if not(level in range(1,5)):
+    if not(level in range(1, 5)):
         raise ValueError("PE level unknown: {}.".format(level))
     import os
     import tempfile
@@ -17,18 +19,18 @@ def partialevaluate(cfg, level=4, fcpath=None, debug=True):
     tmpdirname = tempfile.mkdtemp()
     tmpplfile = os.path.join(tmpdirname, "source.pl")
     cfg.toProlog(path=tmpplfile)
-    N=int(len(cfg.get_info("global_vars"))/2)
-    vs=""
+    N = int(len(cfg.get_info("global_vars")) / 2)
+    vs = ""
     if N > 0:
         vs = "(_"
         if N > 1:
-            vs += ",_"*int(N-1)
+            vs += ",_"*int(N - 1)
         vs += ")"
     if len(cfg.get_info("entry_nodes")) > 0:
         init_node = cfg.get_info("entry_nodes")[0]
     else:
         init_node = cfg.get_info("init_node")
-    initNode="n_{}{}".format(init_node,vs)
+    initNode = "n_{}{}".format(init_node, vs)
     if debug:
         with open(tmpplfile, 'r') as fin:
             print(fin.read())

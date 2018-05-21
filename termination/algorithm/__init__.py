@@ -6,7 +6,6 @@ from .qlrf import QuasiLinearRF
 from .qnlrf import QuasiNestedLRF
 from .structured import Structured
 
-
 __all__ = ["Termination_Algorithm_Manager", "NonTermination_Algorithm_Manager"]
 
 

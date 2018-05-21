@@ -1,4 +1,11 @@
-from enum import Enum
+try:
+    from enum import Enum
+except ImportError:
+    class Enum(set):
+        def __getattr__(self, name):
+            if name in self:
+                return name
+            raise AttributeError
 from ppl import Generator
 
 from .output import Output_Manager as OM
@@ -73,14 +80,14 @@ class Result:
         inh = rf[1]
         sr = ""
         if vars_name is None:
-            vars_name = ["x"+str(i) for i in range(len(coeffs))]
+            vars_name = ["x" + str(i) for i in range(len(coeffs))]
         for i in range(len(coeffs)):
             if coeffs[i] == 0:
                 continue
             if coeffs[i] == 1:
                 sr += str(vars_name[i]) + " + "
                 continue
-            sr = (sr + "" + str(coeffs[i]) + " * " +
+            sr = (sr + "" + str(coeffs[i]) + " * " + 
                   str(vars_name[i]) + " + ")
         sr += "" + str(inh)
         return sr

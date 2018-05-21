@@ -2,6 +2,8 @@ from ppl import Variable
 from ppl import Linear_Expression
 from .output import Output_Manager as OM
 from .profiler import register_as
+
+
 @register_as("farkasLRF")
 def LRF(polyhedron, lambdas, f1, f2):
     """
@@ -11,6 +13,7 @@ def LRF(polyhedron, lambdas, f1, f2):
     constraints = df(polyhedron, lambdas[0], f1, f2, 1)
     constraints += f(polyhedron, lambdas[1], f1, 0)
     return constraints
+
 
 @register_as("farkasQNLRF")
 def QNLRF(polyhedron, lambdas, fs, ft, right=1):
@@ -22,12 +25,13 @@ def QNLRF(polyhedron, lambdas, fs, ft, right=1):
     constraints = df(polyhedron, lambdas[0], fs[0], ft[0], right)
     # (fs[i] - ft[i]) + fs[i-1] >= right
     for i in range(1, len(fs)):
-        fx = [fs[i][j] + fs[i-1][j]
+        fx = [fs[i][j] + fs[i - 1][j]
               for j in range(len(fs[i]))]
         fxp = ft[i]
         constraints += df(polyhedron, lambdas[i],
                           fx, fxp, right)
     return constraints
+
 
 @register_as("farkasNLRF")
 def NLRF(polyhedron, lambdas, fs, ft):
@@ -43,6 +47,7 @@ def NLRF(polyhedron, lambdas, fs, ft):
     constraints += f(polyhedron, lambdas[-1], fs[-1], 0)
     return constraints
 
+
 @register_as("farkasdf")
 def df(polyhedron, lambdas, f1, f2, delta):
     """
@@ -53,6 +58,7 @@ def df(polyhedron, lambdas, f1, f2, delta):
     inh = f1[0] - f2[0] - delta
     return farkas(polyhedron, lambdas, exp, inh)
 
+
 @register_as("farkasf")
 def f(polyhedron, lambdas, f, delta):
     """
@@ -61,6 +67,7 @@ def f(polyhedron, lambdas, f, delta):
     exp = f[1::] + [0 for _ in f[1::]]
     inh = f[0] - delta
     return farkas(polyhedron, lambdas, exp, inh)
+
 
 @register_as("farkas")
 def farkas(polyhedron, lambdas, expressions, inhomogeneous):

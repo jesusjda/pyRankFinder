@@ -22,7 +22,7 @@ inv_name = 'invariants'
 
 pe_dir = os.path.join(base, 'partialevaluation')
 pe_name = 'partialevaluation'
-pe_pkg_data= ['*.py','bin/*']
+pe_pkg_data = ['*.py', 'bin/*']
 setup(
     name='pytermination',
     version=VERSION,
@@ -31,7 +31,7 @@ setup(
     author='Jesus Domenech',
     author_email='jdomenec@ucm.es',
     url='https://github.com/jesusjda/pyrankfinder',
-    download_url ='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
+    download_url='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
     packages=[ter_name, inv_name, pe_name],
