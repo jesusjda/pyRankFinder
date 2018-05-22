@@ -1,4 +1,4 @@
-# pyRankFinder (Python 3 only)
+# pyRankFinder
 Ranking Functions Finder 
 
 Documentation no up to date.
