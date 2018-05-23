@@ -50,3 +50,7 @@ import termination.algorithm
 termination.algorithem.LexicograficRF(config)
 ```
 
+Statically-Linked Binary
+========================
+
+See  [INSTRUCTIONS](./staticallylinkedbinary.md)
