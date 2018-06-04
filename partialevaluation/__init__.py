@@ -1,8 +1,8 @@
 from termination.profiler import register_as
 
 
-@register_as("pe")
-def partialevaluate(cfg, level=4, fcpath=None, debug=True):
+# @register_as("pe")
+def partialevaluate(cfg, level=4, fcpath=None, debug=False):
     if level == 0:
         return cfg
     if not(level in range(1, 5)):

@@ -12,7 +12,7 @@ from partialevaluation import partialevaluate
 import traceback
 from termination.algorithm.utils import get_ppl_transition_polyhedron
 import cProfile
-from termination.profiler import register_as
+# from termination.profiler import register_as
 
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
@@ -83,8 +83,8 @@ def setArgumentParser():
     argParser.add_argument("-dt", "--different_template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-pe", "--partial_evaluation", type=int, required=False, nargs='+',
-                           choices=range(0,5), default=[0],
+    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
+                           choices=range(0,5), default=[4],
                            help="List of levels of Partial evaluation in the order that you want to apply them.")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
                            help="Strategy based on SCC to go through the CFG.")
@@ -93,6 +93,8 @@ def setArgumentParser():
                            help="Simplify constraints")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="ppl", help="select lib")
+    argParser.add_argument("-pt", "--pe_times", type=int, choices=range(0, 5),
+                           help="# times to apply pe", default=0)
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -123,13 +125,13 @@ def launch(config):
         launch_file(config, files[i], o)
 
 
-@register_as("parse")
+# @register_as("parse")
 def parse_file(f):
     return GenericParser().parse(f)
 
 
-#@do_cprofile
-@register_as("launch_file")
+# @do_cprofile
+# @register_as("launch_file")
 def launch_file(config, f, out):
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
@@ -157,15 +159,6 @@ def launch_file(config, f, out):
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
 
-    # Pre compute
-    build_ppl_polyhedrons(cfg)
-    compute_invariants(config["invariants"], cfg)
-    simplify_constraints(config["simplify_constraints"], cfg)
-    if "dotDestination" in config: 
-        write_dotfile(config["dotDestination"], r, cfg)
-    if "prologDestination" in config:
-        write_prologfile(config["prologDestination"], r, cfg)
-    
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
 
@@ -175,7 +168,7 @@ def launch_file(config, f, out):
     has_to_run = lambda key: key in config and config[key]
 
     if has_to_run("termination"):
-        termination_result = study_termination(config, cfg)
+        termination_result = study_termination(config, r, cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
@@ -190,20 +183,37 @@ def launch_file(config, f, out):
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
     if termination_result:
-        return termination_result.found() , termination_result.toString(config["vars_name"])
+        return termination_result.found(), termination_result.toString(config["vars_name"])
     else:
-        return False
+        return False, ""
 
 
-def study_termination(config, cfg):
+def study_termination(config, name, cfg):
     algs = config["termination"]
     if "lib" in config:
         for alg in algs:
             alg.set_prop("lib", config["lib"])
-    return rank(config["termination"],
-                [(cfg, config["scc_depth"])],
-                pe_modes=config["partial_evaluation"],
-                different_template=config["different_template"])
+    for pe_mode in config["pe_modes"]:
+        OM.printif(1, "- Partial Evaluation mode: {}".format(pe_mode))
+        pe_cfg = cfg
+        for _ in range(config["pe_times"]):
+            if pe_mode == 0:
+                break
+            pe_cfg = partialevaluate(pe_cfg, level=pe_mode)
+        # Pre compute
+        build_ppl_polyhedrons(pe_cfg)
+        compute_invariants(config["invariants"], pe_cfg)
+        simplify_constraints(config["simplify_constraints"], pe_cfg)
+        if "dotDestination" in config: 
+            write_dotfile(config["dotDestination"], name, pe_cfg)
+        if "prologDestination" in config:
+            write_prologfile(config["prologDestination"], name, pe_cfg)
+        r = rank(algs,
+                 [(pe_cfg, config["scc_depth"])],
+                 different_template=config["different_template"])
+        if r.found():
+            return r
+    return r
 
 
 def study_nontermination(config, cfg, termination_result):
@@ -247,13 +257,13 @@ def write_prologfile(prologDestination, name, cfg):
             s = name.replace('/', '_')
             dot = os.path.join(prologDestination, s + ".pl")
             cfg.toProlog(dot)
-@register_as("simplifyconstraints")
+# @register_as("simplifyconstraints")
 def simplify_constraints(simplify, cfg):
     if simplify:
         for e in cfg.get_edges():
             e["polyhedron"].minimized_constraints()
 
-@register_as("buildpplpolyhedrons")
+# @register_as("buildpplpolyhedrons")
 def build_ppl_polyhedrons(cfg):
     edges = cfg.get_edges()
     global_vars = cfg.get_info("global_vars")
@@ -263,7 +273,7 @@ def build_ppl_polyhedrons(cfg):
         cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="tr_polyhedron", value=tr_poly)
 
-@register_as("computeinvariants")
+# @register_as("computeinvariants")
 def compute_invariants(invariant_type, cfg):
     graph_nodes = cfg.nodes()
     nodes = {}
@@ -347,8 +357,8 @@ def dd(cfg):
         OM.printif(3, tr_poly.get_dimension())
         cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="polyhedron", value=tr_poly)
-@register_as("rank")
-def rank(algs, CFGs, pe_modes=["none"], different_template="never"):
+# @register_as("rank")
+def rank(algs, CFGs, different_template="never"):
     if different_template == "always":
         dt_modes = [True]
     elif different_template == "iffail":
@@ -374,7 +384,7 @@ def rank(algs, CFGs, pe_modes=["none"], different_template="never"):
             CFGs_aux = [current_cfg]
         CFGs_aux.sort()
         for cfg in CFGs_aux:
-            R = analize_scc(algs, cfg, pe_modes=pe_modes, dt_modes=dt_modes)
+            R = analize_scc(algs, cfg, dt_modes=dt_modes)
             if R is None:
                 continue
             if not R:
@@ -395,8 +405,8 @@ def rank(algs, CFGs, pe_modes=["none"], different_template="never"):
                           pending_cfgs=CFGs)
     return response
 
-@register_as("oneSCC")
-def analize_scc(algs, cfg, pe_modes=["none"], dt_modes=[False]):
+# @register_as("oneSCC")
+def analize_scc(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
     nodes = ', '.join(sorted(cfg.get_nodes()))
     trs = ', '.join(sorted([t["name"] for t in trans]))
@@ -408,28 +418,21 @@ def analize_scc(algs, cfg, pe_modes=["none"], dt_modes=[False]):
         OM.printif(1, "-> Terminate because it has not cycles.")
         return None
     found = False
-    for level in pe_modes:
-        OM.printif(1, "\t- Partial Evaluation mode: {}".format(level))
-        pe_cfg = partialevaluate(cfg, level=level)
-        if level != 0:
-            build_ppl_polyhedrons(pe_cfg)
-            dd(pe_cfg)
-        for dt in dt_modes:
-            if dt:
-                OM.printif(1, "\t- Using Different Template") 
-            R = run_algs(algs, pe_cfg, different_template=dt)
-            if R.found():
-                OM.printif(2, "--> Found with dt={} and pe={}.\n".format(dt,level))
-                found = True
-                break
-        if found:
+
+    for dt in dt_modes:
+        if dt:
+            OM.printif(1, "\t- Using Different Template") 
+        R = run_algs(algs, cfg, different_template=dt)
+        if R.found():
+            OM.printif(2, "--> Found with dt={}.\n".format(dt))
+            found = True
             break
     if found:
         return R
     else:
         return False
 
-@register_as("callalgorithms")
+# @register_as("callalgorithms")
 def run_algs(algs, cfg, different_template=False):
     response = Result()
     vars_name = cfg.get_info("global_vars")
@@ -496,5 +499,5 @@ if __name__ == "__main__":
         launch(config)
     finally:
         OM.show_output()
-        from termination.profiler import OP
-        OM.printif(2,OP.toString(maxdepth=2))
+        # from termination.profiler import OP
+        # OM.printif(2,OP.toString(maxdepth=2))
