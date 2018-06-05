@@ -9,6 +9,7 @@
 # -r PATH option to select destination folder (default. $1_output/)
 
 PEPATH=$(dirname $0)
+export LD_LIBRARY_PATH=$PEPATH
 
 OPTS=`getopt -o pdr:l: --long result-dir:,draw -n "$0" -- "$@"`
 if [ $? != 0 ] ; then echo "Failed parsing options." >&2; exit 1; fi

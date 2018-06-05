@@ -12,9 +12,7 @@ def partialevaluate(cfg, level=4, fcpath=None, debug=False):
     from subprocess import PIPE
     from subprocess import Popen
     from genericparser.Parser_fc import Parser_fc
-    pepath = "/home/friker/tmp/gitpe/pe/pecfg.sh"
-    # os.path.join(os.path.dirname(
-    #    os.path.realpath(__file__)), 'bin','pe.sh')
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
     
     tmpdirname = tempfile.mkdtemp()
     tmpplfile = os.path.join(tmpdirname, "source.pl")
