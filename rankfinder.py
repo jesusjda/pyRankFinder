@@ -75,6 +75,8 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
+    argParser.add_argument("--tmpdir", required=False, default=None,
+                           help="Temporary directory.")
     argParser.add_argument("--prologDestination", required=False,
                            help="Folder to save prolog source.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
@@ -190,6 +192,9 @@ def launch_file(config, f, out):
 
 def study_termination(config, name, cfg):
     algs = config["termination"]
+    tmpdir = None
+    if "tmpdir" in config:
+        tmpdir = config["tmpdir"]
     if "lib" in config:
         for alg in algs:
             alg.set_prop("lib", config["lib"])
@@ -199,7 +204,7 @@ def study_termination(config, name, cfg):
         for _ in range(config["pe_times"]):
             if pe_mode == 0:
                 break
-            pe_cfg = partialevaluate(pe_cfg, level=pe_mode)
+            pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir)
         # Pre compute
         build_ppl_polyhedrons(pe_cfg)
         compute_invariants(config["invariants"], pe_cfg)

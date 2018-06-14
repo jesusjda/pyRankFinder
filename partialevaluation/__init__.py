@@ -2,19 +2,22 @@ from termination.profiler import register_as
 
 
 # @register_as("pe")
-def partialevaluate(cfg, level=4, fcpath=None, debug=False):
+def partialevaluate(cfg, level=4, fcpath=None, tmpdir=None, debug=False):
     if level == 0:
         return cfg
     if not(level in range(1, 5)):
         raise ValueError("PE level unknown: {}.".format(level))
     import os
-    import tempfile
     from subprocess import PIPE
     from subprocess import Popen
     from genericparser.Parser_fc import Parser_fc
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
     
-    tmpdirname = tempfile.mkdtemp()
+    if tmpdir is None:
+        import tempfile
+        tmpdirname = tempfile.mkdtemp()
+    else:
+        tmpdirname = tmpdir
     tmpplfile = os.path.join(tmpdirname, "source.pl")
     cfg.toProlog(path=tmpplfile)
     N = int(len(cfg.get_info("global_vars")) / 2)
