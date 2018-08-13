@@ -1,6 +1,6 @@
 import argparse
 from genericparser import GenericParser
-from invariants import ConstraintState
+import invariants
 from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
 import sys
@@ -88,7 +88,7 @@ def setArgumentParser():
     argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
                            choices=range(0,5), default=[4],
                            help="List of levels of Partial evaluation in the order that you want to apply them.")
-    argParser.add_argument("-sccd", "--scc_depth", type=positive, default=0,
+    argParser.add_argument("-sccd", "--scc_depth", type=positive, default=1,
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
                            default=False, action='store_true',
@@ -280,88 +280,34 @@ def build_ppl_polyhedrons(cfg):
 
 # @register_as("computeinvariants")
 def compute_invariants(invariant_type, cfg):
-    graph_nodes = cfg.nodes()
-    nodes = {}
-    global_vars = cfg.get_info("global_vars")
-    Nvars = len(global_vars)/2
-    if(invariant_type is None or
-       invariant_type == "none"):
-        for node in graph_nodes:
-            nodes[node] = {
-                "state": ConstraintState(Nvars)
-            }
-    else:
-        def apply_tr(s, tr):
-            return s.apply_tr(tr, copy=True)
-
-        def lub(s1, s2):
-            return s1.lub(s2, copy=True)
-
-        init_node = cfg.get_info("init_node")
-        p = ConstraintState(Nvars, bottom=True)
-
-        for node in graph_nodes:
-            nodes[node] = {
-                "state": p.copy(),
-                "access": 0
-            }
-        nodes[init_node]["state"] = ConstraintState(Nvars)
-
-        queue = [init_node]
-        while len(queue) > 0:
-            node = queue.pop()
-            s = nodes[node]["state"]
-            for t in cfg.get_edges(source=node):
-                dest_s = nodes[t["target"]]
-                s1 = apply_tr(s, t)
-                s2 = lub(dest_s["state"], s1)
-                if not(s2 <= dest_s["state"]):  # lte(s2, dest_s["state"]):
-                    dest_s["access"] += 1
-                    if dest_s["access"] >= 3:
-                        s2.widening(dest_s["state"])
-                        dest_s["access"] = 0
-                    dest_s["state"] = s2
-                    if not(t["target"] in queue):
-                        queue.append(t["target"])
-
-    OM.printif(1, "INVARIANTS")
-    for n in nodes:
-        cfg.nodes[n]["invariant"] = nodes[n]["state"]
+    node_inv = invariants.compute_invariants(cfg, invariant_type)
+    OM.printif(1, "INVARIANTS ({})".format(invariant_type))
+    gvars = cfg.get_info("global_vars")
+    for n in node_inv:
+        cfg.nodes[n]["invariant"] = node_inv[n]
         OM.printif(1, "invariant of " + n, " = ",
-                   nodes[n]["state"].get_constraints())
+                   node_inv[n].toString(gvars))
+    add_invariants(cfg, node_inv)
 
+def add_invariants(cfg, node_inv):
     edges = cfg.get_edges()
     Nvars = len(cfg.get_info("global_vars"))
-
-    OM.printif(3, Nvars)
     for e in edges:
         Nlocal_vars = len(e["local_vars"])
         tr_cons = e["tr_polyhedron"].get_constraints()
-        inv = nodes[e["source"]]["state"].get_constraints()
+        if e["source"] in node_inv:
+            inv = node_inv[e["source"]].get_constraints()
+        else:
+            inv = []
         tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
         for c in tr_cons:
             tr_poly.add_constraint(c)
         for c in inv:
             tr_poly.add_constraint(c)
-        OM.printif(3, tr_poly.get_dimension())
         cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
                           key="polyhedron", value=tr_poly)
     OM.printif(3, cfg.get_edges())
 
-def dd(cfg):
-    edges = cfg.get_edges()
-    Nvars = len(cfg.get_info("global_vars"))
-
-    OM.printif(3, Nvars)
-    for e in edges:
-        Nlocal_vars = len(e["local_vars"])
-        tr_cons = e["tr_polyhedron"].get_constraints()
-        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
-        for c in tr_cons:
-            tr_poly.add_constraint(c)
-        OM.printif(3, tr_poly.get_dimension())
-        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
-                          key="polyhedron", value=tr_poly)
 # @register_as("rank")
 def rank(algs, CFGs, different_template="never"):
     if different_template == "always":

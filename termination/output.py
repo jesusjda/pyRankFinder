@@ -64,7 +64,7 @@ class Output:
             actproctime = time.process_time()
         except AttributeError:
             actproctime = time.clock()
-        if verbosity > 2:
+        if verbosity > 4:
             msg += "time -> program:{0:0>8}|step:{1:0>8}\n".format(acttime - self.inittime, acttime - self.prevtime)
             msg += "proc -> program:{0:0>8}|step:{1:0>8}\n".format(actproctime - self.initproctime, actproctime - self.prevproctime)
         self.prevtime = acttime
