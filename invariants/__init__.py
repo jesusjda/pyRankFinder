@@ -44,4 +44,4 @@ def compute_invariants(cfg, invariant_type="polyhedra"):
                     dest_s["state"] = s2
                     if not(t["target"] in queue):
                         queue.append(t["target"])
-        return {node: nodes[node]["state"] for node in nodes}
+    return {node: nodes[node]["state"] for node in nodes}
