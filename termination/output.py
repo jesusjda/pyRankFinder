@@ -55,7 +55,7 @@ class Output:
     def printseparator(self, verbosity=0):
         self.printif(verbosity, "#"*80)
 
-    def printif(self, verbosity, *kwargs):
+    def printif(self, verbosity, *kwargs, format="text"):
         if self.verbosity < verbosity:
             return
         msg = ""
@@ -76,7 +76,11 @@ class Output:
             first = False
             msg += self.tostr(m)
         if self.ei:
-            c = eiol.content(format="text", text=msg)
+            if format == "html":
+                txt = "<div>"+msg+"</div>"
+            else:
+                txt = msg
+            c = eiol.content(format=format, text=txt)
             self._ei_commands.append(eiol.command_print(content=c))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
@@ -104,19 +108,9 @@ class Output:
         if self.verbosity < verbosity:
             return
         if self.ei:
-            aux_p = path.split('/')
-            aux_c = len(aux_p) - 1
-            while aux_c > 0:
-                if aux_p[aux_c] == "examples":
-                    break
-                if aux_p[aux_c] == "User_Projects":
-                    break
-                aux_c -= 1
-            aux_t = ["translations"] + aux_p[aux_c + 1:]
-            r = '/'.join(aux_t)
             c = eiol.command_writefile(overwrite="true",
                                        text=content,
-                                       filename=str(r))
+                                       filename=str(path))
             self._ei_commands.append(c)
         else:
             tmpfile = os.path.join(os.path.curdir, path)

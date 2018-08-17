@@ -28,7 +28,7 @@ def do_cprofile(func):
     return profiled_func
 
 _version = "0.0.4"
-_name = "rankfinder"
+_name = "irankfinder"
 
 
 def positive(value):
@@ -71,7 +71,7 @@ def setArgumentParser():
     # Program Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
-    argParser.add_argument("-ver", "--version", required=False,
+    argParser.add_argument("-V", "--version", required=False,
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
