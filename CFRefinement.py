@@ -49,7 +49,7 @@ def buildname(dir, name, num):
 def toSvg(dotfile, destination):
     from subprocess import check_call
     check_call(['dot', '-Tsvg', dotfile, '-o', destination])
-    check_call(['sed', '-i','-e', ':a', '-re', 's/<!.*?>//g;/<\?.*?>/d;/<!/N;//ba', destination])
+    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', destination])
 
 def file2string(filepath):
     with open(filepath, 'r') as f:
