@@ -34,11 +34,8 @@ def setArgumentParser():
 
 def extractname(filename):
     f = os.path.split(filename)
-    print("f",f)
     b = os.path.split(f[0])
-    print("b",b)
     c = os.path.splitext(f[1])
-    print("c",c)
     return os.path.join(b[1], c[0])
 
 def buildname(dir, name, num):
@@ -85,7 +82,7 @@ def launch_file(config, f):
             OM.printif(0, file2string(svgfile), format="svg")
             OM.writefile(0, name+"_pe"+str(i)+".fc", file2string(fcfile))
     except Exception as e:
-        print("Exception  -> "+str(e))
+        OM.printf("Exception  -> "+str(e))
 
 if __name__ == "__main__":
     try:
