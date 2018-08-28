@@ -96,6 +96,6 @@ if __name__ == "__main__":
             exit(0)
         config = vars(args)
         launch(config)
-    finally:
+    except:
         OM.show_output()
         

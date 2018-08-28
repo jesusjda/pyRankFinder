@@ -1,9 +1,54 @@
+from copy import deepcopy
 
-from .abstractdomain import AbstractDomain
-from .abstractstate import PolyhedraState
-from .abstractstate import IntervalState
 
 __all__ = ["compute_invariants"]
+
+
+class AbstractState(object):
+
+    def __init__(self, arg1, bottom=False):
+        raise Exception("Abstract State")
+
+    def _assert_same_type(self, s):
+        if not(type(self) is type(s)):
+            raise TypeError("Not same type of State")
+
+    def copy(self, copy=True):
+        if copy:
+            return deepcopy(self)
+        else:
+            return self
+
+    def lub(self, s2, copy=False):
+        pass
+
+    def widening(self, s2, copy=False):
+        pass
+
+    def apply_tr(self, tr, copy=False):
+        pass
+
+    def get_constraints(self):
+        pass
+
+    def __le__(self, s2):
+        pass
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+
+    def __repr__(self):
+        return "{{{}}}".format(", ".join(self.toString()))
+
+
+from invariants.polyhedraabstractstate import PolyhedraState
+from invariants.intervalabstractstate import IntervalState
+
 
 def compute_invariants(cfg, invariant_type="polyhedra"):
     graph_nodes = cfg.nodes()
@@ -44,4 +89,4 @@ def compute_invariants(cfg, invariant_type="polyhedra"):
                     dest_s["state"] = s2
                     if not(t["target"] in queue):
                         queue.append(t["target"])
-    return {node: nodes[node]["state"] for node in nodes}
+    return {node: nodes[node]["state"] for node in sorted(nodes)}
