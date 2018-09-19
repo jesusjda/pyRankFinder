@@ -16,6 +16,8 @@ dependency_links = [
 
 ter_dir = os.path.join(base, 'termination')
 ter_name = 'termination'
+teralg_dir = os.path.join(ter_dir, 'algorithm')
+teralg_name = ter_name+'.algorithm'
 
 inv_dir = os.path.join(base, 'invariants')
 inv_name = 'invariants'
@@ -34,9 +36,9 @@ setup(
     download_url='https://github.com/jesusjda/pyRankFinder/archive/{}.tar.gz'.format(VERSION),
     license='GPL v3',
     platforms=['any'],
-    packages=[ter_name, inv_name, pe_name],
-    package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir},
-    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: pe_pkg_data},
+    packages=[ter_name, inv_name, pe_name, teralg_name],
+    package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir, teralg_name: teralg_dir},
+    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: pe_pkg_data, teralg_name: ["*.py"]},
     install_requires=requires,
     dependency_links=dependency_links,
     classifiers=[

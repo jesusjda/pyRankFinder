@@ -1,5 +1,5 @@
 
-def partialevaluate(cfg, level=4, fcpath=None, tmpdir=None, debug=False):
+def partialevaluate(cfg, level=4, fcpath=None, tmpdir=None, debug=False, invariant_type=None):
     if level == 0:
         return cfg
     if not(level in range(1, 5)):
@@ -16,7 +16,7 @@ def partialevaluate(cfg, level=4, fcpath=None, tmpdir=None, debug=False):
     else:
         tmpdirname = tmpdir
     tmpplfile = os.path.join(tmpdirname, "source.pl")
-    cfg.toProlog(path=tmpplfile)
+    cfg.toProlog(path=tmpplfile,invariant_type=invariant_type)   
     N = int(len(cfg.get_info("global_vars")) / 2)
     vs = ""
     if N > 0:
@@ -38,10 +38,11 @@ def partialevaluate(cfg, level=4, fcpath=None, tmpdir=None, debug=False):
     if err is not None and err:
             raise Exception(err)
     pfc = Parser_fc()
+    pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
+    pe_cfg.simplify_constraints()
     if fcpath:
-        with open(fcpath, "w") as text_file:
-            text_file.write(fcpeprogram.decode("utf-8"))
+        pe_cfg.toFc(fcpath)
     if debug:
         print(fcpeprogram.decode("utf-8"))
-    return pfc.parse_string(fcpeprogram.decode("utf-8"))
+    return pe_cfg
     

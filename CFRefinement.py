@@ -38,12 +38,12 @@ def extractname(filename):
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
-def buildname(dir, name, num):
+def buildname(directory, name, num):
     if num == 0:
         f = name
     else:
         f = name + "pe" + str(num)
-    f = os.path.join(dir, f)
+    f = os.path.join(directory, f)
     return (f+".fc",f+".dot",f+".svg")
 
 def toSvg(dotfile, destination):
@@ -69,6 +69,7 @@ def launch_file(config, f):
         os.makedirs(os.path.dirname(fcfile), exist_ok=True)
         cfg = []
         cfg.append(GenericParser().parse(f))
+        cfg[0].simplify_constraints()
         cfg[0].toFc(path=fcfile)
         cfg[0].toDot(dotfile)
         toSvg(dotfile, svgfile)
@@ -77,6 +78,7 @@ def launch_file(config, f):
         for i in range(1,config["pe_times"]+1):
             fcfile, dotfile, svgfile = buildname(config["dir"], name, i) 
             cfg.append(partialevaluate(cfg[i-1]))
+            cfg[i].simplify_constraints()
             cfg[i].toFc(path=fcfile)
             cfg[i].toDot(dotfile)
             toSvg(dotfile, svgfile)

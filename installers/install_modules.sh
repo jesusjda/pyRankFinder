@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 pvers="false"
 P3=false
 P2=false

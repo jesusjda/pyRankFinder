@@ -1,6 +1,5 @@
-from genericparser.Cfg import Cfg
 from termination.result import Result
-
+from termination.result import TerminationResult
 from .manager import Algorithm
 
 from .manager import Manager
@@ -38,7 +37,6 @@ class Lex(Algorithm):
         transitions = cfg.get_edges()
 
         rfs = {}
-        tr_rfs = {}
         no_ranked_trs = transitions
         i = 0
         inner_alg = self.props["inner_alg"]
@@ -52,38 +50,29 @@ class Lex(Algorithm):
                                    use_z3=use_z3)
             if result.error():
                 return result
-            elif not result.found():
-                response.set_response(found=False,
+            elif not result.get_status().is_terminate():
+                response.set_response(status=TerminationResult.UNKNOWN,
                                       info=result.get("info"),
                                       rfs=rfs,
-                                      tr_rfs=tr_rfs,
                                       pending_trs=no_ranked_trs)
                 return response
             else:
                 pending_trs = result.get("pending_trs")
                 if False and len(no_ranked_trs) <= len(pending_trs):
-                    response.set_response(found=False,
+                    response.set_response(status=TerminationResult.UNKNOWN,
                                           info="No decreasing",
                                           rfs=rfs,
-                                          tr_rfs=tr_rfs,
                                           pending_trs=no_ranked_trs)
                     return response
                 res_rfs = result.get("rfs")
-                res_tr_rfs = result.get("tr_rfs")
                 for node in res_rfs:
                     if not(node in rfs):
                         rfs[node] = []
                     rfs[node].append(res_rfs[node])
-                for tr in res_tr_rfs:
-                    if not(tr in tr_rfs):
-                        tr_rfs[tr] = {}
-                    for node in res_tr_rfs[tr]:
-                        tr_rfs[tr][node].append(res_rfs[tr][node])
                 no_ranked_trs = pending_trs
 
-        response.set_response(found=True,
+        response.set_response(status=TerminationResult.TERMINATE,
                               rfs=rfs,
-                              tr_rfs=tr_rfs,
                               pending_trs=[])
         return response
 
@@ -124,7 +113,7 @@ class BMS(Algorithm):
         result = inner_alg.run(cfg, different_template=different_template,
                                use_z3=use_z3)  # Run NLRF or LRF
 
-        if result.found():
+        if result.get_status().is_terminate():
             trfs = result.get("rfs")
             for key in trfs:
                 if not(key in rfs):
@@ -139,14 +128,14 @@ class BMS(Algorithm):
                 # Run BMS
                 bmsresult = self.run(inner_cfg,
                                      different_template=different_template)
-                if bmsresult.found():
+                if bmsresult.get_status().is_terminate():
                     bms_rfs = bmsresult.get("rfs")
                     # merge rfs
                     for key in bms_rfs:
                         if not(key in rfs):
                             rfs[key] = []
                         rfs[key].append(bms_rfs[key])
-                    response.set_response(found=True,
+                    response.set_response(status=TerminationResult.TERMINATE,
                                           info="Found",
                                           rfs=rfs,
                                           pending_trs=[],
@@ -156,14 +145,14 @@ class BMS(Algorithm):
                 else:
                     return bmsresult
             else:
-                response.set_response(found=True,
+                response.set_response(status=TerminationResult.TERMINATE,
                                       info="Found",
                                       rfs=rfs,
                                       pending_trs=[])
                 return result
 
         # Impossible to find a BMS
-        response.set_response(found=False,
+        response.set_response(status=TerminationResult.UNKNOWN,
                               info="No BMS",
                               rfs=rfs,
                               pending_trs=result.get("pending_trs"))

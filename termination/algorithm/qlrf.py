@@ -4,6 +4,7 @@ from ppl import Linear_Expression
 from ppl import Variable
 from termination import farkas
 from termination.result import Result
+from termination.result import TerminationResult
 
 from .manager import Algorithm
 from .manager import Manager
@@ -36,7 +37,6 @@ class QLRF_ADFG(Algorithm):
         farkas_constraints = []
         # return objects
         rfs = {}  # rfs coefficients (result)
-        tr_rfs = {}
         no_ranked = []  # transitions sets no ranked by rfs
         # other stuff
         countVar = 0
@@ -82,7 +82,7 @@ class QLRF_ADFG(Algorithm):
         exp = sum([deltas[tr] for tr in deltas])
         result = farkas_poly.maximize(exp)
         if not result['bounded']:
-            response.set_response(found=False,
+            response.set_response(status=TerminationResult.UNKNOWN,
                                   info="Unbound polyhedron")
             return response
         point = result["generator"]
@@ -91,7 +91,7 @@ class QLRF_ADFG(Algorithm):
             if c != 0:
                 zeros = False
         if point is None or zeros:
-            response.set_response(found=False,
+            response.set_response(status=TerminationResult.UNKNOWN,
                                   info="F === 0 " + str(point))
             return response
 
@@ -101,16 +101,10 @@ class QLRF_ADFG(Algorithm):
             no_ranked = [tr for tr in transitions
                          if(point.coefficient(deltas[tr["name"]])
                             == Linear_Expression(0))]
-        for tr in transitions:
-            tr_rfs[tr["name"]] = {
-                tr["source"]: [rfs[tr["source"]]],
-                tr["target"]: [rfs[tr["target"]]]
-            }
 
-        response.set_response(found=True,
+        response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
                               rfs=rfs,
-                              tr_rfs=tr_rfs,
                               pending_trs=no_ranked)
         return response
 
@@ -139,7 +133,6 @@ class QLRF_BG(Algorithm):
         farkas_constraints = []
         # return objects
         rfs = {}  # rfs coefficients (result)
-        tr_rfs = {}
         no_ranked = []  # transitions sets no ranked by rfs
         freeConsts = []
         # other stuff
@@ -185,7 +178,7 @@ class QLRF_BG(Algorithm):
         variables += freeConsts
         point = farkas_poly.get_relative_interior_point(variables)
         if point is None:
-            response.set_response(found=False,
+            response.set_response(status=TerminationResult.UNKNOWN,
                                   info="No relative interior point")
             return response
         for node in rfvars:
@@ -220,18 +213,13 @@ class QLRF_BG(Algorithm):
                 if not newpoly.is_empty():
                     tr["polyhedron"] = newpoly
                     no_ranked.append(tr)
-                tr_rfs[tr["name"]] = {
-                    tr["source"]: [rfs[tr["source"]]],
-                    tr["target"]: [rfs[tr["target"]]]
-                }
 
-            response.set_response(found=True,
+            response.set_response(status=TerminationResult.TERMINATE,
                                   info="found",
                                   rfs=rfs,
-                                  tr_rfs=tr_rfs,
                                   pending_trs=no_ranked)
             return response
-        response.set_response(found=False,
+        response.set_response(status=TerminationResult.UNKNOWN,
                               info="rf found was the trivial")
         return response
 

@@ -7,34 +7,41 @@ except ImportError:
                 return name
             raise AttributeError
 from ppl import Generator
-
 from .output import Output_Manager as OM
-
 
 class TerminationResult(Enum):
     TERMINATE = "Terminate"
     NONTERMINATE = "Non-Terminate"
     UNKNOWN = "Unknown"
     ERROR = "Error"
+    TIMELIMIT = "Time Limit"
+    MEMORYLIMIT = "Memory Limit"
 
+    def is_terminate(self):
+        return self == TerminationResult.TERMINATE
+
+    def is_error(self):
+        return self == TerminationResult.ERROR
+
+    def __str__(self):
+        return "{}".format(self.value)
+
+    def __repr__(self):
+        return self.__str__()
 
 class Result:
 
     _data = {}
 
-    def __init__(self, found=False, error=False, errormsg="", **kwargs):
+    def __init__(self, status=TerminationResult.UNKNOWN, errormsg="", **kwargs):
         self._data = kwargs
-        self._data["found"] = found
-        self._data["error"] = error
+        self._data["status"] = status
         self._data["errormsg"] = errormsg
         if not ("info" in self._data):
             self._data["info"] = ""
 
-    def found(self):
-        return not self._data["error"] and self._data["found"]
-
-    def error(self):
-        return self._data["error"]
+    def get_status(self):
+        return self._data["status"]
 
     def get(self, key):
         return self._data[key]
@@ -44,7 +51,7 @@ class Result:
 
     def set_error(self, errormsg):
         self._data["errormsg"] = errormsg
-        self._data["error"] = True
+        self._data["status"] = TerminationResult.ERROR
 
     def set_response(self, **kwargs):
         self._data.update(kwargs)
@@ -92,14 +99,10 @@ class Result:
         sr += "" + str(inh)
         return sr
 
-    def _trrfs2str(self, tr_rfs, vars_name=None):
-        return "NOT IMPLEMENTED YET"
-
     def toString(self, vars_name=None, ei=False):
-        if self._data["error"]:
+        if self._data["status"].is_error():
             return "ERROR: " + self._data["errormsg"]
-
-        if not self._data["found"]:
+        if not self._data["status"].is_terminate():
             return "NOT FOUND " + self._data["info"]
 
         res = "FOUND"

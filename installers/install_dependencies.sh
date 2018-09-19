@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 P3=false
 P2=false
 UnixPKG=true
@@ -61,7 +63,7 @@ install_all(){
 
 install_dependencies(){
     vers=$1
-    python$vers -m pip install z3-solver 'Cython==0.26' virtualenv
+    python$vers -m pip install z3-solver 'Cython==0.28.2' virtualenv
     python$vers -m pip install cysignals
     python$vers -m pip install "git+https://github.com/aleaxit/gmpy.git@gmpy2-2.1.0a0#egg=gmpy2"
 }
@@ -96,6 +98,6 @@ if [ "$P2" == "true" ]; then
 fi
 
 if [ "$P3" == "true" ]; then
-    install_all -y python3 python3-dev python3-nose python3-pip
+    install_all -y  python3-nose python3-pip
     install_dependencies 3
 fi

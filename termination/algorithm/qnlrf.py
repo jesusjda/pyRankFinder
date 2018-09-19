@@ -4,7 +4,7 @@ from ppl import Variable
 from termination import farkas
 from termination.output import Output_Manager as OM
 from termination.result import Result
-
+from termination.result import TerminationResult
 from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
@@ -55,7 +55,6 @@ class QNLRF(Algorithm):
                 farkas_constraints = []
                 # 0.3 - return objects
                 rfs = {}  # rfs coefficients (result)
-                tr_rfs = {}
                 # 0.4 - other stuff
                 countVar = 0
 
@@ -124,24 +123,14 @@ class QNLRF(Algorithm):
                 for node in rfvars:
                     rfs[node] = [get_rf(rfvars[node][di], point)
                                  for di in range(d)]
-                for tr2 in all_transitions:
-                    if(tr2["source"] in [main_tr["source"], main_tr["target"]]
-                       and
-                       tr2["target"] in [main_tr["source"], main_tr["target"]]
-                       ):
-                        tr_rfs[tr2["name"]] = {
-                            tr2["source"]: [rfs[tr2["source"]]],
-                            tr2["target"]: [rfs[tr2["target"]]]
-                        }
 
-                response.set_response(found=True,
+                response.set_response(status=TerminationResult.TERMINATE,
                                       info="found",
                                       rfs=rfs,
-                                      tr_rfs=tr_rfs,
                                       pending_trs=transitions)
                 return response
 
-        response.set_response(found=False,
+        response.set_response(status=TerminationResult.UNKNOWN,
                               info="Not found: max_d = " + str(max_d - 1) + " .",
                               pending_trs=transitions)
         return response

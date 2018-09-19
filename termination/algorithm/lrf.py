@@ -3,6 +3,7 @@ from ppl import Constraint_System
 from ppl import Variable
 from termination import farkas
 from termination.result import Result
+from termination.result import TerminationResult
 
 from .manager import Algorithm
 from .manager import Manager
@@ -32,7 +33,6 @@ class PR(Algorithm):
         farkas_constraints = []
         # rfs coefficients (result)
         rfs = {}
-        tr_rfs = {}
         # other stuff
         countVar = 0
         for tr in transitions:
@@ -57,7 +57,6 @@ class PR(Algorithm):
 
             # f_s >= 0
             # f_s - f_t >= 1
-            OM.printif(3, "Add:\n\tf_{s} >= 0 \n\tf_{s} - f_{t} >= 1".format(s=tr["source"], t=tr["target"]) )
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
             countVar += Mcons + 1
             lambdas2 = [Variable(k) for k in range(countVar, countVar + Mcons)]
@@ -65,29 +64,21 @@ class PR(Algorithm):
             farkas_constraints += farkas.LRF(poly,
                                              [lambdas, lambdas2],
                                              rf_s, rf_t)
-        OM.printif(3, "build poly")
         farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        OM.printif(3, "get point")
+        farkas_poly.minimized_constraints()
+        
         point = farkas_poly.get_point(use_z3=use_z3)
-        OM.printif(3, "fin get point")
         if point is None:
-            response.set_response(found=False,
-                                  info="Farkas Polyhedron is empty.",
+            response.set_response(status=TerminationResult.UNKNOWN,
+                                  info="LRF: Farkas Polyhedron is empty.",
                                   pending_trs=transitions)
             return response
 
         for node in rfvars:
             rfs[node] = get_rf(rfvars[node], point)
 
-        for tr in transitions:
-            tr_rfs[tr["name"]] = {
-                tr["source"]: [rfs[tr["source"]]],
-                tr["target"]: [rfs[tr["target"]]]
-            }
-
-        response.set_response(found=True,
+        response.set_response(status=TerminationResult.TERMINATE,
                               rfs=rfs,
-                              tr_rfs=tr_rfs,
                               pending_trs=[])
         return response
 

@@ -4,78 +4,89 @@ from multiprocessing import Process
 import os
 import sys
 import termination.algorithm
-
 import rankfinder
-
+from termination.result import TerminationResult
+from pprint import pprint
+import datetime
 
 def setArgumentParser():
     desc = "Generator"
     argParser = argparse.ArgumentParser(description=desc)
+    # SANDBOX Parameters
+    argParser.add_argument("-mo", "--memoryout", type=int, default=None,
+                           help="")
+    argParser.add_argument("-to", "--timeout", type=int, default=None,
+                           help="")
     # Program Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
     # Algorithm Parameters
-    argParser.add_argument("-mo", "--memoryout", type=int, default=None,
-                           help="")
-    argParser.add_argument("-to", "--timeout", type=int, default=None,
-                           help="")
     argParser.add_argument("-sccd", "--scc_depth", type=int,
                            choices=range(0, 10), default=5,
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
                            action='store_true', help="Simplify constraints")
     # IMPORTANT PARAMETERS
-    argParser.add_argument("-pe", "--partial_evaluation", type=int, required=False, nargs='+',
-                           choices=range(0, 5), default=[0])
+    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
+                           choices=range(0,5), default=[4],
+                           help="List of levels of Partial evaluation in the order that you want to apply them.")
+    argParser.add_argument("-pmt", "--pe_min_times", type=int, required=False,
+                           choices=range(0,5), default=0,
+                           help="")
+    argParser.add_argument("-pMt", "--pe_max_times", type=int, required=False,
+                           choices=range(0,5), default=0,
+                           help="")
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-c", "--cache", required=True,
                            help="Folder cache.")
+    argParser.add_argument("-p", "--prefix", required=True, default="",
+                           help="Prefix of the files path")
     return argParser
 
 
-def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, default=None):
+def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
     manager = Manager()
     r_dict = manager.dict()
 
     def worker(task, r_dict, *args, **kwargs):
         try:
-            r_dict[0], r_dict[1] = task(*args, **kwargs)
+            r_dict["output"] = task(*args, **kwargs)
             r_dict["status"] = "ok"
         except MemoryError as e:
-            r_dict["status"] = "MemoryLimit"
+            r_dict["status"] = TerminationResult.MEMORYLIMIT
+            r_dict["output"] = "ML"
         except Exception as e:
-            r_dict["status"] = "ERROR " + type(e).__name__
-            raise Exception() #from e
+            r_dict["status"] = TerminationResult.ERROR
+            r_dict["output"] = "Error " + type(e).__name__
+            raise Exception() from e
 
-    def returnHandler(exitcode, r_dict, usage=None, usage_old=[0, 0, 0], out=None, default=None):
-        msg = ""
-        ret = default
+    def returnHandler(exitcode, r_dict, usage=None, usage_old=[0, 0, 0]):
+        ret ={}
         try:
             if exitcode == -24:
-                msg += "TIMEOUT"
+                ret["status"] = TerminationResult.TIMELIMIT
+                ret["output"] = "TL"
             elif exitcode < 0:
-                msg += "ERROR"
+                ret["status"] = TerminationResult.ERROR
+                ret["output"] = "ERR"
             elif not("status" in r_dict):
-                msg += "TIMEOUT" 
+                ret["status"] = TerminationResult.TIMELIMIT
             elif r_dict["status"] == "ok":
-                msg += str(r_dict[1])
-                ret = r_dict[0]
+                ret["status"] = r_dict["output"].get_status()
+                ret["output"] = r_dict["output"]
             else:
-                msg += r_dict["status"]
+                ret["status"] = r_dict["status"]
+                ret["output"] = r_dict["output"]
         except Exception as e:
-            msg += "ERROR while processing output "
-            msg += type(e).__name__
+            ret["status"] = TerminationResult.ERROR
+            ret["output"] = "ERROR while processing output " + type(e).__name__
         finally:
             if usage:
-                msg += "\n\nTime: {}s\n Mem: {}B\n".format(usage[0] + usage[1] - usage_old[0] - usage_old[1], usage[2] - usage_old[2])
-            print(msg)
-            if out is not None:
-                tmpfile = os.path.join(os.path.curdir, out)
-                with open(tmpfile, "w") as f:
-                    f.write(msg)
+                ret["cputime"] = usage[0] + usage[1] - usage_old[0] - usage_old[1]
+                ret["memory"] = usage[2] - usage_old[2]
             return ret
 
     import resource
@@ -106,8 +117,75 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None, out=None, de
         usage = resource.getrusage(resource.RUSAGE_CHILDREN)
         resource.setrlimit(resource.RLIMIT_CPU, (softT, hardT))
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
-        return returnHandler(p.exitcode, r_dict, usage, usage_old, out=out, default=default)
+        return returnHandler(p.exitcode, r_dict, usage, usage_old)
 
+def config2Tag(config):
+    tag = ""
+    tag += str(config["termination"][0])
+    tag += "_sccd:"+str(config["scc_depth"])
+    tag += "_invariant:"+str(config["invariants"])
+    tag += "_dt:"+str(config["different_template"])
+    tag += "_simplify:"+str(config["simplify_constraints"])
+    tag += "_PE:"+str(config["pe_times"])
+    return tag
+
+def file2ID(file, prefix=""):
+    a = file.replace(prefix,"")
+    if a[0] == "/":
+        a = a[1:]
+    return a.replace("/","_")
+
+def get_info(cache, file, prefix):
+    name = file2ID(file, prefix)
+    o = os.path.join(cache, name+".json")
+    info = None
+    print("->",os.path.isfile(o),o)
+    if os.path.isfile(o):
+        import json
+        with open(o) as f:
+            info = json.load(f)
+    else:
+        info = {"id":name,"file":file}
+    if not "analysis" in info:
+        info["analysis"] = []
+    for a in info["analysis"]:
+        ter = []
+        for alg in a["config"]["termination"]:
+            ter.append(alg)
+        a["config"]["termination"] = ter
+        a["status"] = str(TerminationResult(a["status"]))
+        a["date"] = datetime.datetime.strptime(a["date"], "%Y-%m-%dT%H:%M:%S.%f")
+
+    pprint(info)
+    return info
+
+def save_info(info, cache, file, prefix):
+    name = file2ID(file, prefix)
+    o = os.path.join(cache, name+".json")
+    print(o)
+    if os.path.isfile(o):
+        os.remove(o)
+    import json
+    tojson = info
+    if "file" in tojson:
+        tojson["file"] = tojson["file"].replace(prefix,"")
+    if "analysis" in tojson:
+        for a in tojson["analysis"]:
+            ter = []
+            if "files" in a["config"]:
+                del a["config"]["files"]
+            for alg in a["config"]["termination"]:
+                if isinstance(alg, (str)):
+                    ter.append(alg)
+                else:
+                    ter.append(alg.get_name())
+            a["config"]["termination"] = ter
+            a["status"] = str(a["status"])
+            a["date"] = str(a["date"].isoformat())
+            a["output"] = str(a["output"])
+    pprint(tojson)
+    with open(o, "w") as f:
+        json.dump(tojson, f, indent=4, sort_keys=True)
 
 if __name__ == "__main__":
     argParser = setArgumentParser()
@@ -119,8 +197,10 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
+    pe_modes = ar["pe_modes"]
+    pe_times= (ar["pe_min_times"],ar["pe_max_times"])
     lib = ["ppl"]
-    inv = ["none"]
+    inv = ["polyhedra"]
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
@@ -137,63 +217,48 @@ if __name__ == "__main__":
                                                         "version": 1})])
     # algs.append([{"name": "qlrf_bg"}])
     numm = len(files)
-    status = {}
-    for l in lib:
-        for a in algs:
-            a[0].set_prop("lib", l)
+    info = {}
+    ite = 0
+    for f in files:
+        ite += 1
+        print("({}/{}) {}".format(ite,numm,f))
+        status = False
+        info = get_info(cachedir, f, ar["prefix"])
+        for pe_t in range(pe_times[0], pe_times[1]+1):
             for i in inv:
-                for d in dt:
-                    ite = 0
-                    for f in files:
-                        
-                        name = os.path.basename(f)  # .replace("/","_")
-                        tag = a[0].NAME
-                        if a[0].has_prop("max_depth"):
-                            tag += "_" + str(a[0].get_prop("max_depth"))
-                        tag += "_" + d[0] + "_b"  # + i[0]
-                        o = name + "." + tag + "_" + l + ".cache"
-                        o = os.path.join(cachedir, o)
-                        print("{}({}/{}) {}".format(tag, ite, numm, f))
-                        ite += 1
-                        if not(f in status):
-                            status[f] = False
-                        if status[f]:
-                            if os.path.isfile(o):
-                                os.remove(o)
+                if status:
+                    continue
+                for l in lib:
+                    if status:
+                        continue
+                    for a in algs:
+                        if status:
                             continue
-                        if l == "z3":
-                            tmpfile = name + "." + tag + "_ppl.cache"
-                            tmpfile = os.path.join(cachedir, tmpfile)
-                            if os.path.isfile(tmpfile):
-                                if not('TIMEOUT' in open(tmpfile).read() or
-                                       'MemoryLimit' in open(tmpfile).read() or
-                                       'ERROR' in open(tmpfile).read()):
-                                    if os.path.isfile(o):
-                                        os.remove(o)
-                                    continue
-                            else:
-                                if os.path.isfile(o):
-                                        os.remove(o)
+                        a[0].set_prop("lib", l)
+                        for d in dt:
+                            if status:
                                 continue
-                        tag += "_" + l
-                        if os.path.isfile(o):
-                            continue
-                            os.remove(o)
-                        print("Trying with : " + tag)
-                        config = {
-                            "scc_depth": sccd,
-                            "dotDestination": dotF,
-                            "verbosity": verb,
-                            "ei_out": False,
-                            "termination": a,
-                            "invariants": i,
-                            "different_template": d,
-                            "simplify_constraints": True,
-                            "partial_evaluation": [0],
-                            "files": [f],
-                            "output": [o]
-                        }
+                            name = os.path.basename(f)  # .replace("/","_")
+                            config = {
+                                "scc_depth": sccd,
+                                "verbosity": verb,
+                                "ei_out": False,
+                                "termination": a,
+                                "invariants": i,
+                                "different_template": d,
+                                "simplify_constraints": True,
+                                "pe_modes": pe_modes,
+                                "pe_times": pe_t,
+                                "files": [f],
+                                "lib": "ppl"
+                            }
+                            print("Trying with : " + config2Tag(config))
+                            response = sandbox(rankfinder.launch_file, args=(config, f, None),
+                                                time_segs=tout, memory_mb=mout)
+                            response["date"] = datetime.datetime.today()
+                            response["config"] = config
+                            info["analysis"].append(response)
+                            if response["status"].is_terminate():
+                                status = True
+        save_info(info, cachedir, f, ar["prefix"])
 
-                        status[f] = sandbox(rankfinder.launch_file, args=(config, f, o),
-                                            time_segs=tout, memory_mb=mout,
-                                            out=o, default=False)

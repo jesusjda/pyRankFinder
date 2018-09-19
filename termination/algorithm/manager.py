@@ -44,6 +44,16 @@ class Algorithm(object):
     def has_prop(self, key):
         return key in self.props
 
+    def get_name(self):
+        cad_name = self.NAME
+        if "version" in self.props and str(self.props["version"]) != 1:
+            cad_name += "v" + str(self.props["version"])
+        if "min_depth" in self.props:
+            cad_name += "_" + str(self.props["min_depth"])  
+        if "max_depth" in self.props:
+            cad_name += "_" + str(self.props["max_depth"])  
+        return cad_name
+
 
 class Manager:
     

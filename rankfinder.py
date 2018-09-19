@@ -1,16 +1,13 @@
 import argparse
-from genericparser import GenericParser
 import invariants
-from lpi.Lazy_Polyhedron import C_Polyhedron
 import os
 import sys
+from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
-from termination import Result
-from termination import Termination_Algorithm_Manager as TAM
+import termination
 from partialevaluation import partialevaluate
 import traceback
-from termination.algorithm.utils import get_ppl_transition_polyhedron
 import cProfile
 # from termination.profiler import register_as
 
@@ -127,13 +124,11 @@ def launch(config):
         launch_file(config, files[i], o)
 
 
-# @register_as("parse")
 def parse_file(f):
+    from genericparser import GenericParser
     return GenericParser().parse(f)
 
 
-# @do_cprofile
-# @register_as("launch_file")
 def launch_file(config, f, out):
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
@@ -184,10 +179,7 @@ def launch_file(config, f, out):
     if nontermination_result:
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
-    if termination_result:
-        return termination_result.found(), termination_result.toString(config["vars_name"])
-    else:
-        return False, ""
+    return termination_result
 
 
 def study_termination(config, name, cfg):
@@ -198,25 +190,33 @@ def study_termination(config, name, cfg):
     if "lib" in config:
         for alg in algs:
             alg.set_prop("lib", config["lib"])
+    if config["different_template"] == "always":
+        dt_modes = [True]
+    elif config["different_template"] == "iffail":
+        dt_modes = [False, True]
+    else:
+        dt_modes = [False]
+    skip = False
     for pe_mode in config["pe_modes"]:
-        OM.printif(1, "- Partial Evaluation mode: {}".format(pe_mode))
+        if skip:
+            break
+        if config["pe_times"] == 0:
+            skip = True
+        else:
+            OM.printif(1, "- Partial Evaluation mode: {}".format(pe_mode))
         pe_cfg = cfg
         for _ in range(config["pe_times"]):
             if pe_mode == 0:
                 break
-            pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir)
-        # Pre compute
-        build_ppl_polyhedrons(pe_cfg)
-        compute_invariants(config["invariants"], pe_cfg)
-        simplify_constraints(config["simplify_constraints"], pe_cfg)
-        if "dotDestination" in config: 
-            write_dotfile(config["dotDestination"], name, pe_cfg)
-        if "prologDestination" in config:
-            write_prologfile(config["prologDestination"], name, pe_cfg)
-        r = rank(algs,
-                 [(pe_cfg, config["scc_depth"])],
-                 different_template=config["different_template"])
-        if r.found():
+            compute_invariants(pe_cfg, config["invariants"], use=False)
+            pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir, invariant_type=config["invariants"])
+        compute_invariants(pe_cfg, config["invariants"], use=True)
+        pe_cfg.simplify_constraints(simplify=config["simplify_constraints"])
+        
+        r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
+                              dt_modes=dt_modes)
+        
+        if r.get_status().is_terminate():
             return r
     return r
 
@@ -235,13 +235,8 @@ def show_termination_result(result, cfg):
         OM.printf("Removed no linear constraints from transitions: " +
                   str(no_lin))
     OM.printf(result.toString(cfg.get_info("global_vars")))
-    # tr_rfs = result.get("tr_rfs")
-    # OM.printif(3, tr_rfs)
-    # for tr in tr_rfs:
-    #     OM.print_rf_tr(3, cfg, tr, tr_rfs[tr])
     OM.printseparator(1)
     OM.show_output()
-    result = result.found()
 
 def show_nontermination_result(result, cfg):
     OM.printseparator(1)
@@ -262,177 +257,19 @@ def write_prologfile(prologDestination, name, cfg):
             s = name.replace('/', '_')
             dot = os.path.join(prologDestination, s + ".pl")
             cfg.toProlog(dot)
-# @register_as("simplifyconstraints")
-def simplify_constraints(simplify, cfg):
-    if simplify:
-        for e in cfg.get_edges():
-            e["polyhedron"].minimized_constraints()
 
-# @register_as("buildpplpolyhedrons")
-def build_ppl_polyhedrons(cfg):
-    edges = cfg.get_edges()
-    global_vars = cfg.get_info("global_vars")
-    for e in edges:
-        tr_poly = get_ppl_transition_polyhedron(e, global_vars)
-        # get_z3_transition_polyhedron(e, global_vars)
-        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
-                          key="tr_polyhedron", value=tr_poly)
-
-# @register_as("computeinvariants")
-def compute_invariants(invariant_type, cfg):
+def compute_invariants(cfg, invariant_type, use=True):
+    cfg.build_polyhedrons()
     node_inv = invariants.compute_invariants(cfg, invariant_type)
-    OM.printif(1, "INVARIANTS ({})".format(invariant_type))
-    gvars = cfg.get_info("global_vars")
-    for n in node_inv:
-        cfg.nodes[n]["invariant"] = node_inv[n]
-        OM.printif(1, "invariant of " + n, " = ",
-                   node_inv[n].toString(gvars))
-    add_invariants(cfg, node_inv)
-
-def add_invariants(cfg, node_inv):
-    edges = cfg.get_edges()
-    Nvars = len(cfg.get_info("global_vars"))
-    for e in edges:
-        Nlocal_vars = len(e["local_vars"])
-        tr_cons = e["tr_polyhedron"].get_constraints()
-        if e["source"] in node_inv:
-            inv = node_inv[e["source"]].get_constraints()
-        else:
-            inv = []
-        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
-        for c in tr_cons:
-            tr_poly.add_constraint(c)
-        for c in inv:
-            tr_poly.add_constraint(c)
-        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
-                          key="polyhedron", value=tr_poly)
-    OM.printif(3, cfg.get_edges())
-
-# @register_as("rank")
-def rank(algs, CFGs, different_template="never"):
-    if different_template == "always":
-        dt_modes = [True]
-    elif different_template == "iffail":
-        dt_modes = [False, True]
-    else:
-        dt_modes = [False]
-    response = Result()
-    rfs = {}
-    tr_rfs = {}
-    fail = False
-    while (not fail and CFGs):
-        current_cfg, sccd = CFGs.pop(0)
-        if len(current_cfg.get_edges()) == 0:
-            OM.printif(2, "CFG ranked beacuse it is empty.")
-            continue
-        for t in current_cfg.get_edges():
-            if t["polyhedron"].is_empty():
-                OM.printif(2, "Transition ("+t["name"]+") removed because is False.")
-                current_cfg.remove_edge(t["source"], t["target"], t["name"])
-        if sccd > 0:
-            CFGs_aux = current_cfg.get_scc()
-        else:
-            CFGs_aux = [current_cfg]
-        CFGs_aux.sort()
-        for cfg in CFGs_aux:
-            R = analize_scc(algs, cfg, dt_modes=dt_modes)
-            if R is None:
-                continue
-            if not R:
-                fail = True
-                break
-            merge_rfs(rfs, R.get("rfs"))
-            merge_rfs(tr_rfs, R.get("tr_rfs"))
-            pending_trs = R.get("pending_trs")
-            if pending_trs:
-                CFGs = [(cfg.edge_data_subgraph(pending_trs),
-                         sccd)] + CFGs
-    if fail:
-        response.set_response(found=False)
-    else:
-        response.set_response(found=True)
-    response.set_response(rfs=rfs,
-                          tr_rfs=tr_rfs,
-                          pending_cfgs=CFGs)
-    return response
-
-# @register_as("oneSCC")
-def analize_scc(algs, cfg, dt_modes=[False]):
-    trans = cfg.get_edges()
-    nodes = ', '.join(sorted(cfg.get_nodes()))
-    trs = ', '.join(sorted([t["name"] for t in trans]))
-    OM.printif(1, "Transitions: {}\nNodes: {}".format(trs, nodes))
-    if not trans:
-        OM.printif(1, "-> Terminate because it has not transitions.")
-        return None
-    if not cfg.has_cycle():
-        OM.printif(1, "-> Terminate because it has not cycles.")
-        return None
-    found = False
-
-    for dt in dt_modes:
-        if dt:
-            OM.printif(1, "\t- Using Different Template") 
-        R = run_algs(algs, cfg, different_template=dt)
-        if R.found():
-            OM.printif(2, "--> Found with dt={}.\n".format(dt))
-            found = True
-            break
-    if found:
-        return R
-    else:
-        return False
-
-# @register_as("callalgorithms")
-def run_algs(algs, cfg, different_template=False):
-    response = Result()
-    vars_name = cfg.get_info("global_vars")
-    R = None
-    f = False
-    if len(cfg.get_edges()) == 0:
-        response.set_response(found=True,
-                              info="Empty Cfg",
-                              rfs=[],
-                              tr_rfs=[],
-                              pending_trs=[])
-        return response
-    for alg in algs:
-        OM.printif(1, "\t-> with: " + str(alg))
-
-        R = alg.run(cfg,
-                    different_template=different_template)
-
-        OM.printif(3, R.debug())
-        OM.printif(1, R.toString(vars_name))
-        if R.found():
-            if R.get("rfs"):
-                f = True
-                break
-
-    if f:
-        response.set_response(found=True,
-                              info="Found",
-                              rfs=R.get("rfs"),
-                              tr_rfs=R.get("tr_rfs"),
-                              pending_trs=R.get("pending_trs"))
-        return response
+    if use:
+        OM.printif(1, "INVARIANTS ({})".format(invariant_type))
+        gvars = cfg.get_info("global_vars")
+        OM.printif(1, "\n".join(["invariant of " + str(n) + " = " +
+                                 str(node_inv[n].toString(gvars))
+                                 for n in node_inv]))
+    if use:
+        invariants.use_invariants(cfg, invariant_type)
     
-    response.set_response(found=False,
-                          info="Not Found")
-    return response
-
-
-def merge_rfs(rfs, to_add):
-    new_rfs = rfs
-    for key in to_add:
-        if key in new_rfs:
-            if not isinstance(new_rfs[key], list):
-                new_rfs[key] = [new_rfs[key]]
-            new_rfs[key].append(to_add[key])
-        else:
-            new_rfs[key] = [to_add[key]]
-    return new_rfs
-
 
 if __name__ == "__main__":
     try:
@@ -450,5 +287,3 @@ if __name__ == "__main__":
         launch(config)
     finally:
         OM.show_output()
-        # from termination.profiler import OP
-        # OM.printif(2,OP.toString(maxdepth=2))

@@ -2,6 +2,7 @@ import unittest
 import termination
 import genericparser
 import lpi
+import termination.TerminationResult
 
 
 class TestKey(unittest.TestCase):
@@ -21,5 +22,5 @@ class TestKey(unittest.TestCase):
         self.assertEqual(1, 1)
 
     def test_Result(self):
-        r = termination.Result(found=True)
-        self.assertTrue(r.found())
+        r = termination.Result(status=termination.TerminationResult.TERMINATE)
+        self.assertTrue(r.get_status().is_terminate())
