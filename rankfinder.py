@@ -212,7 +212,8 @@ def study_termination(config, name, cfg):
             pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir, invariant_type=config["invariants"])
         compute_invariants(pe_cfg, config["invariants"], use=True)
         pe_cfg.simplify_constraints(simplify=config["simplify_constraints"])
-        
+        if "dotDestination" in config:
+            write_dotfile(config["dotDestination"], name, pe_cfg)
         r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
                               dt_modes=dt_modes)
         
