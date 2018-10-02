@@ -141,17 +141,17 @@ def launch_file(config, f, out):
     r = '/'.join(aux_p[aux_c:])
     try:
         cfg = parse_file(f)
-    except Exception:
+    except Exception as e:
         OM.restart(odest=out, cdest=r, vars_name=[])
         if out is not None:
             tmpfile = os.path.join(os.path.curdir, out)
             with open(tmpfile, "w") as f:
-                print(tmpfile)
-                f.write(str(traceback.format_exc()))
+                f.write(e)
         else:
-            OM.printf(str(traceback.format_exc()))
+            OM.printf("Parser Error:")
+            OM.printf(e)
             OM.show_output()
-        raise
+        return
 
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
