@@ -148,9 +148,7 @@ def launch_file(config, f, out):
             with open(tmpfile, "w") as f:
                 f.write(e)
         else:
-            OM.printf("Parser Error:")
-            OM.printf(e)
-            OM.show_output()
+            OM.printerrf("Parser Error:\n", e)
         return
 
     config["vars_name"] = cfg.get_info("global_vars")
