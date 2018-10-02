@@ -180,7 +180,8 @@ def launch_file(config, f, out):
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if "ei-out" in config and config["ei-out"]:
+    
+    if "ei_out" in config and config["ei_out"]:
         OM.restart(odest=out, cdest="Fc Result", vars_name=config["vars_name"])
         from io import StringIO
         fcSource = StringIO()

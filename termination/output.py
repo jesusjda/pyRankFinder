@@ -44,6 +44,7 @@ class Output:
             else:
                 self._ei_commands = eiol.eicommands(dest=cdest)
                 self._ei_actions = eiol.eiactions(dest=cdest)
+            self.cdest = cdest
         self._vars_name = vars_name
         self.outtxt = ""
         if verbosity is not None:
@@ -81,7 +82,7 @@ class Output:
             else:
                 txt = msg
             c = eiol.content(format=format, text=txt)
-            self._ei_commands.append(eiol.command_print(content=c))
+            self._ei_commands.append(eiol.command_print(content=c, consoleid=self.cdest, consoletitle=self.cdest))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
         else:
