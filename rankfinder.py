@@ -125,8 +125,8 @@ def launch(config):
 
 
 def parse_file(f):
-    from genericparser import GenericParser
-    return GenericParser().parse(f)
+    import genericparser
+    return genericparser.parse(f)
 
 
 def launch_file(config, f, out):
@@ -273,7 +273,7 @@ def compute_invariants(cfg, invariant_type, use=True):
         gvars = cfg.get_info("global_vars")
         OM.printif(1, "\n".join(["invariant of " + str(n) + " = " +
                                  str(node_inv[n].toString(gvars))
-                                 for n in node_inv]))
+                                 for n in sorted(node_inv)]))
     if use:
         invariants.use_invariants(cfg, invariant_type)
     
