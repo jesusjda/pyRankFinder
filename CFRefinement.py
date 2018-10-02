@@ -88,7 +88,7 @@ def launch_file(config, f):
         print(destname)
         os.makedirs(os.path.dirname(destname), exist_ok=True)
         cfg = []
-        cfg.append(GenericParser().parse(f))
+        cfg.append(genericparser.parse(f))
         cfg[0].build_polyhedrons()
         invariant_type=config["invariants"]
         compute_invariants(cfg[0], invariant_type=invariant_type)
