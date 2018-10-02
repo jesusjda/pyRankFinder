@@ -138,7 +138,7 @@ def launch_file(config, f, out):
         if aux_p[aux_c] == "User_Projects":
             break
         aux_c -= 1
-    r = None # '/'.join(aux_p[aux_c:])
+    r = None
     try:
         cfg = parse_file(f)
     except Exception as e:
@@ -163,7 +163,7 @@ def launch_file(config, f, out):
     has_to_run = lambda key: key in config and config[key]
 
     if has_to_run("termination"):
-        termination_result = study_termination(config, r, cfg)
+        termination_result = study_termination(config, '/'.join(aux_p[aux_c:]), cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
