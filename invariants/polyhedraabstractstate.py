@@ -32,10 +32,16 @@ class PolyhedraState(AbstractState):
         s1._state.poly_hull_assign(s2._state)
         return s1
 
-    def widening(self, s2, copy=False):
+    def widening_assign(self, s2, copy=False):
         self._assert_same_type(s2)
         s1 = self.copy(copy)
         s1._state.widening_assign(s2._state)
+        return s1
+    
+    def extrapolation_assign(self, s2, threshold, copy=False):
+        self._assert_same_type(s2)
+        s1 = self.copy(copy)
+        s1._state.extrapolation_assign(s2._state, threshold)
         return s1
 
     def apply_tr(self, tr, copy=False):
