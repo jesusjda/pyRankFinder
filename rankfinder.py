@@ -182,7 +182,7 @@ def launch_file(config, f, out):
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     
     if "ei_out" in config and config["ei_out"]:
-        OM.restart(odest=out, cdest="Fc Result", vars_name=config["vars_name"])
+        OM.restart(odest=out, cdest="Fc-Result", vars_name=config["vars_name"])
         from io import StringIO
         fcSource = StringIO()
         cfg.toFc(fcSource)
