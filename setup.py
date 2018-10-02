@@ -10,8 +10,8 @@ requires = ['pplpy>=0.7', 'pyLPi', 'genericparser']
 
 dependency_links = [
     'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7',
-    'git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi-0.1',
-    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-0.1'
+    'git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi-0.2',
+    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-1.0'
 ]
 
 ter_dir = os.path.join(base, 'termination')
