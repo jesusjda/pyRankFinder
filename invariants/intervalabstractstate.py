@@ -126,7 +126,7 @@ class IntervalState(AbstractState):
             a1 = self._state[i][0].inf
             a2 = self._state[i][-1].sup
             if abs(a1 - a2) < _eps:
-                cads.append(vars_name[i]+""+eq_symb+""+str(int(a1)))
+                cads.append(vars_name[i]+" "+eq_symb+" "+str(int(a1)))
             else:
                 if a1 != -inf:
                     cads.append(vars_name[i]+" "+geq_symb+" "+str(int(a1)))
