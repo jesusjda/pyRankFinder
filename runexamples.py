@@ -260,5 +260,6 @@ if __name__ == "__main__":
                             info["analysis"].append(response)
                             if response["status"].is_terminate():
                                 status = True
+                                
         save_info(info, cachedir, f, ar["prefix"])
 
