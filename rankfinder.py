@@ -244,7 +244,6 @@ def show_termination_result(result, cfg):
                   str(no_lin))
     OM.printf(result.toString(cfg.get_info("global_vars")))
     OM.printseparator(1)
-    OM.show_output()
 
 def show_nontermination_result(result, cfg):
     OM.printseparator(1)
