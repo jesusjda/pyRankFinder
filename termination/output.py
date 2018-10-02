@@ -31,6 +31,7 @@ class Output:
         self.ei = False
         self.verbosity = 0
         self.destination = None
+        self.cdest = None
         self.restart()
 
     def restart(self, ei=None, odest=None, cdest=None, vars_name=[], verbosity=None):
@@ -49,6 +50,12 @@ class Output:
         self.outtxt = ""
         if verbosity is not None:
             self.verbosity = verbosity
+
+    def printerrf(self, *kwargs):
+        actualcdest = self.cdest
+        self.cdest = "Errors"
+        self.printf(*kwargs)
+        self.cdest = actualcdest 
 
     def printf(self, *kwargs):
         self.printif(0, *kwargs)
