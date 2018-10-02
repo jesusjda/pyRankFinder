@@ -138,7 +138,7 @@ def launch_file(config, f, out):
         if aux_p[aux_c] == "User_Projects":
             break
         aux_c -= 1
-    r = '/'.join(aux_p[aux_c:])
+    r = None # '/'.join(aux_p[aux_c:])
     try:
         cfg = parse_file(f)
     except Exception as e:

@@ -89,7 +89,11 @@ class Output:
             else:
                 txt = msg
             c = eiol.content(format=format, text=txt)
-            self._ei_commands.append(eiol.command_print(content=c, consoleid=self.cdest, consoletitle=self.cdest))
+            kkwargs = {}
+            if self.cdest is not None:
+                kkwargs["consoleid"] = self.cdest
+                kkwargs["consoletitle"] = self.cdest
+            self._ei_commands.append(eiol.command_print(content=c, **kkwargs))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
         else:
