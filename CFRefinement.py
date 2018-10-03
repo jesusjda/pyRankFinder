@@ -70,15 +70,16 @@ def launch(config):
 def printfile(config, name, destname, cfg, invariant_type):
     if "fc" in config["output_formats"]:
         cfg.toFc(path=destname+".fc")
-        OM.writefile(0, name+".fc", file2string(destname+".fc"))
+        #OM.writefile(0, name+".fc", file2string(destname+".fc"))
     if "dot" in config["output_formats"]:
         cfg.toDot(destname+".dot")
         if "svg" in config["output_formats"]:
             toSvg(destname+".dot", destname+".svg")
-            OM.printif(0, file2string(destname+".svg"), format="svg")
+            OM.printif(0, "Graph {}".format(name))
+            #OM.printif(0, file2string(destname+".svg"), format="svg")
     if "koat" in config["output_formats"]:
         cfg.toKoat(path=destname+".koat",goal_complexity=True, invariant_type=invariant_type)
-        OM.writefile(0, name+".koat", file2string(destname+".koat"))
+        #OM.writefile(0, name+".koat", file2string(destname+".koat"))
 
 def launch_file(config, f):
     try:

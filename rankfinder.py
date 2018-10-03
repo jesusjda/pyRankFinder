@@ -117,7 +117,11 @@ def setArgumentParser():
                            default="none", help="Compute Invariants.")
     argParser.add_argument("--threshold", required=False, action='store_true',
                            help="Use user thresholds.")
-    
+    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
+                           choices=range(0,5), default=[4],
+                           help="List of levels of Partial evaluation in the order that you want to apply them.")
+    argParser.add_argument("-pt", "--pe_times", type=int, choices=range(0, 5),
+                           help="# times to apply pe", default=1)
     return argParser
 
 
@@ -224,14 +228,19 @@ def study_termination(config, name, cfg):
             skip = True
         else:
             OM.printif(1, "- Partial Evaluation mode: {}".format(pe_mode))
+        print("=="*40)
         pe_cfg = cfg
+        pe_cfg.build_polyhedrons()
+        compute_invariants(pe_cfg, invariant_type=config["invariants"])
+        pe_cfg.simplify_constraints()
         for _ in range(config["pe_times"]):
             if pe_mode == 0:
                 break
-            compute_invariants(pe_cfg, config["invariants"], use=False, use_threshold=config["threshold"])
-            pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir, invariant_type=config["invariants"])
-        compute_invariants(pe_cfg, config["invariants"], use=True, use_threshold=config["threshold"])
-        pe_cfg.simplify_constraints(simplify=config["simplify_constraints"])
+            pe_cfg.build_polyhedrons()
+            pe_cfg = partialevaluate(pe_cfg,  invariant_type=config["invariants"])
+            compute_invariants(pe_cfg, invariant_type=config["invariants"])
+            pe_cfg.simplify_constraints()
+        invariants.use_invariants(pe_cfg, config["invariants"])
         if "dotDestination" in config:
             write_dotfile(config["dotDestination"], name, pe_cfg)
         r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
@@ -282,11 +291,13 @@ def compute_invariants(cfg, invariant_type, use=True, use_threshold=False):
     cfg.build_polyhedrons()
     node_inv = invariants.compute_invariants(cfg, invariant_type, use_threshold=use_threshold)
     if use:
+        OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(invariant_type))
         gvars = cfg.get_info("global_vars")
-        OM.printif(1, "\n".join(["invariant of " + str(n) + " = " +
+        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
                                  str(node_inv[n].toString(gvars))
                                  for n in sorted(node_inv)]))
+        OM.printseparator(1)
     if use:
         invariants.use_invariants(cfg, invariant_type)
     

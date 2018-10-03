@@ -5,7 +5,7 @@ from subprocess import Popen
 __all__ = ['partialevaluate']
 
 
-def partialevaluate(cfg, level=0, fcpath=None, tmpdir=None, debug=False, invariant_type=None, only_nodes=None, add_props={} ):
+def partialevaluate(cfg, level=0, fcpath=None, tmpdir=None, debug=True, invariant_type=None, only_nodes=None, add_props={} ):
     if not(level in range(0, 5)):
         raise ValueError("PE level unknown: {}.".format(level))
     
