@@ -7,7 +7,6 @@ from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 import termination
 from partialevaluation import partialevaluate
-import traceback
 import cProfile
 # from termination.profiler import register_as
 
@@ -24,7 +23,7 @@ def do_cprofile(func):
             profile.print_stats('launch_file')
     return profiled_func
 
-_version = "0.0.4"
+_version = "1.0"
 _name = "irankfinder"
 
 
@@ -78,13 +77,12 @@ def setArgumentParser():
                            help="Folder to save prolog source.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
+    argParser.add_argument("--fc-out", required=False, action='store_true',
+                           help="Shows the output in fc format")
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different_template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
-                           choices=range(0,5), default=[4],
-                           help="List of levels of Partial evaluation in the order that you want to apply them.")
     argParser.add_argument("-sccd", "--scc_depth", type=positive, default=1,
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-sc", "--simplify_constraints", required=False,
@@ -92,8 +90,20 @@ def setArgumentParser():
                            help="Simplify constraints")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="ppl", help="select lib")
-    argParser.add_argument("-pt", "--pe_times", type=int, choices=range(0, 5),
-                           help="# times to apply pe", default=0)
+    # CFR Parameters
+    argParser.add_argument("-cfr-st", "--cfr-strategy", required=False, nargs='+',
+                           choices=[0,1,2,3,4,"RFS","MANUAL"], default=[4],
+                           help="")
+    argParser.add_argument("-cfr-it", "--cfr-iteration", type=int, choices=range(0, 5),
+                           help="# times to apply cfr", default=0)
+    argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
+                           choices=["acumulate", "inmutate", "recopute"], default="recompute",
+                           help="")
+    argParser.add_argument("-cfr-usr", "--cfr-user-properties", default="ignore",
+                           choices=["add", "replaceby","ignore","base"],
+                           help="")
+    
+    
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -105,6 +115,9 @@ def setArgumentParser():
                            help=termination_alg_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
+    argParser.add_argument("--threshold", required=False, action='store_true',
+                           help="Use user thresholds.")
+    
     return argParser
 
 
@@ -179,7 +192,7 @@ def launch_file(config, f, out):
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     
-    if "ei_out" in config and config["ei_out"]:
+    if "fc_out" in config and config["fc_out"]:
         OM.restart(odest=out, cdest="Fc-Result", vars_name=config["vars_name"])
         from io import StringIO
         fcSource = StringIO()
@@ -215,9 +228,9 @@ def study_termination(config, name, cfg):
         for _ in range(config["pe_times"]):
             if pe_mode == 0:
                 break
-            compute_invariants(pe_cfg, config["invariants"], use=False)
+            compute_invariants(pe_cfg, config["invariants"], use=False, use_threshold=config["threshold"])
             pe_cfg = partialevaluate(pe_cfg, level=pe_mode, tmpdir=tmpdir, invariant_type=config["invariants"])
-        compute_invariants(pe_cfg, config["invariants"], use=True)
+        compute_invariants(pe_cfg, config["invariants"], use=True, use_threshold=config["threshold"])
         pe_cfg.simplify_constraints(simplify=config["simplify_constraints"])
         if "dotDestination" in config:
             write_dotfile(config["dotDestination"], name, pe_cfg)
@@ -265,9 +278,9 @@ def write_prologfile(prologDestination, name, cfg):
             dot = os.path.join(prologDestination, s + ".pl")
             cfg.toProlog(dot)
 
-def compute_invariants(cfg, invariant_type, use=True):
+def compute_invariants(cfg, invariant_type, use=True, use_threshold=False):
     cfg.build_polyhedrons()
-    node_inv = invariants.compute_invariants(cfg, invariant_type)
+    node_inv = invariants.compute_invariants(cfg, invariant_type, use_threshold=use_threshold)
     if use:
         OM.printif(1, "INVARIANTS ({})".format(invariant_type))
         gvars = cfg.get_info("global_vars")
