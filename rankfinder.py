@@ -220,7 +220,7 @@ def showgraph(it, cfg, config):
     destname = config["output_destination"]
     if destname is None:
         return
-    destname += name
+
     os.makedirs(os.path.dirname(destname), exist_ok=True)
     invariant_type = config["invariants"]
     from io import StringIO
@@ -233,13 +233,16 @@ def showgraph(it, cfg, config):
     if "dot" in config["output_formats"]:
         cfg.toDot(stream)
         dotstr = stream.getvalue()
-        with open(destname+".dot", "w") as f:
+            
+        dotfile = os.path.join(destname, name+".dot")
+        with open(dotfile, "w") as f:
             f.write(dotstr)
         stream.close()
         stream = StringIO()
         OM.writefile(0, name+".dot", dotstr)
         if "svg" in config["output_formats"]:
-            svgstr = dottoSvg(destname+".dot", destname+".svg")
+            svgfile = os.path.join(destname, name+".svg")
+            svgstr = dottoSvg(dotfile, svgfile)
             OM.printif(0, "Graph {}".format(name))
             OM.printif(0, svgstr, format="svg")
             OM.writefile(0, name+".svg", svgstr)
