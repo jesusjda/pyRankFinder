@@ -32,7 +32,7 @@ class Algorithm(object):
     def __repr__(self):
         cad_alg = self.NAME
         if "version" in self.props:
-            cad_alg += " version: " + str(self.props["version"])
+            cad_alg += "v" + str(self.props["version"])
         return cad_alg
 
     def set_prop(self, key, value):

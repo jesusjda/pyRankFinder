@@ -65,7 +65,9 @@ def launch(config):
 def launch_file(config, f):
     try:
         config["name"] = extractname(f)
-        control_flow_refinement(genericparser.parse(f), config, au_prop=config["cfr_automatic_properties"])
+        control_flow_refinement(genericparser.parse(f), config,
+                                au_prop=config["cfr_automatic_properties"],
+                                console=True, writef=True)
 
     except Exception as e:
         OM.printf("Exception  -> "+str(e))

@@ -35,7 +35,10 @@ def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None
 
     # PROPERTIES
     propsfile, props = compute_props(tmpdirname, tmpplfile, auto_props, only_nodes, add_props, cfg.get_info("global_vars")[:N], debug=debug)
-    cfg.set_nodes_info(props, "cfr_properties")
+    cfg.set_nodes_info(props, "cfr_auto_properties")
+    
+    if user_props is not None:
+        pass
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
     pipe = Popen([pepath, tmpplfile, initNode, '-s', '-p', (propsfile), '-r', tmpdirname],

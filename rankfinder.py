@@ -208,15 +208,13 @@ def launch_file(config, f, out):
     ncfg["name"] = config["name"]
     ncfg["output_destination"] = config["output_destination"]
     ncfg["output_formats"] = ["fc", "svg"]
-    showgraph(-1, cfg, ncfg, console=True, writef=False)
+    showgraph(cfg, ncfg, sufix="_anotated", console=True, writef=False)
     return termination_result
 
-def showgraph(it, cfg, config, console=False, writef=False):
+def showgraph(cfg, config, sufix="", console=False, writef=False):
     if not console and not writef:
         return
-    name = config["name"] if it <= 0 else config["name"]+"_cfr"+str(it)
-    if it == -1:
-        name += "_analyzed"
+    name = config["name"] +str(sufix)
     destname = config["output_destination"]
     if destname is None:
         return
@@ -279,7 +277,7 @@ def file2string(filepath):
         data=f.read()
     return data
 
-def control_flow_refinement(cfg, config, au_prop=4):
+def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False):
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
     # cfr_it_st = config["cfr_iteration_strategy"]
@@ -288,14 +286,16 @@ def control_flow_refinement(cfg, config, au_prop=4):
     cfr_inv_thre = config["cfr_invariants_threshold"]
     tmpdir = config["tmpdir"]
     pe_cfg = cfg
+    sufix = ""
     for it in range(0, cfr_ite):
         compute_invariants(pe_cfg, invariant_type=cfr_inv, use=False, use_threshold=cfr_inv_thre)
         pe_cfg.simplify_constraints(simplify=cfr_simplify)
-        showgraph(it, pe_cfg, config)
+        showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
                                  invariant_type=cfr_inv)
-    showgraph(cfr_ite, pe_cfg, config)
+        sufix="_cfr"+str(it+1)
+    showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
     return pe_cfg
 
 def study_termination(config, cfg):
