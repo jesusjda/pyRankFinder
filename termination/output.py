@@ -87,9 +87,8 @@ class Output:
                 txt = msg
             c = eiol.content(format=format, text=txt)
             kkwargs = {}
-            if self.cdest is not None:
-                kkwargs["consoleid"] = consoleid
-                kkwargs["consoletitle"] = consoletitle
+            kkwargs["consoleid"] = consoleid
+            kkwargs["consoletitle"] = consoletitle
             self._ei_commands.append(eiol.command_print(content=c, **kkwargs))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
