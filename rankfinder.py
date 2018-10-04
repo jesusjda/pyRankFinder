@@ -204,18 +204,19 @@ def launch_file(config, f, out):
         show_nontermination_result(nontermination_result, cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    
-    if "fc_out" in config and config["fc_out"]:
-        OM.restart(odest=out, cdest="Fc-Result", vars_name=config["vars_name"])
-        from io import StringIO
-        fcSource = StringIO()
-        cfg.toFc(fcSource)
-        OM.printf(fcSource.getvalue())
-        fcSource.close()
+    ncfg = {}
+    ncfg["name"] = config["name"]
+    ncfg["output_destination"] = config["output_destination"]
+    ncfg["output_formats"] = ["fc", "svg"]
+    showgraph(-1, cfg, ncfg, console=True, writef=False)
     return termination_result
 
-def showgraph(it, cfg, config):
-    name = config["name"] if it == 0 else config["name"]+"_cfr"+str(it)
+def showgraph(it, cfg, config, console=False, writef=False):
+    if not console and not writef:
+        return
+    name = config["name"] if it <= 0 else config["name"]+"_cfr"+str(it)
+    if it == -1:
+        name += "_analyzed"
     destname = config["output_destination"]
     if destname is None:
         return
@@ -227,27 +228,33 @@ def showgraph(it, cfg, config):
     if "fc" in config["output_formats"]:
         cfg.toFc(stream)
         fcstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
-        OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
-        OM.writefile(0, name+".fc", fcstr)
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
+            OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
+        if writef:
+            OM.writefile(0, name+".fc", fcstr)
         stream.close()
         stream = StringIO()
-    if "dot" in config["output_formats"]:
+    if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
         cfg.toDot(stream)
         dotstr = stream.getvalue()
         dotfile = os.path.join(destname, name+".dot")
         os.makedirs(os.path.dirname(dotfile), exist_ok=True)
+        
         with open(dotfile, "w") as f:
             f.write(dotstr)
         stream.close()
         stream = StringIO()
-        OM.writefile(0, name+".dot", dotstr)
+        if "dot" in config["output_formats"] and writef:
+            OM.writefile(0, name+".dot", dotstr)
         if "svg" in config["output_formats"]:
             svgfile = os.path.join(destname, name+".svg")
             svgstr = dottoSvg(dotfile, svgfile)
-            OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-            OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
-            OM.writefile(0, name+".svg", svgstr)
+            if console:
+                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
+                OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
+            if writef:
+                OM.writefile(0, name+".svg", svgstr)
     if "koat" in config["output_formats"]:
         cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
         koatstr=stream.getvalue()
