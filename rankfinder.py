@@ -148,7 +148,6 @@ def launch(config):
         else:
             o = outs[i]
         config["name"] = extractname(files[i])
-        print(config["name"])
         launch_file(config, files[i], o)
 
 
@@ -222,7 +221,7 @@ def showgraph(it, cfg, config):
         return
 
     os.makedirs(os.path.dirname(destname), exist_ok=True)
-    invariant_type = config["invariants"]
+    invariant_type = config["invariants"] if "invariants" in config else None
     from io import StringIO
     stream = StringIO()
     if "fc" in config["output_formats"]:
