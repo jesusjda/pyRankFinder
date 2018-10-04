@@ -95,7 +95,7 @@ def setArgumentParser():
                            default="ppl", help="select lib")
     # CFR Parameters
     argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False, nargs='+',
-                           choices=range(0,5), default=[4],
+                           type=int, choices=range(0,5), default=[4],
                            help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
