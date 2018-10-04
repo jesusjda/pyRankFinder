@@ -148,6 +148,7 @@ def launch(config):
         else:
             o = outs[i]
         config["name"] = extractname(files[i])
+        print(config["name"])
         launch_file(config, files[i], o)
 
 
@@ -188,7 +189,6 @@ def launch_file(config, f, out):
     termination_result = None
     nontermination_result = None
     has_to_run = lambda key: key in config and config[key]
-    config["name"] = '/'.join(aux_p[aux_c:])
     if has_to_run("termination"):
         termination_result = study_termination(config , cfg)
         OM.show_output()
@@ -215,29 +215,55 @@ def launch_file(config, f, out):
         fcSource.close()
     return termination_result
 
-def printfile(it, cfg, config):
+def showgraph(it, cfg, config):
     name = config["name"] if it == 0 else config["name"]+"_cfr"+str(it)
     destname = config["output_destination"]
     if destname is None:
         return
+    destname += name
+    os.makedirs(os.path.dirname(destname), exist_ok=True)
     invariant_type = config["invariants"]
+    from io import StringIO
+    stream = StringIO()
     if "fc" in config["output_formats"]:
-        cfg.toFc(path=destname+".fc")
-        OM.writefile(0, name+".fc", file2string(destname+".fc"))
+        cfg.toFc(stream)
+        OM.writefile(0, name+".fc", stream.getvalue())
+        stream.close()
+        stream = StringIO()
     if "dot" in config["output_formats"]:
-        cfg.toDot(destname+".dot")
+        cfg.toDot(stream)
+        dotstr = stream.getvalue()
+        with open(destname+".dot", "w") as f:
+            f.write(dotstr)
+        stream.close()
+        stream = StringIO()
+        OM.writefile(0, name+".dot", dotstr)
         if "svg" in config["output_formats"]:
-            toSvg(destname+".dot", destname+".svg")
+            svgstr = dottoSvg(destname+".dot", destname+".svg")
             OM.printif(0, "Graph {}".format(name))
-            OM.printif(0, file2string(destname+".svg"), format="svg")
+            OM.printif(0, svgstr, format="svg")
+            OM.writefile(0, name+".svg", svgstr)
     if "koat" in config["output_formats"]:
-        cfg.toKoat(path=destname+".koat", goal_complexity=True, invariant_type=invariant_type)
-        OM.writefile(0, name+".koat", file2string(destname+".koat"))
+        cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
+        OM.writefile(0, name+".koat", stream.getvalue())
+        stream.close()
+        stream = StringIO()
+    stream.close()
 
-def toSvg(dotfile, destination):
-    from subprocess import check_call
-    check_call(['dot', '-Tsvg', dotfile, '-o', destination])
-    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', destination])
+def dottoSvg(dotfile, svgfile):
+    from subprocess import PIPE
+    from subprocess import Popen
+    psdot = Popen(['dot', '-Tsvg', dotfile ,'-o', svgfile], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    pssed = Popen(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile],
+                  stderr=PIPE)
+
+    out, err = pssed.communicate()
+    if err: 
+        raise Exception("toSVG error: {}".format(err))
+    svgstr = ""
+    with open(svgfile, "r") as f:
+        svgstr += f.read()
+    return svgstr
 
 def file2string(filepath):
     with open(filepath, 'r') as f:
@@ -256,11 +282,11 @@ def control_flow_refinement(cfg, config, au_prop=4):
     for it in range(0, cfr_ite):
         compute_invariants(pe_cfg, invariant_type=cfr_inv, use=False, use_threshold=cfr_inv_thre)
         pe_cfg.simplify_constraints(simplify=cfr_simplify)
-        printfile(it, pe_cfg, config)
+        showgraph(it, pe_cfg, config)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
                                  invariant_type=cfr_inv)
-    printfile(cfr_ite, pe_cfg, config)
+    showgraph(cfr_ite, pe_cfg, config)
     return pe_cfg
 
 def study_termination(config, cfg):
