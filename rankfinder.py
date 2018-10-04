@@ -256,13 +256,10 @@ def showgraph(it, cfg, config):
 def dottoSvg(dotfile, svgfile):
     from subprocess import PIPE
     from subprocess import Popen
-    psdot = Popen(['dot', '-Tsvg', dotfile ,'-o', svgfile], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    pssed = Popen(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile],
-                  stderr=PIPE)
+    from subprocess import check_call
+    check_call(['dot', '-Tsvg', dotfile ,'-o', svgfile])
+    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
 
-    out, err = pssed.communicate()
-    if err: 
-        raise Exception("toSVG error: {}".format(err))
     svgstr = ""
     with open(svgfile, "r") as f:
         svgstr += f.read()
