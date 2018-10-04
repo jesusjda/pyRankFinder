@@ -51,19 +51,16 @@ class Output:
         if verbosity is not None:
             self.verbosity = verbosity
 
-    def printerrf(self, *kwargs):
-        actualcdest = self.cdest
-        self.cdest = "Errors"
-        self.printf(*kwargs)
-        self.cdest = actualcdest 
+    def printerrf(self, *kwargs, format="text"):
+        self.printf(*kwargs, format=format, consoleid="error", consoletitle="Errors")
 
-    def printf(self, *kwargs):
-        self.printif(0, *kwargs)
+    def printf(self, *kwargs, format="text", consoleid="default", consoletitle="Default"):
+        self.printif(0, *kwargs, consoleid=consoleid, consoletitle=consoletitle)
 
-    def printseparator(self, verbosity=0):
-        self.printif(verbosity, "#"*80)
+    def printseparator(self, verbosity=0, consoleid="default", consoletitle="Default"):
+        self.printif(verbosity, "#"*80, consoleid=consoleid, consoletitle=consoletitle)
 
-    def printif(self, verbosity, *kwargs, format="text"):
+    def printif(self, verbosity, *kwargs, format="text", consoleid="default", consoletitle="Default"):
         if self.verbosity < verbosity:
             return
         msg = ""
@@ -91,8 +88,8 @@ class Output:
             c = eiol.content(format=format, text=txt)
             kkwargs = {}
             if self.cdest is not None:
-                kkwargs["consoleid"] = self.cdest
-                kkwargs["consoletitle"] = self.cdest
+                kkwargs["consoleid"] = consoleid
+                kkwargs["consoletitle"] = consoletitle
             self._ei_commands.append(eiol.command_print(content=c, **kkwargs))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
@@ -125,9 +122,11 @@ class Output:
                                        filename=str(path))
             self._ei_commands.append(c)
         else:
+            print(content)
+            return
             tmpfile = os.path.join(os.path.curdir, path)
             with open(tmpfile, "w") as f:
-                f.write(c)
+                f.write(content)
 
     def show_output(self):
         if self.ei:

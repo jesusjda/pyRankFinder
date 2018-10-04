@@ -227,7 +227,10 @@ def showgraph(it, cfg, config):
     stream = StringIO()
     if "fc" in config["output_formats"]:
         cfg.toFc(stream)
-        OM.writefile(0, name+".fc", stream.getvalue())
+        fcstr=stream.getvalue()
+        OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
+        OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
+        OM.writefile(0, name+".fc", fcstr)
         stream.close()
         stream = StringIO()
     if "dot" in config["output_formats"]:
@@ -243,23 +246,23 @@ def showgraph(it, cfg, config):
         if "svg" in config["output_formats"]:
             svgfile = os.path.join(destname, name+".svg")
             svgstr = dottoSvg(dotfile, svgfile)
-            OM.printif(0, "Graph {}".format(name))
-            OM.printif(0, svgstr, format="svg")
+            OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
+            OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
             OM.writefile(0, name+".svg", svgstr)
     if "koat" in config["output_formats"]:
         cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
-        OM.writefile(0, name+".koat", stream.getvalue())
+        koatstr=stream.getvalue()
+        OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
+        OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
+        OM.writefile(0, name+".koat", koatstr)
         stream.close()
         stream = StringIO()
     stream.close()
 
 def dottoSvg(dotfile, svgfile):
-    from subprocess import PIPE
-    from subprocess import Popen
     from subprocess import check_call
     check_call(['dot', '-Tsvg', dotfile ,'-o', svgfile])
     check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
-
     svgstr = ""
     with open(svgfile, "r") as f:
         svgstr += f.read()
