@@ -69,41 +69,49 @@ def setArgumentParser():
                            help="increase output verbosity", default=0)
     argParser.add_argument("-V", "--version", required=False,
                            action='store_true', help="Shows the version.")
-    argParser.add_argument("--dotDestination", required=False,
-                           help="Folder to save dot graphs.")
+    argParser.add_argument("-od", "--output-destination", required=False,
+                           help="Folder to save output files.")
     argParser.add_argument("--tmpdir", required=False, default=None,
                            help="Temporary directory.")
     argParser.add_argument("--prologDestination", required=False,
                            help="Folder to save prolog source.")
+    argParser.add_argument("-of", "--output-formats", required=False, nargs='+',
+                           choices=["fc", "dot", "koat", "pl", "svg"], default=["fc", "dot", "svg"],
+                           help="Formats to print the graphs.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
     argParser.add_argument("--fc-out", required=False, action='store_true',
                            help="Shows the output in fc format")
     # Algorithm Parameters
-    argParser.add_argument("-dt", "--different_template", required=False,
+    argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-sccd", "--scc_depth", type=positive, default=1,
+    argParser.add_argument("-sccd", "--scc-depth", type=positive, default=1,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify_constraints", required=False,
+    argParser.add_argument("-sc", "--simplify-constraints", required=False,
                            default=False, action='store_true',
                            help="Simplify constraints")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="ppl", help="select lib")
     # CFR Parameters
-    argParser.add_argument("-cfr-st", "--cfr-strategy", required=False, nargs='+',
-                           choices=[0,1,2,3,4,"RFS","MANUAL"], default=[4],
+    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False, nargs='+',
+                           choices=range(0,5), default=[4],
                            help="")
-    argParser.add_argument("-cfr-it", "--cfr-iteration", type=int, choices=range(0, 5),
+    argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
     argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
-                           choices=["acumulate", "inmutate", "recopute"], default="recompute",
+                           choices=["acumulate", "inmutate", "recompute"], default="recompute",
                            help="")
-    argParser.add_argument("-cfr-usr", "--cfr-user-properties", default="ignore",
-                           choices=["add", "replaceby","ignore","base"],
+    argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
-    
-    
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False,
+                           default="none", help="CFR with Invariants.")
+    argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
+                           default=False, action='store_true',
+                           help="Simplify constraints when CFR")
+    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
+                           default=False, action='store_true',
+                           help="Use user thresholds for CFR invariants.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -115,15 +123,16 @@ def setArgumentParser():
                            help=termination_alg_desc())
     argParser.add_argument("-i", "--invariants", required=False,
                            default="none", help="Compute Invariants.")
-    argParser.add_argument("--threshold", required=False, action='store_true',
-                           help="Use user thresholds.")
-    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
-                           choices=range(0,5), default=[4],
-                           help="List of levels of Partial evaluation in the order that you want to apply them.")
-    argParser.add_argument("-pt", "--pe_times", type=int, choices=range(0, 5),
-                           help="# times to apply pe", default=1)
+    argParser.add_argument("-ithre", "--invariants-threshold", required=False,
+                           action='store_true', help="Use user thresholds.")
     return argParser
 
+
+def extractname(filename):
+    f = os.path.split(filename)
+    b = os.path.split(f[0])
+    c = os.path.splitext(f[1])
+    return os.path.join(b[1], c[0])
 
 def launch(config):
     files = config["files"]
@@ -138,6 +147,7 @@ def launch(config):
             o = None
         else:
             o = outs[i]
+        config["name"] = extractname(files[i])
         launch_file(config, files[i], o)
 
 
@@ -178,9 +188,9 @@ def launch_file(config, f, out):
     termination_result = None
     nontermination_result = None
     has_to_run = lambda key: key in config and config[key]
-
+    config["name"] = '/'.join(aux_p[aux_c:])
     if has_to_run("termination"):
-        termination_result = study_termination(config, '/'.join(aux_p[aux_c:]), cfg)
+        termination_result = study_termination(config , cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
@@ -205,12 +215,56 @@ def launch_file(config, f, out):
         fcSource.close()
     return termination_result
 
+def printfile(it, cfg, config):
+    name = config["name"] if it == 0 else config["name"]+"_cfr"+str(it)
+    destname = config["output_destination"]
+    if destname is None:
+        return
+    invariant_type = config["invariants"]
+    if "fc" in config["output_formats"]:
+        cfg.toFc(path=destname+".fc")
+        OM.writefile(0, name+".fc", file2string(destname+".fc"))
+    if "dot" in config["output_formats"]:
+        cfg.toDot(destname+".dot")
+        if "svg" in config["output_formats"]:
+            toSvg(destname+".dot", destname+".svg")
+            OM.printif(0, "Graph {}".format(name))
+            OM.printif(0, file2string(destname+".svg"), format="svg")
+    if "koat" in config["output_formats"]:
+        cfg.toKoat(path=destname+".koat", goal_complexity=True, invariant_type=invariant_type)
+        OM.writefile(0, name+".koat", file2string(destname+".koat"))
 
-def study_termination(config, name, cfg):
+def toSvg(dotfile, destination):
+    from subprocess import check_call
+    check_call(['dot', '-Tsvg', dotfile, '-o', destination])
+    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', destination])
+
+def file2string(filepath):
+    with open(filepath, 'r') as f:
+        data=f.read()
+    return data
+
+def control_flow_refinement(cfg, config, au_prop=4):
+    cfr_ite = config["cfr_iterations"]
+    cfr_inv = config["cfr_invariants"]
+    # cfr_it_st = config["cfr_iteration_strategy"]
+    cfr_usr_props = config["cfr_user_properties"]
+    cfr_simplify = config["cfr_simplify_constraints"]
+    cfr_inv_thre = config["cfr_invariants_threshold"]
+    tmpdir = config["tmpdir"]
+    pe_cfg = cfg
+    for it in range(0, cfr_ite):
+        compute_invariants(pe_cfg, invariant_type=cfr_inv, use=False, use_threshold=cfr_inv_thre)
+        pe_cfg.simplify_constraints(simplify=cfr_simplify)
+        printfile(it, pe_cfg, config)
+        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
+                                 user_props=cfr_usr_props, tmpdir=tmpdir,
+                                 invariant_type=cfr_inv)
+    printfile(cfr_ite, pe_cfg, config)
+    return pe_cfg
+
+def study_termination(config, cfg):
     algs = config["termination"]
-    tmpdir = None
-    if "tmpdir" in config:
-        tmpdir = config["tmpdir"]
     if "lib" in config:
         for alg in algs:
             alg.set_prop("lib", config["lib"])
@@ -221,28 +275,19 @@ def study_termination(config, name, cfg):
     else:
         dt_modes = [False]
     skip = False
-    for pe_mode in config["pe_modes"]:
+    for au_prop in config["cfr_automatic_properties"]:
         if skip:
             break
-        if config["pe_times"] == 0:
+        if config["cfr_iterations"] == 0:
             skip = True
         else:
-            OM.printif(1, "- Partial Evaluation mode: {}".format(pe_mode))
-        print("=="*40)
-        pe_cfg = cfg
-        pe_cfg.build_polyhedrons()
-        compute_invariants(pe_cfg, invariant_type=config["invariants"])
-        pe_cfg.simplify_constraints()
-        for _ in range(config["pe_times"]):
-            if pe_mode == 0:
-                break
-            pe_cfg.build_polyhedrons()
-            pe_cfg = partialevaluate(pe_cfg,  invariant_type=config["invariants"])
-            compute_invariants(pe_cfg, invariant_type=config["invariants"])
-            pe_cfg.simplify_constraints()
-        invariants.use_invariants(pe_cfg, config["invariants"])
+            OM.printif(1, "- CFR properties: {}".format(au_prop))
+        OM.printseparator(1)
+        pe_cfg = control_flow_refinement(cfg, config)
+        compute_invariants(pe_cfg, invariant_type=config["invariants"],
+                           use_threshold=config["invariants_threshold"])
         if "dotDestination" in config:
-            write_dotfile(config["dotDestination"], name, pe_cfg)
+            write_dotfile(config["dotDestination"], config["name"], pe_cfg)
         r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
                               dt_modes=dt_modes)
         

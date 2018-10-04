@@ -5,9 +5,9 @@ from subprocess import Popen
 __all__ = ['partialevaluate']
 
 
-def partialevaluate(cfg, level=0, fcpath=None, tmpdir=None, debug=True, invariant_type=None, only_nodes=None, add_props={} ):
-    if not(level in range(0, 5)):
-        raise ValueError("PE level unknown: {}.".format(level))
+def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None, debug=False, invariant_type=None, only_nodes=None, add_props={} ):
+    if not(auto_props in range(0, 5)):
+        raise ValueError("CFR automatic propertis mode unknown: {}.".format(auto_props))
     
     if tmpdir is None:
         import tempfile
@@ -34,7 +34,7 @@ def partialevaluate(cfg, level=0, fcpath=None, tmpdir=None, debug=True, invarian
 
 
     # PROPERTIES
-    propsfile, props = compute_props(tmpdirname, tmpplfile, level, only_nodes, add_props, cfg.get_info("global_vars")[:N])
+    propsfile, props = compute_props(tmpdirname, tmpplfile, auto_props, only_nodes, add_props, cfg.get_info("global_vars")[:N], debug=debug)
     cfg.set_nodes_info(props, "cfr_properties")
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
@@ -58,7 +58,7 @@ def partialevaluate(cfg, level=0, fcpath=None, tmpdir=None, debug=True, invarian
     return pe_cfg
     
 
-def compute_props(tmpdirname, tmpplfile, level, only_nodes, add_props, gvars):
+def compute_props(tmpdirname, tmpplfile, level, only_nodes, add_props, gvars, debug=False):
     propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
     pipe = Popen([propspath, tmpplfile, '-l', str(level), '-r', tmpdirname],
                  stdout=PIPE, stderr=PIPE)
@@ -68,8 +68,9 @@ def compute_props(tmpdirname, tmpplfile, level, only_nodes, add_props, gvars):
     propsfile = propsfile.decode("utf-8")
     pvars = _plVars(len(gvars))
     props = _parse_props(propsfile, gvars, pvars)
-    with open(propsfile, "r") as f:
-        print(f.read())
+    if debug:
+        with open(propsfile, "r") as f:
+            print(f.read())
     #props = _do_modifications(props)
     #_print_props(propsfile, props, gvars, pvars)
     return propsfile, props
