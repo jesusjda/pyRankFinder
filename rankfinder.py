@@ -233,8 +233,8 @@ def showgraph(it, cfg, config):
     if "dot" in config["output_formats"]:
         cfg.toDot(stream)
         dotstr = stream.getvalue()
-            
         dotfile = os.path.join(destname, name+".dot")
+        os.makedirs(os.path.dirname(dotfile), exist_ok=True)
         with open(dotfile, "w") as f:
             f.write(dotstr)
         stream.close()
