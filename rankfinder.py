@@ -335,7 +335,7 @@ def analyse_termination(config, cfg):
         ncfg["name"] = config["name"]
         ncfg["output_destination"] = config["output_destination"]
         ncfg["output_formats"] = ["fc", "svg"]
-        sufix="iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
+        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
         showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
         if r.get_status().is_terminate():
             return r
