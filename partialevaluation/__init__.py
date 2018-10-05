@@ -5,7 +5,7 @@ from subprocess import Popen
 __all__ = ['partialevaluate']
 
 
-def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None, debug=False, invariant_type=None, only_nodes=None, add_props={} ):
+def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=False, invariant_type=None):
     if not(auto_props in range(0, 5)):
         raise ValueError("CFR automatic propertis mode unknown: {}.".format(auto_props))
     
@@ -34,11 +34,8 @@ def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None
 
 
     # PROPERTIES
-    propsfile, props = compute_props(tmpdirname, tmpplfile, auto_props, only_nodes, add_props, cfg.get_info("global_vars")[:N], debug=debug)
-    cfg.set_nodes_info(props, "cfr_auto_properties")
-    
-    if user_props is not None:
-        pass
+    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=debug)
+
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
     pipe = Popen([pepath, tmpplfile, initNode, '-s', '-p', (propsfile), '-r', tmpdirname],
@@ -51,34 +48,51 @@ def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None
     from genericparser.Parser_fc import Parser_fc
     pfc = Parser_fc()
     pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
-    from termination.output import Output_Manager as OM
-    OM.printf("simplifying after cfr.")
     pe_cfg.simplify_constraints()
-
-    if fcpath:
-        pe_cfg.toFc(fcpath)
 
     if debug:
         print(fcpeprogram.decode("utf-8"))
     return pe_cfg
     
 
-def compute_props(tmpdirname, tmpplfile, level, only_nodes, add_props, gvars, debug=False):
-    propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
-    pipe = Popen([propspath, tmpplfile, '-l', str(level), '-r', tmpdirname],
-                 stdout=PIPE, stderr=PIPE)
-    propsfile, err = pipe.communicate()
-    if err is not None and err:
-            raise Exception(err)
-    propsfile = propsfile.decode("utf-8")
+def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=False):
+    if auto_props in range(1,5):
+        propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
+        pipe = Popen([propspath, tmpplfile, '-l', str(auto_props), '-r', tmpdirname],
+                     stdout=PIPE, stderr=PIPE)
+        propsfile, err = pipe.communicate()
+        if err is not None and err:
+                raise Exception(err)
+        propsfile = propsfile.decode("utf-8")
+    else:
+        propsfile = os.path.join(tmpdirname, "source_output/source.props")
+        basedir = os.path.dirname(propsfile)
+        if not os.path.exists(basedir):
+            os.makedirs(basedir)
+        open(propsfile,'a').close()
+
+    gvars = cfg.get_info("global_vars")
+    gvars = gvars[:int(len(gvars)/2)]
     pvars = _plVars(len(gvars))
+
+    if user_props:
+        node_data = cfg.get_nodes(data=True)
+
+        usr_props = {}
+        for node, data in node_data:
+            if "cfr_properties" in data:
+                n_props = [p for p in data["cfr_properties"]]
+                if len(n_props) > 0:
+                    usr_props[node] = n_props
+        _add_props(propsfile, usr_props, gvars, pvars)
+
+    # SAVE PROPS
     props = _parse_props(propsfile, gvars, pvars)
+    cfg.set_nodes_info(props, "cfr_used_properties")
     if debug:
         with open(propsfile, "r") as f:
             print(f.read())
-    #props = _do_modifications(props)
-    #_print_props(propsfile, props, gvars, pvars)
-    return propsfile, props
+    return propsfile
 
 def _do_modifications(props):
     ps = {}
@@ -108,16 +122,17 @@ def _parse_props(filename, gvars, pvars):
     return props
 
 
-def _print_props(filename, props, gvars, pvars):
+def _add_props(filename, props, gvars, pvars):
     vars_str = ",".join(pvars)
     renamedvars = lambda v: pvars[gvars.index(v)]
-    with open(filename, "w") as f:
+    with open(filename, "a") as f:
         for node in props:
             for cons in props[node]:
                 cons_str = ", ".join([c.toString(renamedvars, int, eq_symb="=", leq_symb="=<")
                                       for c in cons])
                 line = "n_{}({}) :- [{}].\n".format(node,vars_str, cons_str)
                 f.write(line)
+        f.write('\n')
 
 def _translate(c, tdict):
     dic = sorted(tdict, key=lambda x: len(x[0]), reverse=True)

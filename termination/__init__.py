@@ -18,11 +18,11 @@ def rank(algs, CFGs, dt_modes=[False]):
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if len(current_cfg.get_edges()) == 0:
-            Output_Manager.printif(2, "CFG ranked beacuse it is empty.")
+            Output_Manager.printif(2, "CFG ranked because it is empty.")
             continue
         for t in current_cfg.get_edges():
             if t["polyhedron"].is_empty():
-                Output_Manager.printif(2, "Transition ("+t["name"]+") removed because it is Empty.")
+                Output_Manager.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
                 current_cfg.remove_edge(t["source"], t["target"], t["name"])
         if sccd > 0:
             CFGs_aux = current_cfg.get_scc()
@@ -54,7 +54,7 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
     nodes = ', '.join(sorted(cfg.get_nodes()))
     trs = ', '.join(sorted([t["name"] for t in trans]))
-    Output_Manager.printif(1, "Transitions: {}\nNodes: {}".format(trs, nodes))
+    Output_Manager.printif(1, "SCC\n├─ Transitions: {}\n└─ Nodes: {}".format(trs, nodes))
     if not trans:
         Output_Manager.printif(1, "-> Ranked because it has not transitions.")
         return None
