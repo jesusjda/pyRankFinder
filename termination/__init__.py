@@ -4,10 +4,10 @@ from .output import Output_Manager
 from .result import Result
 from .result import TerminationResult
 
-__all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "study"]
+__all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "analyse"]
 
 
-def study(algs, cfg, sccd=1, dt_modes=[False]):
+def analyse(algs, cfg, sccd=1, dt_modes=[False]):
     return rank(algs,[(cfg,sccd)],dt_modes=dt_modes)
 
 def rank(algs, CFGs, dt_modes=[False]):
@@ -30,7 +30,7 @@ def rank(algs, CFGs, dt_modes=[False]):
             CFGs_aux = [current_cfg]
         CFGs_aux.sort()
         for cfg in CFGs_aux:
-            R = analize_scc(algs, cfg, dt_modes=dt_modes)
+            R = analyse_scc(algs, cfg, dt_modes=dt_modes)
             if R is None:
                 continue
             if not R:
@@ -50,7 +50,7 @@ def rank(algs, CFGs, dt_modes=[False]):
     return response
 
 
-def analize_scc(algs, cfg, dt_modes=[False]):
+def analyse_scc(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
     nodes = ', '.join(sorted(cfg.get_nodes()))
     trs = ', '.join(sorted([t["name"] for t in trans]))

@@ -189,11 +189,11 @@ def launch_file(config, f, out):
     nontermination_result = None
     has_to_run = lambda key: key in config and config[key]
     if has_to_run("termination"):
-        termination_result = study_termination(config , cfg)
+        termination_result = analyse_termination(config , cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
-        nontermination_result = study_nontermination(config, cfg, termination_result)
+        nontermination_result = analyse_nontermination(config, cfg, termination_result)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if termination_result:
@@ -288,12 +288,9 @@ def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False)
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
-        OM.printf("Original Inv for cfr: {}".format(cfr_inv))
         compute_invariants(pe_cfg, invariant_type=cfr_inv, use=False, use_threshold=cfr_inv_thre)
-        OM.printf("Simplify Original: {}".format(cfr_simplify))
         pe_cfg.simplify_constraints(simplify=cfr_simplify)
         showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
-        OM.printf("Do cfr with: props:{} and inv:{}".format(au_prop, cfr_inv))
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
                                  invariant_type=cfr_inv)
@@ -301,7 +298,7 @@ def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False)
     showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
     return pe_cfg
 
-def study_termination(config, cfg):
+def analyse_termination(config, cfg):
     algs = config["termination"]
     if "lib" in config:
         for alg in algs:
@@ -321,27 +318,22 @@ def study_termination(config, cfg):
         else:
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
-        OM.printf("Simplify constraints from the beginning")
         cfg.simplify_constraints()
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
-        OM.printf("Invariants for the new.")
         compute_invariants(pe_cfg, invariant_type=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         # remove false transitions
-        OM.printf("simplify constraints of the new")
-        pe_cfg.simplify_constraints()
         if "dotDestination" in config:
             write_dotfile(config["dotDestination"], config["name"], pe_cfg)
-        OM.printf("analyze")
-        r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
-                              dt_modes=dt_modes)
+        r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
+                                dt_modes=dt_modes)
         
         if r.get_status().is_terminate():
             return r
     return r
 
 
-def study_nontermination(config, cfg, termination_result):
+def analyse_nontermination(config, cfg, termination_result):
     sols = []
     for alg in config["nontermination"]:
         sols += alg.run(cfg)
