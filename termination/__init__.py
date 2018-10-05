@@ -54,7 +54,7 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
     nodes = ', '.join(sorted(cfg.get_nodes()))
     trs = ', '.join(sorted([t["name"] for t in trans]))
-    Output_Manager.printif(1, "SCC\n├─ Transitions: {}\n└─ Nodes: {}".format(trs, nodes))
+    Output_Manager.printif(1, "SCC\n+-- Transitions: {}\n+-- Nodes: {}".format(trs, nodes))
     if not trans:
         Output_Manager.printif(1, "-> Ranked because it has not transitions.")
         return None
