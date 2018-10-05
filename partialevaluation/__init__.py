@@ -51,6 +51,8 @@ def partialevaluate(cfg, auto_props=4, user_props=None, fcpath=None, tmpdir=None
     from genericparser.Parser_fc import Parser_fc
     pfc = Parser_fc()
     pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
+    from termination.output import Output_Manager as OM
+    OM.printf("simplifying after cfr.")
     pe_cfg.simplify_constraints()
 
     if fcpath:
