@@ -200,9 +200,9 @@ if __name__ == "__main__":
     cfr_au = 4
     cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
     lib = ["ppl"]
-    inv = ["none"] #, "polyhedra", "interval"]
-    cfr_invs = ["none"]#, "polyhedra", "interval"]
-    dt = ["never"]#, "iffail", "always"]
+    inv = ["none", "polyhedra", "interval"]
+    cfr_invs = ["none", "polyhedra", "interval"]
+    dt = ["never", "iffail", "always"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
