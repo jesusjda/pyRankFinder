@@ -25,19 +25,12 @@ def setArgumentParser():
     # Algorithm Parameters
     argParser.add_argument("-sccd", "--scc_depth", type=int,
                            choices=range(0, 10), default=5,
-                           help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify_constraints", required=False,
-                           action='store_true', help="Simplify constraints")
+                           help="Strategy based on SCC to go through the CFG.")# CFR Parameters
+    argParser.add_argument("-cfr-it-max", "--cfr-iterations-max", type=int, choices=range(0, 5),
+                           help="# times to apply cfr", default=0)
+    argParser.add_argument("-cfr-it-min", "--cfr-iterations-min", type=int, choices=range(0, 5),
+                           help="# times to apply cfr", default=2)
     # IMPORTANT PARAMETERS
-    argParser.add_argument("-pe", "--pe_modes", type=int, required=False, nargs='+',
-                           choices=range(0,5), default=[4],
-                           help="List of levels of Partial evaluation in the order that you want to apply them.")
-    argParser.add_argument("-pmt", "--pe_min_times", type=int, required=False,
-                           choices=range(0,5), default=0,
-                           help="")
-    argParser.add_argument("-pMt", "--pe_max_times", type=int, required=False,
-                           choices=range(0,5), default=0,
-                           help="")
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-c", "--cache", required=True,
@@ -125,8 +118,11 @@ def config2Tag(config):
     tag += "_sccd:"+str(config["scc_depth"])
     tag += "_invariant:"+str(config["invariants"])
     tag += "_dt:"+str(config["different_template"])
-    tag += "_simplify:"+str(config["simplify_constraints"])
-    tag += "_PE:"+str(config["pe_times"])
+    tag += "_sc:"+str(config["simplify_constraints"])
+    tag += "_CFR-it:"+str(config["cfr_iterations"])
+    tag += "_CFR-au:"+str(config["cfr_automatic_properties"])
+    tag += "_CFR-inv:"+str(config["cfr_invariants"])
+    tag += "_CFR-sc:"+str(config["cfr_simplify_constraints"])
     return tag
 
 def file2ID(file, prefix=""):
@@ -197,11 +193,12 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    pe_modes = ar["pe_modes"]
-    pe_times= (ar["pe_min_times"],ar["pe_max_times"])
+    cfr_au = 4
+    cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
     lib = ["ppl"]
-    inv = ["polyhedra"]
-    dt = ["iffail"]
+    inv = ["none", "polyhedra", "interval"]
+    cfr_invs = ["none", "polyhedra", "interval"]
+    dt = ["never", "iffail", "always"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
@@ -224,42 +221,50 @@ if __name__ == "__main__":
         print("({}/{}) {}".format(ite,numm,f))
         status = False
         info = get_info(cachedir, f, ar["prefix"])
-        for pe_t in range(pe_times[0], pe_times[1]+1):
+        for cfr_it in range(cfr_ite[0], cfr_ite[1]+1):
             for i in inv:
                 if status:
                     continue
-                for l in lib:
+                for cfr_inv in cfr_invs:
                     if status:
                         continue
-                    for a in algs:
+                    for l in lib:
                         if status:
                             continue
-                        a[0].set_prop("lib", l)
-                        for d in dt:
+                        for a in algs:
                             if status:
                                 continue
-                            name = os.path.basename(f)  # .replace("/","_")
-                            config = {
-                                "scc_depth": sccd,
-                                "verbosity": verb,
-                                "ei_out": False,
-                                "termination": a,
-                                "invariants": i,
-                                "different_template": d,
-                                "simplify_constraints": True,
-                                "pe_modes": pe_modes,
-                                "pe_times": pe_t,
-                                "files": [f],
-                                "lib": "ppl"
-                            }
-                            print("Trying with : " + config2Tag(config))
-                            response = sandbox(rankfinder.launch_file, args=(config, f, None),
-                                                time_segs=tout, memory_mb=mout)
-                            response["date"] = datetime.datetime.today()
-                            response["config"] = config
-                            info["analysis"].append(response)
-                            if response["status"].is_terminate():
-                                status = True
+                            a[0].set_prop("lib", l)
+                            for d in dt:
+                                if status:
+                                    continue
+                                name = os.path.basename(f)  # .replace("/","_")
+                                config = {
+                                    "scc_depth": sccd,
+                                    "verbosity": verb,
+                                    "ei_out": False,
+                                    "termination": a,
+                                    "invariants": i,
+                                    "different_template": d,
+                                    "simplify_constraints": True,
+                                    "cfr_automatic_properties": cfr_au,
+                                    "cfr_iterations": cfr_it,
+                                    "cfr_invariants": cfr_inv,
+                                    "cfr_simplify_constraints": True,
+                                    "cfr_user_properties":False,
+                                    "cfr_invariants_threshold":False,
+                                    "invariants_threshold":False,
+                                    "files": [f],
+                                    "lib": l
+                                }
+                                print("Trying with : " + config2Tag(config))
+                                response = sandbox(rankfinder.launch_file, args=(config, f, None),
+                                                    time_segs=tout, memory_mb=mout)
+                                response["date"] = datetime.datetime.today()
+                                response["config"] = config
+                                info["analysis"].append(response)
+                                if response["status"].is_terminate():
+                                    status = True
                                 
         save_info(info, cachedir, f, ar["prefix"])
 
