@@ -318,7 +318,7 @@ def study_termination(config, cfg):
         else:
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
-        pe_cfg = control_flow_refinement(cfg, config)
+        pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
         compute_invariants(pe_cfg, invariant_type=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         if "dotDestination" in config:
