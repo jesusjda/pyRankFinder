@@ -7,7 +7,7 @@ __all__ = ['partialevaluate']
 
 def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=False, invariant_type=None):
     if not(auto_props in range(0, 5)):
-        raise ValueError("CFR automatic propertis mode unknown: {}.".format(auto_props))
+        raise ValueError("CFR automatic properties mode unknown: {}.".format(auto_props))
     
     if tmpdir is None:
         import tempfile

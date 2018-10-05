@@ -244,7 +244,11 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         stream.close()
         stream = StringIO()
         if "dot" in config["output_formats"] and writef:
-            OM.writefile(0, name+".dot", dotstr)
+            if console:
+                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
+                OM.printif(0, dotstr, format="txt", consoleid="graphs", consoletitle="Graphs")
+            if writef:
+                OM.writefile(0, name+".dot", dotstr)
         if "svg" in config["output_formats"]:
             svgfile = os.path.join(destname, name+".svg")
             svgstr = dottoSvg(dotfile, svgfile)
@@ -327,7 +331,12 @@ def analyse_termination(config, cfg):
             write_dotfile(config["dotDestination"], config["name"], pe_cfg)
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                 dt_modes=dt_modes)
-        
+        ncfg = {}
+        ncfg["name"] = config["name"]
+        ncfg["output_destination"] = config["output_destination"]
+        ncfg["output_formats"] = ["fc", "svg"]
+        sufix="iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
+        showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
         if r.get_status().is_terminate():
             return r
     return r
