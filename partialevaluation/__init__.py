@@ -85,10 +85,13 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=False):
                 if len(n_props) > 0:
                     usr_props[node] = n_props
         _add_props(propsfile, usr_props, gvars, pvars)
+        
 
     # SAVE PROPS
     props = _parse_props(propsfile, gvars, pvars)
     cfg.set_nodes_info(props, "cfr_used_properties")
+    from termination.output import Output_Manager as OM
+    OM.printif(2, "CFR with props: {}".format(props))
     if debug:
         with open(propsfile, "r") as f:
             print(f.read())
