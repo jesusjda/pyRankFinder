@@ -321,6 +321,8 @@ def study_termination(config, cfg):
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
         compute_invariants(pe_cfg, invariant_type=config["invariants"],
                            use_threshold=config["invariants_threshold"])
+        # remove false transitions
+        pe_cfg.simplify_constraints()
         if "dotDestination" in config:
             write_dotfile(config["dotDestination"], config["name"], pe_cfg)
         r = termination.study(algs, pe_cfg, sccd=config["scc_depth"],
