@@ -182,7 +182,11 @@ def save_info(info, cache, file, prefix):
     pprint(tojson)
     with open(o, "w") as f:
         json.dump(tojson, f, indent=4, sort_keys=True)
-
+def extractname(filename):
+    f = os.path.split(filename)
+    b = os.path.split(f[0])
+    c = os.path.splitext(f[1])
+    return os.path.join(b[1], c[0])
 if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
@@ -196,9 +200,9 @@ if __name__ == "__main__":
     cfr_au = 4
     cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
     lib = ["ppl"]
-    inv = ["none", "polyhedra", "interval"]
-    cfr_invs = ["none", "polyhedra", "interval"]
-    dt = ["never", "iffail", "always"]
+    inv = ["none"] #, "polyhedra", "interval"]
+    cfr_invs = ["none"]#, "polyhedra", "interval"]
+    dt = ["never"]#, "iffail", "always"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
@@ -241,13 +245,13 @@ if __name__ == "__main__":
                                 name = os.path.basename(f)  # .replace("/","_")
                                 config = {
                                     "scc_depth": sccd,
-                                    "verbosity": verb,
+                                    "verbosity": verb+2,
                                     "ei_out": False,
                                     "termination": a,
                                     "invariants": i,
                                     "different_template": d,
                                     "simplify_constraints": True,
-                                    "cfr_automatic_properties": cfr_au,
+                                    "cfr_automatic_properties": [cfr_au],
                                     "cfr_iterations": cfr_it,
                                     "cfr_invariants": cfr_inv,
                                     "cfr_simplify_constraints": True,
@@ -255,7 +259,11 @@ if __name__ == "__main__":
                                     "cfr_invariants_threshold":False,
                                     "invariants_threshold":False,
                                     "files": [f],
-                                    "lib": l
+                                    "lib": l,
+                                    "tmpdir":None,
+                                    "name": extractname(f),
+                                    "output_destination":None,
+                                    "output_formats":[]
                                 }
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),
