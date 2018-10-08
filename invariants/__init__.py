@@ -75,7 +75,7 @@ def compute_threshold(cfg, use_threshold=False):
     return threshold
 
 
-def compute_invariants(cfg, invariant_type="polyhedra", use_threshold=False):
+def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, use_threshold=False):
     from ppl import Constraint_System
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
@@ -100,25 +100,28 @@ def compute_invariants(cfg, invariant_type="polyhedra", use_threshold=False):
 
         queue = [init_node]
         while len(queue) > 0:
-            node = queue.pop()
-            s = nodes[node]["state"]
-            for t in cfg.get_edges(source=node):
-                dest_s = nodes[t["target"]]
-                s1 = s.apply_tr(t, copy=True)
-                s2 = dest_s["state"].lub(s1, copy=True)
-                if not(s2 <= dest_s["state"]):  # lte(s2, dest_s["state"]):
-                    dest_s["accesses"] += 1
-                    if dest_s["accesses"] >= 3:
+            original_states = {}
+            while len(queue) > 0:
+                node = queue.pop()
+                for t in cfg.get_edges(source=node):
+                    s = nodes[node]["state"]
+                    dest_s = nodes[t["target"]]
+                    if not(t["target"] in original_states):
+                        original_states[t["target"]] = dest_s["state"]
+                    s1 = s.apply_tr(t, copy=True)
+                    s2 = dest_s["state"].lub(s1, copy=True)
+                    dest_s["state"] = s2
+            for node in original_states:
+                if not(nodes[node]["state"] <= original_states[node]):
+                    nodes[node]["accesses"] += 1
+                    if nodes[node]["accesses"] >= widening_frecuency:
                         #print("WIDENING", node)
                         if use_threshold:
-                            s2.widening(dest_s["state"], threshold=threshold[node])
+                            nodes[node].widening(original_states[node], threshold=threshold[node])
                         else:
-                            s2.widening(dest_s["state"])
-                        print(s2)
-                        dest_s["accesses"] = 0
-                    dest_s["state"] = s2
-                    if not(t["target"] in queue):
-                        queue.append(t["target"])
+                            nodes[node].widening(original_states[node])
+                        nodes[node]["accesses"] = 0
+                    queue.append(t["target"])
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_"+str(invariant_type))
     return invariants
