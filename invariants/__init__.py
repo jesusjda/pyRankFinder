@@ -28,7 +28,7 @@ class AbstractState(object):
             print(s2, threshold)
             self.extrapolation_assign(s2, threshold, copy)
         else:
-            print("state widening")
+            #print("state widening")
             self.widening_assign(s2, copy)
 
     def apply_tr(self, tr, copy=False):
@@ -71,11 +71,9 @@ def compute_threshold(cfg, use_threshold=False):
         else:
             cs = Constraint_System()
         threshold[node] = cs
-        
     cfg.set_nodes_info(threshold, "cs_threshold")
     return threshold
-            
-    
+
 
 def compute_invariants(cfg, invariant_type="polyhedra", use_threshold=False):
     from ppl import Constraint_System
@@ -111,7 +109,7 @@ def compute_invariants(cfg, invariant_type="polyhedra", use_threshold=False):
                 if not(s2 <= dest_s["state"]):  # lte(s2, dest_s["state"]):
                     dest_s["accesses"] += 1
                     if dest_s["accesses"] >= 3:
-                        print("WIDENING", node)
+                        #print("WIDENING", node)
                         if use_threshold:
                             s2.widening(dest_s["state"], threshold=threshold[node])
                         else:

@@ -246,7 +246,7 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         if "dot" in config["output_formats"] and writef:
             if console:
                 OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-                OM.printif(0, dotstr, format="txt", consoleid="graphs", consoletitle="Graphs")
+                OM.printif(0, dotstr, format="text", consoleid="graphs", consoletitle="Graphs")
             if writef:
                 OM.writefile(0, name+".dot", dotstr)
         if "svg" in config["output_formats"]:

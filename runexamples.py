@@ -245,7 +245,7 @@ if __name__ == "__main__":
                                 name = os.path.basename(f)  # .replace("/","_")
                                 config = {
                                     "scc_depth": sccd,
-                                    "verbosity": verb+2,
+                                    "verbosity": verb,
                                     "ei_out": False,
                                     "termination": a,
                                     "invariants": i,
@@ -273,6 +273,5 @@ if __name__ == "__main__":
                                 info["analysis"].append(response)
                                 if response["status"].is_terminate():
                                     status = True
-                                
         save_info(info, cachedir, f, ar["prefix"])
 
