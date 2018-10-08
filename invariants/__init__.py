@@ -117,9 +117,9 @@ def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, us
                     if nodes[node]["accesses"] >= widening_frecuency:
                         #print("WIDENING", node)
                         if use_threshold:
-                            nodes[node].widening(original_states[node], threshold=threshold[node])
+                            nodes[node]["state"].widening(original_states[node], threshold=threshold[node])
                         else:
-                            nodes[node].widening(original_states[node])
+                            nodes[node]["state"].widening(original_states[node])
                         nodes[node]["accesses"] = 0
                     queue.append(t["target"])
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
