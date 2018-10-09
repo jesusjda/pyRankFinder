@@ -165,8 +165,11 @@ def remove_no_important_variables(cfg, doit=False):
         if len(vs) != 2: 
             return False
         N = int(len(vas)/2)
-        pos1 = vas.index(vs[0])
-        pos2 = vas.index(vs[1])
+        try:
+            pos1 = vas.index(vs[0])
+            pos2 = vas.index(vs[1])
+        except:
+            return False
         return pos1%N == pos2%N
         
     gvars = cfg.get_info("global_vars")
@@ -175,7 +178,7 @@ def remove_no_important_variables(cfg, doit=False):
     for tr in cfg.get_edges():
         for c in tr["constraints"]:
             if c.isequality():
-                if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars+tr["local_vars"]):
+                if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars):
                     continue
             for v in c.get_variables():
                 if v in tr["local_vars"]:
