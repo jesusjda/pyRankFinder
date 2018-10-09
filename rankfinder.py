@@ -194,10 +194,12 @@ def remove_no_important_variables(cfg, doit=False):
             break
     count = 0
     for v in nivars:
+        pos = gvars.index(v)
+        vp = gvars[pos+N]
         for tr in cfg.get_edges():
             for c in list(tr["constraints"]):
                 vs = c.get_variables()
-                if v in vs:
+                if v in vs or vp in vs:
                     count += 1
                     tr["constraints"].remove(c)
         pos = gvars.index(v)
