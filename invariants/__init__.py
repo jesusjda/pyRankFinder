@@ -121,7 +121,7 @@ def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, us
                         else:
                             nodes[node]["state"].widening(original_states[node])
                         nodes[node]["accesses"] = 0
-                    queue.append(t["target"])
+                    queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_"+str(invariant_type))
     return invariants
