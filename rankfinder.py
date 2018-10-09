@@ -177,14 +177,12 @@ def remove_no_important_variables(cfg, doit=False):
             if c.isequality():
                 if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars+tr["local_vars"]):
                     continue
-                else:
-                    for v in c.get_variables():
-                        if v in nivars:
-                            nivars.remove(v)
-            else:
-                for v in c.get_variables():
-                    if v in nivars:
-                        nivars.remove(v)
+            for v in c.get_variables():
+                pos = gvars.index(v)
+                vt = gvars[pos%N]
+                if vt in nivars:
+                    nivars.remove(vt)
+
             if len(nivars) == 0:
                 break
         if len(nivars) == 0:
