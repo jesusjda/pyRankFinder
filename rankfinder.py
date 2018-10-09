@@ -224,7 +224,7 @@ def launch_file(config, f, out):
         else:
             OM.printerrf("Parser Error:\n", e)
         return
-    
+    OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
 
     config["vars_name"] = cfg.get_info("global_vars")
