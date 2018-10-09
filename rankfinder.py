@@ -91,6 +91,9 @@ def setArgumentParser():
     argParser.add_argument("-sc", "--simplify-constraints", required=False,
                            default=False, action='store_true',
                            help="Simplify constraints")
+    argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
+                           default=False, action='store_true',
+                           help="Remove No Important variables before do anything else.")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="ppl", help="select lib")
     # CFR Parameters
@@ -155,6 +158,50 @@ def parse_file(f):
     import genericparser
     return genericparser.parse(f)
 
+def remove_no_important_variables(cfg, doit=False):
+    if not doit:
+        return
+    def are_related_vars(vs, vas):
+        if len(vs) != 2: 
+            return False
+        N = int(len(vas)/2)
+        pos1 = vas.index(vs[0])
+        pos2 = vas.index(vs[1])
+        return pos1%N == pos2%N
+        
+    gvars = cfg.get_info("global_vars")
+    N = int(len(gvars)/2)
+    nivars = list(gvars[:N])
+    for tr in cfg.get_edges():
+        for c in tr["constraints"]:
+            if c.isequality():
+                if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars+tr["local_vars"]):
+                    continue
+                else:
+                    for v in c.get_variables():
+                        if v in nivars:
+                            nivars.remove(v)
+            else:
+                for v in c.get_variables():
+                    if v in nivars:
+                        nivars.remove(v)
+            if len(nivars) == 0:
+                break
+        if len(nivars) == 0:
+            break
+    count = 0
+    for v in nivars:
+        for tr in cfg.get_edges():
+            for c in list(tr["constraints"]):
+                vs = c.get_variables()
+                if v in vs:
+                    count += 1
+                    tr["constraints"].remove(c)
+        pos = gvars.index(v)
+        gvars.pop(pos+N)
+        gvars.pop(pos)
+        N = int(len(gvars)/2)
+    OM.printif(1, "Removed {} constraint(s) with variables: [{}]".format(count, ",".join(nivars)))
 
 def launch_file(config, f, out):
     aux_p = f.split('/')
@@ -177,6 +224,8 @@ def launch_file(config, f, out):
         else:
             OM.printerrf("Parser Error:\n", e)
         return
+    
+    remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
 
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
@@ -326,9 +375,6 @@ def analyse_termination(config, cfg):
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
         compute_invariants(pe_cfg, invariant_type=config["invariants"],
                            use_threshold=config["invariants_threshold"])
-        # remove false transitions
-        if "dotDestination" in config:
-            write_dotfile(config["dotDestination"], config["name"], pe_cfg)
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                 dt_modes=dt_modes)
         ncfg = {}
