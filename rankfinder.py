@@ -226,7 +226,7 @@ def launch_file(config, f, out):
         return
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
-
+    OM.show_output()
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
 
