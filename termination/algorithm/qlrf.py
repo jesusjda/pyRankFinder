@@ -78,14 +78,25 @@ class QLRF_ADFG(Algorithm):
             farkas_constraints += [0 <= deltas[tr["name"]],
                                    deltas[tr["name"]] <= 1]
 
-        farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
         exp = sum([deltas[tr] for tr in deltas])
-        result = farkas_poly.maximize(exp)
-        if not result['bounded']:
-            response.set_response(status=TerminationResult.UNKNOWN,
-                                  info="Unbound polyhedron")
-            return response
-        point = result["generator"]
+
+        if self.props["nonoptimal"]:
+            farkas_constraints += [exp >= 1]
+            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            point = farkas_poly.get_point(use_z3=use_z3)
+            if point is None:
+                response.set_response(status=TerminationResult.UNKNOWN,
+                                      info="No point found for non-optimal adfg.")
+                return response
+        else:
+            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            result = farkas_poly.maximize(exp)
+            if not result['bounded']:
+                response.set_response(status=TerminationResult.UNKNOWN,
+                                      info="Unbound polyhedron")
+                return response
+            point = result["generator"]
+
         zeros = True
         for c in point.coefficients():
             if c != 0:
@@ -100,13 +111,34 @@ class QLRF_ADFG(Algorithm):
 
             no_ranked = [tr for tr in transitions
                          if(point.coefficient(deltas[tr["name"]])
-                            == Linear_Expression(0))]
+                            == 0)]
 
         response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
                               rfs=rfs,
                               pending_trs=no_ranked)
         return response
+
+
+    @classmethod
+    def generate(cls, data):
+        if(len(data) == 0 or
+           data[0] != cls.ID):
+            return None
+
+        properties = {
+            "name": data[0],
+            "nonoptimal": False
+        }
+        data = data[1::]
+        if(len(data) > 0 and
+           data[0] == "no"):
+            properties["nonoptimal"] = True
+            data = data[1::]
+        if len(data) == 0:
+            return cls(properties)
+        return None
+
 
 
 class QLRF_BG(Algorithm):
@@ -222,7 +254,6 @@ class QLRF_BG(Algorithm):
         response.set_response(status=TerminationResult.UNKNOWN,
                               info="rf found was the trivial")
         return response
-
 
 class QuasiLinearRF(Manager):
     ALGORITHMS = [QLRF_ADFG, QLRF_BG]

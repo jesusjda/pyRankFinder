@@ -65,7 +65,6 @@ class PR(Algorithm):
                                              [lambdas, lambdas2],
                                              rf_s, rf_t)
         farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        farkas_poly.minimized_constraints()
         
         point = farkas_poly.get_point(use_z3=use_z3)
         if point is None:
