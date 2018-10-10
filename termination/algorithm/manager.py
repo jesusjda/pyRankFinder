@@ -33,6 +33,8 @@ class Algorithm(object):
         cad_alg = self.NAME
         if "version" in self.props:
             cad_alg += "v" + str(self.props["version"])
+        if "nonoptimal" in self.props and self.props["nonoptimal"]:
+            cad_alg += "_no"
         return cad_alg
 
     def set_prop(self, key, value):
@@ -46,6 +48,8 @@ class Algorithm(object):
 
     def get_name(self):
         cad_name = self.NAME
+        if "nonoptimal" in self.props and self.props["nonoptimal"]:
+            cad_name += "_no"
         if "version" in self.props and str(self.props["version"]) != 1:
             cad_name += "v" + str(self.props["version"])
         if "min_depth" in self.props:

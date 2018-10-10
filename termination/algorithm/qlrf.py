@@ -121,6 +121,14 @@ class QLRF_ADFG(Algorithm):
 
 
     @classmethod
+    def description(cls, long=False):
+        desc = str(cls.ID) + "[_no]"
+        if long:
+            desc += ": " + str(cls.DESC)
+        return desc
+
+
+    @classmethod
     def generate(cls, data):
         if(len(data) == 0 or
            data[0] != cls.ID):
