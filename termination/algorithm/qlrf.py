@@ -122,7 +122,7 @@ class QLRF_ADFG(Algorithm):
 
     @classmethod
     def description(cls, long=False):
-        desc = str(cls.ID) + "[_no]"
+        desc = str(cls.ID) + "[_nonoptimal]"
         if long:
             desc += ": " + str(cls.DESC)
         return desc
@@ -140,7 +140,7 @@ class QLRF_ADFG(Algorithm):
         }
         data = data[1::]
         if(len(data) > 0 and
-           data[0] == "no"):
+           data[0] == "nonoptimal"):
             properties["nonoptimal"] = True
             data = data[1::]
         if len(data) == 0:
