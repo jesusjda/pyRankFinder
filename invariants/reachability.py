@@ -25,9 +25,9 @@ def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3,
         nodes = {}
         queue = []
         for node, node_data in graph_nodes:
-            if "rechability" in node_data:
+            if "reachability" in node_data:
                 st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl") 
-                                                           for c in node_data["rechability"]
+                                                           for c in node_data["reachability"]
                                                            if c.is_linear()]), dim=Nvars))
                 queue.append(node)
             else:

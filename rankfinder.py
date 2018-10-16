@@ -422,15 +422,14 @@ def show_termination_result(result, cfg):
                   str(no_lin))
     OM.printf(result.toString(cfg.get_info("global_vars")))
     OM.printseparator(1)
-    if OM.verbosity > 0:
-        unk_sccs = result.get("unknown_sccs")
-        if len(unk_sccs) > 0:
-            OM.printif(1, "SCCs where we can not proof termination.")
-            for scc in unk_sccs:
-                ns = scc.get_nodes()
-                ts = scc.get_edges()
-                OM.printif(1, "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
-                    ",".join([t["name"] for t in ts]), ",".join(ns)))
+    unk_sccs = result.get("unknown_sccs")
+    if len(unk_sccs) > 0:
+        OM.printf("SCCs where we can not proof termination.")
+        for scc in unk_sccs:
+            ns = scc.get_nodes()
+            ts = scc.get_edges()
+            OM.printf("SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
+                ",".join([t["name"] for t in ts]), ",".join(ns)))
 
 def show_nontermination_result(result, cfg):
     OM.printseparator(1)
@@ -470,13 +469,13 @@ def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_thresho
     cfg.build_polyhedrons()
     node_inv = invariants.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold)
     if use:
-        OM.printseparator(1)
-        OM.printif(1, "REACHABILITY ({})".format(abstract_domain))
+        OM.printseparator(0)
+        OM.printf("REACHABILITY ({})".format(abstract_domain))
         gvars = cfg.get_info("global_vars")
-        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
-                                 str(node_inv[n].toString(gvars))
-                                 for n in sorted(node_inv)]))
-        OM.printseparator(1)
+        OM.printf("\n".join(["-> " + str(n) + " = " +
+                              str(node_inv[n].toString(gvars))
+                              for n in sorted(node_inv)]))
+        OM.printseparator(0)
 
 
 if __name__ == "__main__":
