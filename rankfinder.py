@@ -61,6 +61,7 @@ def nontermination_alg_desc():
 def setArgumentParser():
     desc = _name+": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
+    absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -91,6 +92,11 @@ def setArgumentParser():
     argParser.add_argument("-sc", "--simplify-constraints", required=False,
                            default=False, action='store_true',
                            help="Simplify constraints")
+    argParser.add_argument("-usr-reach", "--user-reachability", required=False,
+                           default=False, action='store_true',
+                           help="Compute reachability from user constraints")
+    argParser.add_argument("-reach", "--reachability", required=False, choices=absdomains,
+                           default="none", help="Compute reachability")
     argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
@@ -107,7 +113,7 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False,
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
     argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
                            default=False, action='store_true',
@@ -124,7 +130,7 @@ def setArgumentParser():
     argParser.add_argument("-t", "--termination", type=termination_alg,
                            nargs='*', required=False,
                            help=termination_alg_desc())
-    argParser.add_argument("-i", "--invariants", required=False,
+    argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-ithre", "--invariants-threshold", required=False,
                            action='store_true', help="Use user thresholds.")
@@ -347,7 +353,7 @@ def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False)
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
-        compute_invariants(pe_cfg, invariant_type=cfr_inv, use=False, use_threshold=cfr_inv_thre)
+        compute_invariants(pe_cfg, abstract_domain=cfr_inv, use=False, use_threshold=cfr_inv_thre)
         pe_cfg.simplify_constraints(simplify=cfr_simplify)
         showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
@@ -379,9 +385,9 @@ def analyse_termination(config, cfg):
         OM.printseparator(1)
         cfg.simplify_constraints()
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
-        compute_invariants(pe_cfg, invariant_type=config["invariants"],
+        compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                            use_threshold=config["invariants_threshold"])
-        compute_rechability(pe_cfg, invariant_type="polyhedra",
+        compute_reachability(pe_cfg, abstract_domain="polyhedra", use=config["user_reachability"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                 dt_modes=dt_modes)
@@ -432,26 +438,26 @@ def write_prologfile(prologDestination, name, cfg):
             dot = os.path.join(prologDestination, s + ".pl")
             cfg.toProlog(dot)
 
-def compute_invariants(cfg, invariant_type, use=True, use_threshold=False):
+def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
     cfg.build_polyhedrons()
-    node_inv = invariants.compute_invariants(cfg, invariant_type, use_threshold=use_threshold)
+    node_inv = invariants.compute_invariants(cfg, abstract_domain, use_threshold=use_threshold)
     if use:
         OM.printseparator(1)
-        OM.printif(1, "INVARIANTS ({})".format(invariant_type))
+        OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
         gvars = cfg.get_info("global_vars")
         OM.printif(1, "\n".join(["-> " + str(n) + " = " +
                                  str(node_inv[n].toString(gvars))
                                  for n in sorted(node_inv)]))
         OM.printseparator(1)
     if use:
-        invariants.use_invariants(cfg, invariant_type)
+        invariants.use_invariants(cfg, abstract_domain)
 
-def compute_rechability(cfg, invariant_type, use=True, use_threshold=False):
+def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False):
     cfg.build_polyhedrons()
-    node_inv = invariants.compute_rechability(cfg, invariant_type, use_threshold=use_threshold)
+    node_inv = invariants.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold)
     if use:
         OM.printseparator(1)
-        OM.printif(1, "REACHABILITY ({})".format(invariant_type))
+        OM.printif(1, "REACHABILITY ({})".format(abstract_domain))
         gvars = cfg.get_info("global_vars")
         OM.printif(1, "\n".join(["-> " + str(n) + " = " +
                                  str(node_inv[n].toString(gvars))

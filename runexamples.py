@@ -266,7 +266,9 @@ if __name__ == "__main__":
                                     "name": extractname(f),
                                     "output_destination":None,
                                     "output_formats":[],
-                                    "remove_no_important_variables": rniv
+                                    "remove_no_important_variables": rniv,
+                                    "user_reachability": False,
+                                    "reachability": "none"
                                 }
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),

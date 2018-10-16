@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-__all__ = ["compute_invariants", "compute_rechability"]
+__all__ = ["compute_invariants", "compute_reachability"]
 
 
 class AbstractState(object):
@@ -73,7 +73,7 @@ from invariants.polyhedraabstractstate import PolyhedraState
 from invariants.intervalabstractstate import IntervalState
 
 
-def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, use_threshold=False):
+def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
     from ppl import Constraint_System
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
@@ -81,16 +81,16 @@ def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, us
     nodes = {}
     global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
-    if(invariant_type is None or invariant_type == "none"):
+    if(abstract_domain is None or abstract_domain == "none"):
         invariants = {node: PolyhedraState(Nvars) for node in graph_nodes}
     else:
         def state(n, bottom=False):
-            if invariant_type.lower() == "polyhedra":
+            if abstract_domain.lower() == "polyhedra":
                 return PolyhedraState(n, bottom=bottom)
-            elif invariant_type.lower() == "interval":
+            elif abstract_domain.lower() == "interval":
                 return IntervalState(n, bottom=bottom)
             else:
-                raise NotImplementedError("{} state type is NOT implemented.".format(invariant_type))
+                raise NotImplementedError("{} state type is NOT implemented.".format(abstract_domain))
         nodes = {node:{"state": state(Nvars, bottom=True), "accesses": 0}
                  for node in graph_nodes}
 
@@ -121,10 +121,10 @@ def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, us
                         nodes[node]["accesses"] = 0
                     queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
-    cfg.set_nodes_info(invariants, "invariant_"+str(invariant_type))
+    cfg.set_nodes_info(invariants, "invariant_"+str(abstract_domain))
     return invariants
 
-from invariants.rechability import compute_rechability
+from invariants.reachability import compute_reachability
 
 def use_invariants(cfg, invariant_type):
     from lpi.Lazy_Polyhedron import C_Polyhedron

@@ -1,9 +1,9 @@
 from invariants.polyhedraabstractstate import PolyhedraState
 from invariants.intervalabstractstate import IntervalState
 from invariants import compute_threshold
-__all__ = ["compute_rechability"]
+__all__ = ["compute_reachability"]
 
-def compute_rechability(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
+def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
     from lpi import C_Polyhedron
     from ppl import Constraint_System
     graph_nodes = cfg.get_nodes(data=True)
@@ -33,7 +33,6 @@ def compute_rechability(cfg, abstract_domain="polyhedra", widening_frecuency=3, 
             else:
                 st = state(Nvars, bottom=True)
             nodes[node] = {"state": st, "accesses": 0}
-        print(queue)
         while len(queue) > 0:
             original_states = {}
             while len(queue) > 0:
@@ -58,5 +57,5 @@ def compute_rechability(cfg, abstract_domain="polyhedra", widening_frecuency=3, 
                         nodes[node]["accesses"] = 0
                     queue.append(node)
         rechability = {node: nodes[node]["state"] for node in sorted(nodes)}
-    cfg.set_nodes_info(rechability, "rechability_"+str(abstract_domain))
+    cfg.set_nodes_info(rechability, "reachability_"+str(abstract_domain))
     return rechability
