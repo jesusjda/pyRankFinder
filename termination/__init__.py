@@ -7,14 +7,15 @@ from .result import TerminationResult
 __all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "analyse"]
 
 
-def analyse(algs, cfg, sccd=1, dt_modes=[False]):
-    return rank(algs,[(cfg,sccd)],dt_modes=dt_modes)
+def analyse(algs, cfg, sccd=1, dt_modes=[False], continue_after_fail=False):
+    return rank(algs,[(cfg,sccd)],dt_modes=dt_modes, continue_after_fail=continue_after_fail)
 
-def rank(algs, CFGs, dt_modes=[False]):
+def rank(algs, CFGs, dt_modes=[False], continue_after_fail=False):
     from .algorithm.utils import merge
     response = Result()
     rfs = {}
     fail = False
+    unknown_sccs = []
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
         if len(current_cfg.get_edges()) == 0:
@@ -35,7 +36,10 @@ def rank(algs, CFGs, dt_modes=[False]):
                 continue
             if not R:
                 fail = True
-                break
+                unknown_sccs.append(cfg)
+                if not continue_after_fail:
+                    break
+                continue
             merge(rfs, R.get("rfs"))
             pending_trs = R.get("pending_trs")
             if pending_trs:
@@ -46,7 +50,8 @@ def rank(algs, CFGs, dt_modes=[False]):
     else:
         response.set_response(status=TerminationResult.TERMINATE)
     response.set_response(rfs=rfs,
-                          pending_cfgs=CFGs)
+                          pending_cfgs=CFGs,
+                          unknown_sccs=unknown_sccs)
     return response
 
 

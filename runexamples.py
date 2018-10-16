@@ -268,7 +268,8 @@ if __name__ == "__main__":
                                     "output_formats":[],
                                     "remove_no_important_variables": rniv,
                                     "user_reachability": False,
-                                    "reachability": "none"
+                                    "reachability": "none",
+                                    "continue_after_fail": False
                                 }
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),

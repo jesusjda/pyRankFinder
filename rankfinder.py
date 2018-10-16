@@ -134,6 +134,9 @@ def setArgumentParser():
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-ithre", "--invariants-threshold", required=False,
                            action='store_true', help="Use user thresholds.")
+    argParser.add_argument("-caf", "--continue-after-fail", required=False,
+                           default=False, action='store_true',
+                           help="If an SCC fails it will continue analysing the rest.")
     return argParser
 
 
@@ -392,7 +395,7 @@ def analyse_termination(config, cfg):
         compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                dt_modes=dt_modes)
+                                dt_modes=dt_modes, continue_after_fail=config["continue_after_fail"])
         ncfg = {}
         ncfg["name"] = config["name"]
         ncfg["output_destination"] = config["output_destination"]
@@ -419,6 +422,15 @@ def show_termination_result(result, cfg):
                   str(no_lin))
     OM.printf(result.toString(cfg.get_info("global_vars")))
     OM.printseparator(1)
+    if OM.verbosity > 0:
+        unk_sccs = result.get("unknown_sccs")
+        if len(unk_sccs) > 0:
+            OM.printif(1, "SCCs where we can not proof termination.")
+            for scc in unk_sccs:
+                ns = scc.get_nodes()
+                ts = scc.get_edges()
+                OM.printif(1, "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
+                    ",".join([t["name"] for t in ts]), ",".join(ns)))
 
 def show_nontermination_result(result, cfg):
     OM.printseparator(1)
