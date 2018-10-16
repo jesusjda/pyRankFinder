@@ -96,7 +96,7 @@ def setArgumentParser():
                            default=False, action='store_true',
                            help="Compute reachability from user constraints")
     argParser.add_argument("-reach", "--reachability", required=False, choices=absdomains,
-                           default="none", help="Compute reachability")
+                           default="none", help="Analyse reachability")
     argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
