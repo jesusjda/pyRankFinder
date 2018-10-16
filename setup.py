@@ -19,8 +19,8 @@ ter_name = 'termination'
 teralg_dir = os.path.join(ter_dir, 'algorithm')
 teralg_name = ter_name+'.algorithm'
 
-inv_dir = os.path.join(base, 'invariants')
-inv_name = 'invariants'
+inv_dir = os.path.join(base, 'nodeproperties')
+inv_name = 'nodeproperties'
 
 pe_dir = os.path.join(base, 'partialevaluation')
 pe_name = 'partialevaluation'

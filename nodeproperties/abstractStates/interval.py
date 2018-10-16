@@ -8,8 +8,9 @@ from interval import inf
 
 _eps = 1e-9
 
+__all__ = ["IntervalAbstractState"]
 
-class IntervalState(AbstractState):
+class IntervalAbstractState(AbstractState):
 
     _state = None
     dim = 0

@@ -5,8 +5,9 @@ from ppl import Linear_Expression
 from ppl import Variable
 from ppl import Variables_Set
 
+__all__ = ["PolyhedraAbstractState"]
 
-class PolyhedraState(AbstractState):
+class PolyhedraAbstractState(AbstractState):
 
     _state = None
 
@@ -64,25 +65,18 @@ class PolyhedraState(AbstractState):
         return s1
 
     def apply_backward_tr(self, tr, copy=False):
-        # TODO: 
         s1 = self.copy(copy)
         poly_tr = tr["tr_polyhedron"]
         m = poly_tr.get_dimension()
         n = s1._state.get_dimension()
-        # s1._state.add_dimensions(m - n)
-        print(n, m, self, s1)
+        # move x to x'
         for i in range(0, n):
             s1._state.expand_space_dimension(Variable(i), 1)
             s1._state.unconstraint(Variable(i))
-        print(s1)
         s1._state.add_dimensions(m - 2*n)
         s1._state.intersection_assign(poly_tr)
         var_set = Variables_Set()
-        #for i in range(0, 0):  # Vars from 0 to n-1 inclusive
-        #    var_set.insert(Variable(i))
-        # (local variables)
-        for i in range(n, m):  # Vars from 2*n to m-1 inclusive
-            print(i)
+        for i in range(n, m):  # Vars from n to m-1 inclusive
             var_set.insert(Variable(i))
         s1._state.remove_dimensions(var_set)
         return s1

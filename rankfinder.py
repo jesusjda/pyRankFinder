@@ -1,5 +1,5 @@
 import argparse
-import invariants
+import nodeproperties
 import os
 import sys
 from termination import Termination_Algorithm_Manager as TAM
@@ -453,7 +453,7 @@ def write_prologfile(prologDestination, name, cfg):
 
 def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
     cfg.build_polyhedrons()
-    node_inv = invariants.compute_invariants(cfg, abstract_domain, use_threshold=use_threshold)
+    node_inv = nodeproperties.compute_invariants(cfg, abstract_domain, use_threshold=use_threshold)
     if use:
         OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
@@ -463,11 +463,11 @@ def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
                                  for n in sorted(node_inv)]))
         OM.printseparator(1)
     if use:
-        invariants.use_invariants(cfg, abstract_domain)
+        nodeproperties.use_invariants(cfg, abstract_domain)
 
 def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False):
     cfg.build_polyhedrons()
-    node_inv = invariants.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold)
+    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold)
     if use:
         OM.printseparator(0)
         OM.printf("REACHABILITY ({})".format(abstract_domain))

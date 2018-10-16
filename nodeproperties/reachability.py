@@ -1,6 +1,6 @@
-from invariants.polyhedraabstractstate import PolyhedraState
-from invariants.intervalabstractstate import IntervalState
-from invariants import compute_threshold
+from .abstractStates import state
+from .thresholds import user_thresholds
+
 __all__ = ["compute_reachability"]
 
 def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
@@ -8,27 +8,21 @@ def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3,
     from ppl import Constraint_System
     graph_nodes = cfg.get_nodes(data=True)
     
-    threshold = compute_threshold(cfg, use_threshold)
+    threshold = user_thresholds(cfg, use_threshold)
     nodes = {}
     global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
     if(abstract_domain is None or abstract_domain == "none"):
-        rechability = {node: PolyhedraState(Nvars) for node in graph_nodes}
+        rechability = {node: state(Nvars) for node in graph_nodes}
     else:
-        def state(n, bottom=False):
-            if abstract_domain.lower() == "polyhedra":
-                return PolyhedraState(n, bottom=bottom)
-            elif abstract_domain.lower() == "interval":
-                return IntervalState(n, bottom=bottom)
-            else:
-                raise NotImplementedError("{} state type is NOT implemented.".format(abstract_domain))
         nodes = {}
         queue = []
         for node, node_data in graph_nodes:
             if "reachability" in node_data:
                 st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl") 
                                                            for c in node_data["reachability"]
-                                                           if c.is_linear()]), dim=Nvars))
+                                                           if c.is_linear()]), dim=Nvars),
+                           abstract_domain=abstract_domain)
                 queue.append(node)
             else:
                 st = state(Nvars, bottom=True)
