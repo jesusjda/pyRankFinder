@@ -244,7 +244,11 @@ def launch_file(config, f, out):
 
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-
+    if config["user_reachability"]:
+        cfg.build_polyhedrons()
+        compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"],
+                             use_threshold=config["invariants_threshold"])
+        return None
     # Compute Termination
     termination_result = None
     nontermination_result = None
@@ -383,11 +387,9 @@ def analyse_termination(config, cfg):
         else:
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
-        cfg.simplify_constraints()
+        #cfg.simplify_constraints()
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
         compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                           use_threshold=config["invariants_threshold"])
-        compute_reachability(pe_cfg, abstract_domain="polyhedra", use=config["user_reachability"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                 dt_modes=dt_modes)
