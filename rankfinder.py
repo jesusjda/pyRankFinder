@@ -381,6 +381,8 @@ def analyse_termination(config, cfg):
         pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
         compute_invariants(pe_cfg, invariant_type=config["invariants"],
                            use_threshold=config["invariants_threshold"])
+        compute_rechability(pe_cfg, invariant_type="polyhedra",
+                           use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                 dt_modes=dt_modes)
         ncfg = {}
@@ -443,7 +445,19 @@ def compute_invariants(cfg, invariant_type, use=True, use_threshold=False):
         OM.printseparator(1)
     if use:
         invariants.use_invariants(cfg, invariant_type)
-    
+
+def compute_rechability(cfg, invariant_type, use=True, use_threshold=False):
+    cfg.build_polyhedrons()
+    node_inv = invariants.compute_rechability(cfg, invariant_type, use_threshold=use_threshold)
+    if use:
+        OM.printseparator(1)
+        OM.printif(1, "REACHABILITY ({})".format(invariant_type))
+        gvars = cfg.get_info("global_vars")
+        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
+                                 str(node_inv[n].toString(gvars))
+                                 for n in sorted(node_inv)]))
+        OM.printseparator(1)
+
 
 if __name__ == "__main__":
     try:
@@ -461,3 +475,5 @@ if __name__ == "__main__":
         launch(config)
     finally:
         OM.show_output()
+
+
