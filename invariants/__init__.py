@@ -1,7 +1,6 @@
 from copy import deepcopy
 
-
-__all__ = ["compute_invariants"]
+__all__ = ["compute_invariants", "compute_rechability"]
 
 
 class AbstractState(object):
@@ -52,10 +51,6 @@ class AbstractState(object):
         return "{{{}}}".format(", ".join(self.toString()))
 
 
-from invariants.polyhedraabstractstate import PolyhedraState
-from invariants.intervalabstractstate import IntervalState
-
-
 def compute_threshold(cfg, use_threshold=False):
     if not use_threshold:
         return {n:None for n in cfg.get_nodes()}
@@ -73,6 +68,9 @@ def compute_threshold(cfg, use_threshold=False):
         threshold[node] = cs
     cfg.set_nodes_info(threshold, "cs_threshold")
     return threshold
+
+from invariants.polyhedraabstractstate import PolyhedraState
+from invariants.intervalabstractstate import IntervalState
 
 
 def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, use_threshold=False):
@@ -126,6 +124,7 @@ def compute_invariants(cfg, invariant_type="polyhedra", widening_frecuency=3, us
     cfg.set_nodes_info(invariants, "invariant_"+str(invariant_type))
     return invariants
 
+from invariants.rechability import compute_rechability
 
 def use_invariants(cfg, invariant_type):
     from lpi.Lazy_Polyhedron import C_Polyhedron

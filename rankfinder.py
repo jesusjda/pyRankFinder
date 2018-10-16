@@ -227,7 +227,7 @@ def launch_file(config, f, out):
             with open(tmpfile, "w") as f:
                 f.write(e)
         else:
-            OM.printerrf("Parser Error:\n", e)
+            OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
         return
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])

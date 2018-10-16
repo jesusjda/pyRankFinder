@@ -12,8 +12,11 @@ class PolyhedraState(AbstractState):
 
     def __init__(self, arg1, bottom=False):
         if isinstance(arg1, C_Polyhedron):
-            dim = arg1.space_dimension()
+            dim = arg1.get_dimension()
             cs = arg1.get_constraints()
+        elif isinstance(arg1, Constraint_System):
+            dim = arg1.space_dimension()
+            cs = arg1
         else:
             try:
                 dim = int(arg1)
@@ -60,6 +63,30 @@ class PolyhedraState(AbstractState):
         s1._state.remove_dimensions(var_set)
         return s1
 
+    def apply_backward_tr(self, tr, copy=False):
+        # TODO: 
+        s1 = self.copy(copy)
+        poly_tr = tr["tr_polyhedron"]
+        m = poly_tr.get_dimension()
+        n = s1._state.get_dimension()
+        # s1._state.add_dimensions(m - n)
+        print(n, m, self, s1)
+        for i in range(0, n):
+            s1._state.expand_space_dimension(Variable(i), 1)
+            s1._state.unconstraint(Variable(i))
+        print(s1)
+        s1._state.add_dimensions(m - 2*n)
+        s1._state.intersection_assign(poly_tr)
+        var_set = Variables_Set()
+        #for i in range(0, 0):  # Vars from 0 to n-1 inclusive
+        #    var_set.insert(Variable(i))
+        # (local variables)
+        for i in range(n, m):  # Vars from 2*n to m-1 inclusive
+            print(i)
+            var_set.insert(Variable(i))
+        s1._state.remove_dimensions(var_set)
+        return s1
+
     def get_constraints(self):
         return self._state.get_constraints()
 
@@ -69,3 +96,4 @@ class PolyhedraState(AbstractState):
 
     def toString(self, vars_name=None, eq_symb="==", geq_symb=">="):
         return self._state.toString(vars_name=vars_name, eq_symb=eq_symb, geq_symb=geq_symb)
+

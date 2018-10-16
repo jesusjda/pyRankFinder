@@ -199,10 +199,11 @@ if __name__ == "__main__":
     verb = ar["verbosity"]
     cfr_au = 4
     cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
-    lib = ["ppl"]
-    inv = ["none", "polyhedra", "interval"]
-    cfr_invs = ["none", "polyhedra", "interval"]
-    dt = ["never", "iffail", "always"]
+    lib = ["z3"]
+    inv = ["none", "polyhedra"]
+    cfr_invs = ["none", "polyhedra"]
+    rniv = True
+    dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
@@ -212,11 +213,12 @@ if __name__ == "__main__":
     else:
         mout = None
     algs = []
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
     algs.append([termination.algorithm.lrf.PR()])
     for i in range(1, 3):
         algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
                                                         "version": 1})])
-    # algs.append([{"name": "qlrf_bg"}])
+
     numm = len(files)
     info = {}
     ite = 0
@@ -263,7 +265,8 @@ if __name__ == "__main__":
                                     "tmpdir":None,
                                     "name": extractname(f),
                                     "output_destination":None,
-                                    "output_formats":[]
+                                    "output_formats":[],
+                                    "remove_no_important_variables": rniv
                                 }
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),
@@ -272,6 +275,8 @@ if __name__ == "__main__":
                                 response["config"] = config
                                 info["analysis"].append(response)
                                 if response["status"].is_terminate():
-                                    status = True
+                                    status = False
         save_info(info, cachedir, f, ar["prefix"])
+
+
 
