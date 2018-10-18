@@ -399,8 +399,10 @@ def analyse_termination(config, cfg):
         #cfg.simplify_constraints()
         if cfr_first:
             pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
+            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
         else:
             pe_cfg = cfg
+            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "none", "none")
         compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
@@ -409,7 +411,6 @@ def analyse_termination(config, cfg):
         ncfg["name"] = config["name"]
         ncfg["output_destination"] = config["output_destination"]
         ncfg["output_formats"] = ["fc", "svg"]
-        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
         showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
         if r.get_status().is_terminate():
             return r
@@ -428,6 +429,12 @@ def analyse_termination(config, cfg):
                                    use_threshold=config["invariants_threshold"])
                 r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
                                         dt_modes=dt_modes, continue_after_fail=config["continue_after_fail"])
+                ncfg = {}
+                ncfg["name"] = config["name"]
+                ncfg["output_destination"] = config["output_destination"]
+                ncfg["output_formats"] = ["fc", "svg"]
+                sufix="  iterations:{}, auto:{}, usr:{}, inv:{}, nodes:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"], only_nodes)
+                showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
             OM.printseparator(2)
     return r
 
