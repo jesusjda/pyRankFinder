@@ -4,7 +4,7 @@ from .thresholds import user_thresholds
 from .abstractStates import state
 
 def user_invariants(cfg):
-    raise NotImplementedError("User nodeproperties is not implemented yet.")
+    raise NotImplementedError("User invariants is not implemented yet.")
 
 
 def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
@@ -21,7 +21,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
                  for node in graph_nodes}
 
         nodes[init_node]["state"] = state(Nvars, abstract_domain=abstract_domain)
-
+        from termination.output import Output_Manager as OM
         queue = [init_node]
         while len(queue) > 0:
             original_states = {}
@@ -30,20 +30,25 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
                 for t in cfg.get_edges(source=node):
                     s = nodes[node]["state"]
                     dest_s = nodes[t["target"]]
+                    OM.printif(4,t["target"], dest_s["state"])
                     if not(t["target"] in original_states):
                         original_states[t["target"]] = dest_s["state"]
                     s1 = s.apply_tr(t, copy=True)
+                    OM.printif(4,"apply {}".format(t["name"]), t["tr_polyhedron"].get_constraints(), s1)
                     s2 = dest_s["state"].lub(s1, copy=True)
+                    OM.printif(4,"lub", s2)
                     dest_s["state"] = s2
+            OM.printif(4,"---")
             for node in original_states:
                 if not(nodes[node]["state"] <= original_states[node]):
                     nodes[node]["accesses"] += 1
                     if nodes[node]["accesses"] >= widening_frecuency:
-                        #print("WIDENING", node)
+                        OM.printif(4, "WIDENING", node)
                         if use_threshold:
                             nodes[node]["state"].widening(original_states[node], threshold=threshold[node])
                         else:
                             nodes[node]["state"].widening(original_states[node])
+                        OM.printif(4,"result: ", nodes[node]["state"])
                         nodes[node]["accesses"] = 0
                     queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}

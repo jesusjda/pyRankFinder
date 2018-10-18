@@ -5,7 +5,7 @@ from subprocess import Popen
 __all__ = ['partialevaluate']
 
 
-def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=False, invariant_type=None):
+def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=False, invariant_type=None, nodes_to_refine=[]):
     if not(auto_props in range(0, 5)):
         raise ValueError("CFR automatic properties mode unknown: {}.".format(auto_props))
     
@@ -34,7 +34,7 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=Fals
 
 
     # PROPERTIES
-    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=debug)
+    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, debug=debug)
 
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
@@ -55,7 +55,7 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=Fals
     return pe_cfg
     
 
-def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=False):
+def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, debug=False):
     if auto_props in range(1,5):
         propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
         pipe = Popen([propspath, tmpplfile, '-l', str(auto_props), '-r', tmpdirname],
@@ -85,7 +85,11 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, debug=False):
                 if len(n_props) > 0:
                     usr_props[node] = n_props
         _add_props(propsfile, usr_props, gvars, pvars)
-        
+
+    if len(nodes_to_refine) > 0:
+        nodes = cfg.get_nodes()
+        if len(nodes) != len(nodes_to_refine):
+            remove_nodes_props(propsfile, list(set(nodes) - set(nodes_to_refine)))
 
     # SAVE PROPS
     props = _parse_props(propsfile, gvars, pvars)
@@ -152,3 +156,14 @@ def _plVars(N):
     if N > lenABC:
         plvars += [ABC[i%lenABC]+str(int(i/lenABC)) for i in range(lenABC, N)]
     return plvars
+
+def remove_nodes_props(filename, nodes):
+    from shutil import move
+    destfile=filename+".tmp"
+    ops = tuple([("n_{}(".format(n)) for n in nodes])
+    print(ops)
+    with open(filename, "r") as fin, open(destfile, "w") as fout:
+        for line in fin:
+            if not line.startswith(ops):
+                fout.write(line)
+    move(destfile, filename)

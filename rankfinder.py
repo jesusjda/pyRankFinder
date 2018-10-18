@@ -108,8 +108,8 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
-    argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
-                           choices=["acumulate", "inmutate", "recompute"], default="recompute",
+    argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
+                           choices=["none", "first", "last", "both"], default="first",
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
@@ -349,7 +349,7 @@ def file2string(filepath):
         data=f.read()
     return data
 
-def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False):
+def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False, only_nodes=[]):
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
     # cfr_it_st = config["cfr_iteration_strategy"]
@@ -382,6 +382,12 @@ def analyse_termination(config, cfg):
     else:
         dt_modes = [False]
     skip = False
+    if "cfr_strategy" in config:
+        cfr_first = config["cfr_strategy"] in ["first", "both"]
+        cfr_last = config["cfr_strategy"] in ["last", "both"]
+    else:
+        cfr_first = True
+        cfr_last = False
     for au_prop in config["cfr_automatic_properties"]:
         if skip:
             break
@@ -391,7 +397,10 @@ def analyse_termination(config, cfg):
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
         #cfg.simplify_constraints()
-        pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
+        if cfr_first:
+            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
+        else:
+            pe_cfg = cfg
         compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
@@ -404,6 +413,22 @@ def analyse_termination(config, cfg):
         showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
         if r.get_status().is_terminate():
             return r
+    if cfr_last:
+        only_nodes = []
+        unk_sccs = r.get("unknown_sccs")
+        if len(unk_sccs) > 0:
+            OM.printseparator(2)
+            OM.printif(2, "CFR only the nodes where we failed")
+            for scc in unk_sccs:
+                only_nodes += scc.get_nodes()
+            OM.printif(2,"Nodes to refine:", only_nodes)
+            if len(only_nodes) > 0:
+                pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop, only_nodes=only_nodes)
+                compute_invariants(pe_cfg, abstract_domain=config["invariants"],
+                                   use_threshold=config["invariants_threshold"])
+                r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
+                                        dt_modes=dt_modes, continue_after_fail=config["continue_after_fail"])
+            OM.printseparator(2)
     return r
 
 
@@ -494,5 +519,3 @@ if __name__ == "__main__":
         launch(config)
     finally:
         OM.show_output()
-
-
