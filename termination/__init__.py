@@ -7,12 +7,12 @@ from .result import TerminationResult
 __all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "analyse"]
 
 
-def analyse(algs, cfg, sccd=1, dt_modes=[False], continue_after_fail=False):
-    response = rank(algs,[(cfg,sccd)],dt_modes=dt_modes, continue_after_fail=continue_after_fail)
+def analyse(algs, cfg, sccd=1, dt_modes=[False], stop_if_fail=False):
+    response = rank(algs,[(cfg,sccd)],dt_modes=dt_modes, stop_if_fail=stop_if_fail)
     response.set_response(cfg_analysed=cfg)
     return response
 
-def rank(algs, CFGs, dt_modes=[False], continue_after_fail=False):
+def rank(algs, CFGs, dt_modes=[False], stop_if_fail=False):
     from .algorithm.utils import merge
     response = Result()
     rfs = {}
@@ -39,7 +39,7 @@ def rank(algs, CFGs, dt_modes=[False], continue_after_fail=False):
             if not R:
                 fail = True
                 unknown_sccs.append(cfg)
-                if not continue_after_fail:
+                if stop_if_fail:
                     break
                 continue
             merge(rfs, R.get("rfs"))

@@ -1,11 +1,12 @@
 import os
+from termination.output import Output_Manager as OM
 from subprocess import PIPE
 from subprocess import Popen
     
 __all__ = ['partialevaluate']
 
 
-def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=False, invariant_type=None, nodes_to_refine=[]):
+def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_type=None, nodes_to_refine=[]):
     if not(auto_props in range(0, 5)):
         raise ValueError("CFR automatic properties mode unknown: {}.".format(auto_props))
     
@@ -28,13 +29,13 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=Fals
     else:
         init_node = cfg.get_info("init_node")
     initNode = "n_{}{}".format(init_node, vs)
-    if debug:
+    if OM.verbosity > 2:
         with open(tmpplfile, 'r') as fin:
-            print(fin.read())
+            OM.printif(3, fin.read())
 
 
     # PROPERTIES
-    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, debug=debug)
+    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine)
 
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
@@ -48,14 +49,14 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, debug=Fals
     from genericparser.Parser_fc import Parser_fc
     pfc = Parser_fc()
     pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
-    pe_cfg.simplify_constraints()
-
-    if debug:
-        print(fcpeprogram.decode("utf-8"))
+    rmded = pe_cfg.remove_unsat_edges()
+    if len(rmded)> 0:
+        OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
+    OM.printif(4, fcpeprogram.decode("utf-8"))
     return pe_cfg
     
 
-def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, debug=False):
+def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine):
     if auto_props in range(1,5):
         propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
         pipe = Popen([propspath, tmpplfile, '-l', str(auto_props), '-r', tmpdirname],
@@ -94,11 +95,10 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
     # SAVE PROPS
     props = _parse_props(propsfile, gvars, pvars)
     cfg.set_nodes_info(props, "cfr_used_properties")
-    from termination.output import Output_Manager as OM
     OM.printif(2, "CFR with props: {}".format(props))
-    if debug:
+    if OM.verbosity > 2:
         with open(propsfile, "r") as f:
-            print(f.read())
+            OM.printif(3, f.read())
     return propsfile
 
 def _do_modifications(props):

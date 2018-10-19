@@ -101,7 +101,7 @@ def setArgumentParser():
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
-                           default="ppl", help="select lib")
+                           default="z3", help="select lib")
     # CFR Parameters
     argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False, nargs='+',
                            type=int, choices=range(0,5), default=[4],
@@ -109,7 +109,7 @@ def setArgumentParser():
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
     argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
-                           choices=["none", "first", "last", "both"], default="first",
+                           choices=["none", "before", "scc", "after", "both"], default="before",
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
@@ -134,9 +134,9 @@ def setArgumentParser():
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-ithre", "--invariants-threshold", required=False,
                            action='store_true', help="Use user thresholds.")
-    argParser.add_argument("-caf", "--continue-after-fail", required=False,
+    argParser.add_argument("-sif", "--stop-if-fail", required=False,
                            default=False, action='store_true',
-                           help="If an SCC fails it will continue analysing the rest.")
+                           help="If an SCC fails the analysis will stop.")
     return argParser
 
 
@@ -354,18 +354,17 @@ def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False,
     cfr_inv = config["cfr_invariants"]
     # cfr_it_st = config["cfr_iteration_strategy"]
     cfr_usr_props = config["cfr_user_properties"]
-    cfr_simplify = config["cfr_simplify_constraints"]
     cfr_inv_thre = config["cfr_invariants_threshold"]
     tmpdir = config["tmpdir"]
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
         compute_invariants(pe_cfg, abstract_domain=cfr_inv, use=False, use_threshold=cfr_inv_thre)
-        pe_cfg.simplify_constraints(simplify=cfr_simplify)
+        pe_cfg.remove_unsat_edges()
         showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
-                                 invariant_type=cfr_inv)
+                                 invariant_type=cfr_inv, nodes_to_refine=only_nodes)
         sufix="_cfr"+str(it+1)
     showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
     return pe_cfg
@@ -396,17 +395,20 @@ def analyse_termination(config, cfg):
         else:
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
-        #cfg.simplify_constraints()
+        rmded = cfg.remove_unsat_edges()
+        print(rmded)
+        if len(rmded)> 0:
+            OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
         if cfr_first:
             pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
             sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
         else:
             pe_cfg = cfg
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "none", "none")
+            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "False", "none")
         compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                            use_threshold=config["invariants_threshold"])
         r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                dt_modes=dt_modes, continue_after_fail=config["continue_after_fail"])
+                                dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
         ncfg = {}
         ncfg["name"] = config["name"]
         ncfg["output_destination"] = config["output_destination"]
@@ -428,7 +430,7 @@ def analyse_termination(config, cfg):
                 compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                                    use_threshold=config["invariants_threshold"])
                 r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                        dt_modes=dt_modes, continue_after_fail=config["continue_after_fail"])
+                                        dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
                 ncfg = {}
                 ncfg["name"] = config["name"]
                 ncfg["output_destination"] = config["output_destination"]
