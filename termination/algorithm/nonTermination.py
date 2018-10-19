@@ -45,6 +45,8 @@ class Renaming(Algorithm):
                     if s.check() == sat:
                         m = s.model()
                         sols += [(cycle, m)]
+                    else:
+                        sols += [(cycle, "no recursive state found")]
                     s.pop()
             else:
                 names = [vs, pvs]
