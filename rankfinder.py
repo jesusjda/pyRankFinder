@@ -333,6 +333,14 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         OM.writefile(0, name+".koat", koatstr)
         stream.close()
         stream = StringIO()
+    if "pl" in config["output_formats"]:
+        cfg.toProlog(path=stream, invariant_type=invariant_type)
+        koatstr=stream.getvalue()
+        OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
+        OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
+        OM.writefile(0, name+".pl", koatstr)
+        stream.close()
+        stream = StringIO()
     stream.close()
 
 def dottoSvg(dotfile, svgfile):
@@ -396,7 +404,6 @@ def analyse_termination(config, cfg):
             OM.printif(1, "- CFR properties: {}".format(au_prop))
         OM.printseparator(1)
         rmded = cfg.remove_unsat_edges()
-        print(rmded)
         if len(rmded)> 0:
             OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
         if cfr_first:

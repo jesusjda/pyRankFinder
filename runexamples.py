@@ -259,6 +259,7 @@ if __name__ == "__main__":
                                     "cfr_simplify_constraints": True,
                                     "cfr_user_properties":False,
                                     "cfr_invariants_threshold":False,
+                                    "cfr_strategy" : "before",
                                     "invariants_threshold":False,
                                     "files": [f],
                                     "lib": l,
@@ -269,7 +270,7 @@ if __name__ == "__main__":
                                     "remove_no_important_variables": rniv,
                                     "user_reachability": False,
                                     "reachability": "none",
-                                    "continue_after_fail": False
+                                    "stop_if_fail": True
                                 }
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),

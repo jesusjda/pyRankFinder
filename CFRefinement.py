@@ -30,7 +30,7 @@ def setArgumentParser():
                            type=int, choices=range(0,5), default=4,
                            help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
-                           help="# times to apply cfr", default=0)
+                           help="# times to apply cfr", default=1)
     argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
                            choices=["acumulate", "inmutate", "recompute"], default="recompute",
                            help="")
