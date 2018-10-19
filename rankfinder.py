@@ -382,8 +382,8 @@ def analyse_termination(config, cfg):
         dt_modes = [False]
     skip = False
     if "cfr_strategy" in config:
-        cfr_first = config["cfr_strategy"] in ["first", "both"]
-        cfr_last = config["cfr_strategy"] in ["last", "both"]
+        cfr_first = config["cfr_strategy"] in ["before", "both"]
+        cfr_last = config["cfr_strategy"] in ["after", "both"]
     else:
         cfr_first = True
         cfr_last = False
