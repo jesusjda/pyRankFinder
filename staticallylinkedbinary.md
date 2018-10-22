@@ -15,12 +15,12 @@ Generate Binary
 
 Path to sources (maybe it is not needed)
 ```
-PPATH=/home/friker/Systems/pplpy/ppl/:/home/friker/Systems/pyLPi/lpi/:/home/friker/Systems/pyParser/genericparser/:/home/friker/Systems/pyRankFinder/partialevaluation/:/home/friker/Systems/pyRankFinder/invariants/:/home/friker/Systems/pyRankFinder/termination/
+PPATH=/home/friker/Systems/pplpy/ppl/:/home/friker/Systems/pyLPi/lpi/:/home/friker/Systems/pyParser/genericparser/:/home/friker/Systems/pyRankFinder/partialevaluation/:/home/friker/Systems/pyRankFinder/nodeproperties/:/home/friker/Systems/pyRankFinder/termination/
 ```
 
 
 ```
-pyinstaller rankfinder.py --hidden-import networkx --hidden-import gmpy2 --hidden-import cython --hidden-import cysignals --hidden-import z3 --hidden-import eiol --hidden-import lark --hidden-import pkg_resources.extern.packaging.version --hidden-import genericparser --hidden-import genericparser.Parser_smt2 --hidden-import genericparser.Parser_fc --hidden-import genericparser.Parser_koat --hidden-import termination --hidden-import invariants --hidden-import lpi --hidden-import ppl   -p $PPATH
+pyinstaller rankfinder.py --hidden-import networkx --hidden-import gmpy2 --hidden-import cython --hidden-import cysignals --hidden-import z3 --hidden-import eiol --hidden-import lark --hidden-import pkg_resources.extern.packaging.version --hidden-import genericparser --hidden-import genericparser.Parser_smt2 --hidden-import genericparser.Parser_fc --hidden-import genericparser.Parser_koat --hidden-import termination --hidden-import nodeproperties --hidden-import lpi --hidden-import ppl   -p $PPATH
 ```
 
 Copy no python files:
@@ -41,7 +41,7 @@ Test with:
 ```
 ./dist/rankfinder/rankfinder -f ./test/Ackermann.jar-obl-8.smt2 -t qnlrf_1 -sccd 1
 ```
-The answer should be equivalent to:
+The answer should be something similar to:
 ```
 Final Termination Result
 FOUND:
