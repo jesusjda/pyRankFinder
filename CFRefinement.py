@@ -3,7 +3,7 @@ import sys
 import argparse
 import genericparser
 from termination import Output_Manager as OM
-from rankfinder import control_flow_refinement
+from irankfinder import control_flow_refinement
 
 _version = "1.0"
 _name = "CFRefinement"

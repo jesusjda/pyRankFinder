@@ -4,7 +4,7 @@ from multiprocessing import Process
 import os
 import sys
 import termination.algorithm
-import rankfinder
+import irankfinder
 from termination.result import TerminationResult
 from pprint import pprint
 import datetime
@@ -336,7 +336,7 @@ if __name__ == "__main__":
                                     print("skip with : " + config2Tag(config))
                                     continue
                                 print("Trying with : " + config2Tag(config))
-                                response = sandbox(rankfinder.launch_file, args=(config, f, None),
+                                response = sandbox(irankfinder.launch_file, args=(config, f, None),
                                                     time_segs=tout, memory_mb=mout)
                                 response["date"] = datetime.datetime.today()
                                 response["config"] = config
