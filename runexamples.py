@@ -37,6 +37,10 @@ def setArgumentParser():
                            help="Folder cache.")
     argParser.add_argument("-p", "--prefix", required=True, default="",
                            help="Prefix of the files path")
+    argParser.add_argument("-oe", "--only-errors", required=False, action='store_true',
+                           help="Analyse only the results with errors.")
+    argParser.add_argument("-sit", "--stop-if-terminate", required=False, action='store_true',
+                           help="Analyse with each configuration until one terminates.")
     return argParser
 
 
@@ -134,8 +138,8 @@ def file2ID(file, prefix=""):
 def get_info(cache, file, prefix):
     name = file2ID(file, prefix)
     o = os.path.join(cache, name+".json")
-    info = None
     print("->",os.path.isfile(o),o)
+    info = None
     if os.path.isfile(o):
         import json
         with open(o) as f:
@@ -180,13 +184,58 @@ def save_info(info, cache, file, prefix):
             a["date"] = str(a["date"].isoformat())
             a["output"] = str(a["output"])
     pprint(tojson)
+    print("saving")
     with open(o, "w") as f:
         json.dump(tojson, f, indent=4, sort_keys=True)
+
 def extractname(filename):
     f = os.path.split(filename)
     b = os.path.split(f[0])
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
+
+def is_error(config, info):
+    inf = get_i(config, info)
+    if inf is None:
+        return True
+    return str(inf["status"]) == "Error"
+
+def get_i(config, info):
+    aas = info["analysis"]
+    valids = []
+    for a in aas:
+        c = a["config"]
+        good = True
+        for k in config:
+            if k == "termination":
+                for t1, t2 in zip(c[k], config[k]):
+                    if t1 == str(t2):
+                        continue
+                    else:
+                        good = False
+                        break
+                if not good:
+                    break
+                continue
+            if k != "invariants" and k not in c:
+                continue
+            try:
+                if c[k] == config[k]:
+                    continue
+            except:
+                if k == "invariants":
+                    if c["nodeproperties"] == config[k]:
+                        continue
+            good = False
+            break
+        if good:
+            valids.append(a)
+    if len(valids) == 0:
+        return None
+    valids.sort(key=lambda a: a["date"], reverse=True)
+    return valids[0]
+
+
 if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
@@ -227,6 +276,12 @@ if __name__ == "__main__":
         print("({}/{}) {}".format(ite,numm,f))
         status = False
         info = get_info(cachedir, f, ar["prefix"])
+        todel = []
+        for a in info["analysis"]:
+            if a["status"] == "Error":
+                todel.append(a)
+        #for a in todel:
+        #    info["analysis"].remove(a)
         for cfr_it in range(cfr_ite[0], cfr_ite[1]+1):
             for i in inv:
                 if status:
@@ -272,6 +327,14 @@ if __name__ == "__main__":
                                     "reachability": "none",
                                     "stop_if_fail": True
                                 }
+                                skip = False
+                                if ar["only_errors"]:
+                                    skip = True
+                                    if is_error(config,info):
+                                        skip = False
+                                if skip:
+                                    print("skip with : " + config2Tag(config))
+                                    continue
                                 print("Trying with : " + config2Tag(config))
                                 response = sandbox(rankfinder.launch_file, args=(config, f, None),
                                                     time_segs=tout, memory_mb=mout)
@@ -279,7 +342,7 @@ if __name__ == "__main__":
                                 response["config"] = config
                                 info["analysis"].append(response)
                                 if response["status"].is_terminate():
-                                    status = False
+                                    status = ar["stop_if_terminate"]
         save_info(info, cachedir, f, ar["prefix"])
 
 
