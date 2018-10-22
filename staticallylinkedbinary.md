@@ -20,7 +20,7 @@ PPATH=/home/friker/Systems/pplpy/ppl/:/home/friker/Systems/pyLPi/lpi/:/home/frik
 
 
 ```
-pyinstaller rankfinder.py --hidden-import networkx --hidden-import gmpy2 --hidden-import cython --hidden-import cysignals --hidden-import z3 --hidden-import eiol --hidden-import lark --hidden-import pkg_resources.extern.packaging.version --hidden-import genericparser --hidden-import genericparser.Parser_smt2 --hidden-import genericparser.Parser_fc --hidden-import genericparser.Parser_koat --hidden-import termination --hidden-import nodeproperties --hidden-import lpi --hidden-import ppl -p $PPATH
+pyinstaller irankfinder.py --hidden-import networkx --hidden-import gmpy2 --hidden-import cython --hidden-import cysignals --hidden-import z3 --hidden-import eiol --hidden-import lark --hidden-import pkg_resources.extern.packaging.version --hidden-import genericparser --hidden-import genericparser.Parser_smt2 --hidden-import genericparser.Parser_fc --hidden-import genericparser.Parser_koat --hidden-import termination --hidden-import nodeproperties --hidden-import lpi --hidden-import ppl -p $PPATH
 ```
 
 Copy no python files:
@@ -30,14 +30,14 @@ Copy no python files:
      - PE binary
 
 ```
-mkdir ./dist/rankfinder/genericparser/
-cp ../pyParser/genericparser/*.g ./dist/rankfinder/genericparser/
-cp ../pyParser/genericparser/smtpushdown2 ./dist/rankfinder/genericparser/smtpushdown2
-mkdir -p ./dist/rankfinder/lark/grammars/
+mkdir ./dist/irankfinder/genericparser/
+cp ../pyParser/genericparser/*.g ./dist/irankfinder/genericparser/
+cp ../pyParser/genericparser/smtpushdown2 ./dist/irankfinder/genericparser/smtpushdown2
+mkdir -p ./dist/irankfinder/lark/grammars/
 cp /usr/local/lib/python3.5/dist-packages/lark/grammars/common.g
-/home/friker/Systems/pyRankFinder/dist/rankfinder/lark/grammars/common.g
-mkdir -p ./dist/rankfinder/partialevaluation/bin/
-cp partialevaluation/bin/* ./dist/rankfinder/partialevaluation/bin/
+./dist/irankfinder/lark/grammars/common.g
+mkdir -p ./dist/irankfinder/partialevaluation/bin/
+cp partialevaluation/bin/* ./dist/irankfinder/partialevaluation/bin/
 
 ```
 
@@ -46,7 +46,7 @@ Test
 
 Test with:
 ```
-./dist/rankfinder/rankfinder -f ./test/Ackermann.jar-obl-8.smt2 -t qnlrf_1 -sccd 1
+./dist/irankfinder/irankfinder -f ./test/Ackermann.jar-obl-8.smt2 -t qnlrf_1 -sccd 1
 ```
 The answer should be something similar to:
 ```
