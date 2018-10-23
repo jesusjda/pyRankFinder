@@ -1,4 +1,4 @@
-Statically linked binary
+stalStatically linked binary
 ========================
 
 It is needed: `pyinstaller`.
@@ -15,7 +15,8 @@ Generate Binary
 
 Path to sources (maybe it is not needed)
 ```
-PPATH=/home/friker/Systems/pplpy/ppl/:/home/friker/Systems/pyLPi/lpi/:/home/friker/Systems/pyParser/genericparser/:/home/friker/Systems/pyRankFinder/partialevaluation/:/home/friker/Systems/pyRankFinder/nodeproperties/:/home/friker/Systems/pyRankFinder/termination/
+BBASE=
+PPATH=$BBASE/pplpy/ppl/:$BBASE/pyLPi/lpi/:$BBASE/pyParser/genericparser/:$BBASE/pyRankFinder/partialevaluation/:$BBASE/pyRankFinder/nodeproperties/:$BBASE/pyRankFinder/termination/
 ```
 
 
@@ -34,8 +35,7 @@ mkdir ./dist/irankfinder/genericparser/
 cp ../pyParser/genericparser/*.g ./dist/irankfinder/genericparser/
 cp ../pyParser/genericparser/smtpushdown2 ./dist/irankfinder/genericparser/smtpushdown2
 mkdir -p ./dist/irankfinder/lark/grammars/
-cp /usr/local/lib/python3.5/dist-packages/lark/grammars/common.g
-./dist/irankfinder/lark/grammars/common.g
+cp /usr/local/lib/python3.5/dist-packages/lark/grammars/common.g ./dist/irankfinder/lark/grammars/common.g
 mkdir -p ./dist/irankfinder/partialevaluation/bin/
 cp partialevaluation/bin/* ./dist/irankfinder/partialevaluation/bin/
 
