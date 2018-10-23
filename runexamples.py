@@ -325,7 +325,8 @@ if __name__ == "__main__":
                                     "remove_no_important_variables": rniv,
                                     "user_reachability": False,
                                     "reachability": "none",
-                                    "stop_if_fail": True
+                                    "stop_if_fail": True,
+                                    "conditional_termination":False
                                 }
                                 skip = False
                                 if ar["only_errors"]:

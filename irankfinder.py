@@ -130,6 +130,9 @@ def setArgumentParser():
     argParser.add_argument("-t", "--termination", type=termination_alg,
                            nargs='*', required=False,
                            help=termination_alg_desc())
+    argParser.add_argument("-ct", "--conditional-termination", required=False,
+                           default=False, action='store_true',
+                           help="Do conditional temination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-ithre", "--invariants-threshold", required=False,
@@ -249,7 +252,7 @@ def launch_file(config, f, out):
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if config["user_reachability"]:
         cfg.build_polyhedrons()
-        compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"],
+        compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"], user_props=True,
                              use_threshold=config["invariants_threshold"])
         return None
     # Compute Termination
@@ -423,28 +426,45 @@ def analyse_termination(config, cfg):
         showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
         if r.get_status().is_terminate():
             return r
+    unk_sccs = r.get("unknown_sccs")
     if cfr_last:
-        only_nodes = []
-        unk_sccs = r.get("unknown_sccs")
-        if len(unk_sccs) > 0:
+        num_it = 0
+        while num_it < config["cfr_iterations"] and len(unk_sccs) > 0:
+            num_it += 1
             OM.printseparator(2)
-            OM.printif(2, "CFR only the nodes where we failed")
+            OM.printif(2, "CFR only the nodes where we failed (iteration:{})".format(num_it))
+            only_nodes = []
             for scc in unk_sccs:
                 only_nodes += scc.get_nodes()
             OM.printif(2,"Nodes to refine:", only_nodes)
-            if len(only_nodes) > 0:
-                pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop, only_nodes=only_nodes)
-                compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                                   use_threshold=config["invariants_threshold"])
-                r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                        dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
-                ncfg = {}
-                ncfg["name"] = config["name"]
-                ncfg["output_destination"] = config["output_destination"]
-                ncfg["output_formats"] = ["fc", "svg"]
-                sufix="  iterations:{}, auto:{}, usr:{}, inv:{}, nodes:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"], only_nodes)
-                showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
+            if len(only_nodes) == 0:
+                OM.printif(1, "No nodes to refine.")
+                break
+            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop, only_nodes=only_nodes)
+            compute_invariants(pe_cfg, abstract_domain=config["invariants"],
+                               use_threshold=config["invariants_threshold"])
+            r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
+                                    dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
+            ncfg = {}
+            ncfg["name"] = config["name"]
+            ncfg["output_destination"] = config["output_destination"]
+            ncfg["output_formats"] = ["fc", "svg"]
+            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}, nodes:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"], only_nodes)
+            showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
+            unk_sccs = r.get("unknown_sccs")
             OM.printseparator(2)
+    if config["conditional_termination"] and len(unk_sccs) > 0:
+        # analyse reachability for all the nodes where we don't prove termination
+        OM.printseparator(0)
+        OM.printf("Conditional termination")
+        nodes_to_analyse = []
+        for scc in unk_sccs:
+            nodes_to_analyse += scc.get_nodes()
+        if len(nodes_to_analyse) == 0:
+            OM.printf("No nodes to analyse reachability.")
+        else:
+            compute_reachability(pe_cfg,use=False, init_nodes=nodes_to_analyse)
+        OM.printseparator(0)
     return r
 
 
@@ -506,16 +526,17 @@ def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
     if use:
         nodeproperties.use_invariants(cfg, abstract_domain)
 
-def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False):
+def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False, user_props=False, init_nodes=[]):
     cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold)
+    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold, user_props=user_props, init_nodes=init_nodes)
     if use:
         OM.printseparator(0)
         OM.printf("REACHABILITY ({})".format(abstract_domain))
-        gvars = cfg.get_info("global_vars")
-        OM.printf("\n".join(["-> " + str(n) + " = " +
-                              str(node_inv[n].toString(gvars))
-                              for n in sorted(node_inv)]))
+    gvars = cfg.get_info("global_vars")
+    OM.printf("\n".join(["-> " + str(n) + " = " +
+                         str(node_inv[n].toString(gvars))
+                         for n in sorted(node_inv)]))
+    if use:
         OM.printseparator(0)
 
 
