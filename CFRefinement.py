@@ -74,6 +74,8 @@ def launch(config):
 def launch_file(config, f):
     try:
         config["name"] = extractname(f)
+        if config["invariants"] != "none":
+            config["show_with_invariants"] = True
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
                                          au_prop=config["cfr_automatic_properties"],
                                          console=True, writef=True)

@@ -295,7 +295,6 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         invariant_type = config["invariants"] if "invariants" in config else "none"
     else:
         invariant_type = "none"
-    print(invariant_type, sufix)
     from io import StringIO
     stream = StringIO()
     if "fc" in config["output_formats"]:
