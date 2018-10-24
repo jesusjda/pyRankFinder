@@ -77,7 +77,8 @@ def launch_file(config, f):
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
                                          au_prop=config["cfr_automatic_properties"],
                                          console=True, writef=True)
-        if config["show_with_invariants"]:
+        if config["invariants"] != "none":
+            config["show_with_invariants"] = True
             compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"])
             sufix = "_with_inv"
