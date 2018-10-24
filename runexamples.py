@@ -312,21 +312,22 @@ if __name__ == "__main__":
                                     "cfr_iterations": cfr_it,
                                     "cfr_invariants": cfr_inv,
                                     "cfr_simplify_constraints": True,
-                                    "cfr_user_properties":False,
-                                    "cfr_invariants_threshold":False,
+                                    "cfr_user_properties": False,
+                                    "cfr_invariants_threshold": False,
                                     "cfr_strategy" : "before",
-                                    "invariants_threshold":False,
+                                    "invariants_threshold": False,
                                     "files": [f],
                                     "lib": l,
-                                    "tmpdir":None,
+                                    "tmpdir": None,
                                     "name": extractname(f),
-                                    "output_destination":None,
-                                    "output_formats":[],
+                                    "output_destination": None,
+                                    "output_formats": [],
                                     "remove_no_important_variables": rniv,
                                     "user_reachability": False,
                                     "reachability": "none",
                                     "stop_if_fail": True,
-                                    "conditional_termination":False
+                                    "conditional_termination": False,
+                                    "show_with_invariants": False
                                 }
                                 skip = False
                                 if ar["only_errors"]:

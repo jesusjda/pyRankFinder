@@ -4,12 +4,15 @@ import argparse
 import genericparser
 from termination import Output_Manager as OM
 from irankfinder import control_flow_refinement
+from irankfinder import compute_invariants
+from irankfinder import showgraph
 
 _version = "1.0"
 _name = "CFRefinement"
 
 def setArgumentParser():
     desc = _name+": Control Flow refinement."
+    absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -25,19 +28,25 @@ def setArgumentParser():
                            help="Formats to print the graphs.")
     argParser.add_argument("-od", "--output-destination", required=False,
                            help="Folder to save output files.")
+    argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
+                           action='store_true', help="add invariants to the output formats")
+    
     # CFR Parameters
     argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False,
-                           type=int, choices=range(0,5), default=4,
-                           help="")
+                           type=int, choices=range(0,5), default=4, help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=1)
-    argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
-                           choices=["acumulate", "inmutate", "recompute"], default="recompute",
-                           help="")
+    # argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
+    #                       choices=["acumulate", "inmutate", "recompute"], default="recompute",
+    #                       help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False,
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
+    argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
+                           default="none", help="Compute Invariants.")
+    argParser.add_argument("-ithre", "--invariants-threshold", required=False,
+                           action='store_true', help="Use user thresholds.")
     argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
                            default=False, action='store_true',
                            help="Simplify constraints when CFR")
@@ -65,10 +74,14 @@ def launch(config):
 def launch_file(config, f):
     try:
         config["name"] = extractname(f)
-        control_flow_refinement(genericparser.parse(f), config,
-                                au_prop=config["cfr_automatic_properties"],
-                                console=True, writef=True)
-
+        pe_cfg = control_flow_refinement(genericparser.parse(f), config,
+                                         au_prop=config["cfr_automatic_properties"],
+                                         console=True, writef=True)
+        if config["show_with_invariants"]:
+            compute_invariants(pe_cfg, abstract_domain=config["invariants"],
+                               use_threshold=config["invariants_threshold"])
+            sufix = "_with_inv"
+            showgraph(pe_cfg, config, sufix=sufix, console=True, writef=True)
     except Exception as e:
         OM.printf("Exception  -> "+str(e))
         raise Exception() from e

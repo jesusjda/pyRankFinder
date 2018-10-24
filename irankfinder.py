@@ -72,13 +72,13 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("-od", "--output-destination", required=False,
                            help="Folder to save output files.")
-    argParser.add_argument("--tmpdir", required=False, default=None,
-                           help="Temporary directory.")
-    argParser.add_argument("--prologDestination", required=False,
-                           help="Folder to save prolog source.")
     argParser.add_argument("-of", "--output-formats", required=False, nargs='+',
                            choices=["fc", "dot", "koat", "pl", "svg"], default=["fc", "dot", "svg"],
                            help="Formats to print the graphs.")
+    argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
+                           action='store_true', help="add invariants to the output formats")
+    argParser.add_argument("--tmpdir", required=False, default=None,
+                           help="Temporary directory.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
     argParser.add_argument("--fc-out", required=False, action='store_true',
@@ -289,13 +289,17 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
     destname = config["output_destination"]
     if destname is None:
         return
-
+    show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
     os.makedirs(os.path.dirname(destname), exist_ok=True)
-    invariant_type = config["invariants"] if "invariants" in config else None
+    if show_with_inv:
+        invariant_type = config["invariants"] if "invariants" in config else "none"
+    else:
+        invariant_type = "none"
+    print(invariant_type, sufix)
     from io import StringIO
     stream = StringIO()
     if "fc" in config["output_formats"]:
-        cfg.toFc(stream)
+        cfg.toFc(stream, invariant_type=invariant_type)
         fcstr=stream.getvalue()
         if console:
             OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
@@ -305,7 +309,7 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         stream.close()
         stream = StringIO()
     if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
-        cfg.toDot(stream)
+        cfg.toDot(stream, invariant_type=invariant_type)
         dotstr = stream.getvalue()
         dotfile = os.path.join(destname, name+".dot")
         os.makedirs(os.path.dirname(dotfile), exist_ok=True)
@@ -456,7 +460,7 @@ def analyse_termination(config, cfg):
     if config["conditional_termination"] and len(unk_sccs) > 0:
         # analyse reachability for all the nodes where we don't prove termination
         OM.printseparator(0)
-        OM.printf("Conditional termination")
+        OM.printf("Conditional termination (negation of the following conditions) (',' means 'and')")
         nodes_to_analyse = []
         for scc in unk_sccs:
             nodes_to_analyse += scc.get_nodes()
@@ -499,18 +503,6 @@ def show_nontermination_result(result, cfg):
         OM.printf("{} : {}".format(n,m))
     OM.show_output()
     OM.printseparator(1)
-
-def write_dotfile(dotDestination, name, cfg):
-    if dotDestination:
-            s = name.replace('/', '_')
-            dot = os.path.join(dotDestination, s + ".dot")
-            cfg.toDot(dot)
-
-def write_prologfile(prologDestination, name, cfg):
-    if prologDestination:
-            s = name.replace('/', '_')
-            dot = os.path.join(prologDestination, s + ".pl")
-            cfg.toProlog(dot)
 
 def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
     cfg.build_polyhedrons()
