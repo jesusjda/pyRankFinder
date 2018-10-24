@@ -279,7 +279,7 @@ def launch_file(config, f, out):
     ncfg["name"] = config["name"]
     ncfg["output_destination"] = config["output_destination"]
     ncfg["output_formats"] = ["fc", "svg"]
-    showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariant"], console=True, writef=False)
+    showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariants"], console=True, writef=False)
     return termination_result
 
 def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False):
