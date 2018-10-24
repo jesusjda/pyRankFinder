@@ -74,8 +74,6 @@ def launch(config):
 def launch_file(config, f):
     try:
         config["name"] = extractname(f)
-        if config["invariants"] != "none":
-            config["show_with_invariants"] = True
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
                                          au_prop=config["cfr_automatic_properties"],
                                          console=True, writef=True)
@@ -83,8 +81,10 @@ def launch_file(config, f):
             config["show_with_invariants"] = True
             compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"])
-            sufix = "_with_inv"
-            showgraph(pe_cfg, config, sufix=sufix, console=True, writef=True)
+            if config["cfr_iterations"] > 0:
+                sufix = "_cfr"+str(config["cfr_iterations"])
+            sufix += "_with_inv"+str(config["invariants"])
+            showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=True, writef=True)
     except Exception as e:
         OM.printf("Exception  -> "+str(e))
         raise Exception() from e

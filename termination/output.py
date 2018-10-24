@@ -121,7 +121,6 @@ class Output:
                                        filename=str(path))
             self._ei_commands.append(c)
         else:
-            print(content)
             return
             tmpfile = os.path.join(os.path.curdir, path)
             with open(tmpfile, "w") as f:

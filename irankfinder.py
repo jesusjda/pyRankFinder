@@ -279,10 +279,10 @@ def launch_file(config, f, out):
     ncfg["name"] = config["name"]
     ncfg["output_destination"] = config["output_destination"]
     ncfg["output_formats"] = ["fc", "svg"]
-    showgraph(cfg, ncfg, sufix="_anotated", console=True, writef=False)
+    showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariant"], console=True, writef=False)
     return termination_result
 
-def showgraph(cfg, config, sufix="", console=False, writef=False):
+def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False):
     if not console and not writef:
         return
     name = config["name"] +str(sufix)
@@ -291,10 +291,9 @@ def showgraph(cfg, config, sufix="", console=False, writef=False):
         return
     show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
     os.makedirs(os.path.dirname(destname), exist_ok=True)
-    if show_with_inv:
-        invariant_type = config["invariants"] if "invariants" in config else "none"
-    else:
+    if not show_with_inv:
         invariant_type = "none"
+    print(invariant_type)
     from io import StringIO
     stream = StringIO()
     if "fc" in config["output_formats"]:
@@ -375,12 +374,14 @@ def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False,
     for it in range(0, cfr_ite):
         compute_invariants(pe_cfg, abstract_domain=cfr_inv, use=False, use_threshold=cfr_inv_thre)
         pe_cfg.remove_unsat_edges()
-        showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
+        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
                                  invariant_type=cfr_inv, nodes_to_refine=only_nodes)
         sufix="_cfr"+str(it+1)
-    showgraph(pe_cfg, config, sufix=sufix, console=console, writef=writef)
+        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
+            sufix += "_with_inv_"+str(cfr_inv)
+    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
     return pe_cfg
 
 def analyse_termination(config, cfg):
