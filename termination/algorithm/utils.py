@@ -39,6 +39,33 @@ def get_z3_transition_polyhedron(tr, global_vars):
                for c in cons]
     return constrs
 
+def get_ppl_transition_polyhedron(tr, global_vars):
+    local_vars = tr["local_vars"]
+    all_vars = global_vars + local_vars
+    cons = tr["constraints"]
+    constrs = [c.transform(all_vars, lib="z3")
+               for c in cons]
+    return constrs
+
+def generate_names(vs, others):
+    names = []
+    variables = vs + others
+    for v in vs:
+        pv = v
+        while (pv != v and pv in variables) or pv in names:
+            pv += "'"
+        names.append(pv)
+    return names
+
+def generate_prime_names(vs, others):
+    names = []
+    variables = vs + others
+    for v in vs:
+        pv = v + "'"
+        while pv in variables or pv in names:
+            pv += "'"
+        names.append(pv)
+    return names
 
 def merge(base, to_add):
     result = base
