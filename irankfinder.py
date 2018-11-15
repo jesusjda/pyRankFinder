@@ -35,6 +35,8 @@ def positive(value):
 
 
 def termination_alg(value):
+    if value == "none":
+        return None
     try:
         return TAM.get_algorithm(value)
     except ValueError:
@@ -47,6 +49,8 @@ def termination_alg_desc():
 
 
 def nontermination_alg(value):
+    if value == "none":
+        return None
     try:
         return NTAM.get_algorithm(value)
     except ValueError:
@@ -258,7 +262,8 @@ def launch_file(config, f, out):
                              use_threshold=config["invariants_threshold"])
         return None
     # Compute Termination
-    termination_result = None
+    from termination import Result
+    termination_result = Result()
     has_to_run = lambda key: key in config and config[key]
     if has_to_run("termination"):
         termination_result = analyse_termination(config , cfg)
@@ -478,13 +483,21 @@ def analyse_termination(config, cfg):
 
 def analyse_nontermination(config, cfg, termination_result):
     sols = []
-    if termination_result is not None:
+    if termination_result is not None and termination_result.has("unknown_sccs"):
         unk_sccs = termination_result.get("unknown_sccs")
     else:
         unk_sccs = cfg.get_scc()
 
     from termination.result import TerminationResult
     for scc in unk_sccs[:]:
+        if len(scc.get_edges()) == 0:
+            #OM.printif(2, "CFG ranked because it is empty.")
+            continue
+        for t in scc.get_edges():
+            if t["polyhedron"].is_empty():
+                #OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
+                scc.remove_edge(t["source"], t["target"], t["name"])
+                continue
         trs = [t["name"] for t in scc.get_edges()]
         ns = scc.get_nodes()
         OM.printif(1, "Analysing NON-termination of SCC:\n\t+-- Transitions:{}\n\t+-- Nodes:{}".format(trs,ns))
@@ -547,6 +560,10 @@ if __name__ == "__main__":
             print(_name + " version: " + _version)
             exit(0)
         config = vars(args)
+        if "termination" in config and config["termination"] is not None:
+            config["termination"] = [alg for alg in config["termination"] if alg is not None]
+        if "nontermination" in config and config["nontermination"] is not None:
+            config["nontermination"] = [alg for alg in config["nontermination"] if alg is not None]
         # if(not(config["termination"]) and
         #   not(config["nontermination"])):
         #    argParser.error("Either --termination or --nontermination algorithms is required.")
