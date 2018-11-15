@@ -121,6 +121,8 @@ def setArgumentParser():
     argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
                            default=False, action='store_true',
                            help="Use user thresholds for CFR invariants.")
+    argParser.add_argument("-rec-set", "--recurrent-set", required=False,
+                           help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -257,22 +259,17 @@ def launch_file(config, f, out):
         return None
     # Compute Termination
     termination_result = None
-    nontermination_result = None
     has_to_run = lambda key: key in config and config[key]
     if has_to_run("termination"):
         termination_result = analyse_termination(config , cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
-        nontermination_result = analyse_nontermination(config, cfg, termination_result)
+        termination_result = analyse_nontermination(config, cfg, termination_result)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if termination_result:
-        show_termination_result(termination_result, cfg)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if nontermination_result:
-        show_nontermination_result(nontermination_result, cfg)
+        show_result(termination_result, cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     ncfg = {}
@@ -469,40 +466,48 @@ def analyse_termination(config, cfg):
         else:
             compute_reachability(pe_cfg,use=False, init_nodes=nodes_to_analyse)
         OM.printseparator(0)
+    elif "recurrent_set" in config and config["recurrent_set"] and len(unk_sccs) > 0:
+        OM.printseparator(0)
+        count = 0
+        for scc in unk_sccs:
+            scc.toEspecialProlog(config["recurrent_set"], count, config["name"])
+            count += 1
+        OM.printseparator(0)
     return r
 
 
 def analyse_nontermination(config, cfg, termination_result):
     sols = []
-    for alg in config["nontermination"]:
-        sols += alg.run(cfg)
-    return sols
+    if termination_result is not None:
+        unk_sccs = termination_result.get("unknown_sccs")
+    else:
+        unk_sccs = cfg.get_scc()
 
-def show_termination_result(result, cfg):
+    from termination.result import TerminationResult
+    for scc in unk_sccs[:]:
+        trs = [t["name"] for t in scc.get_edges()]
+        ns = scc.get_nodes()
+        OM.printif(1, "Analysing NON-termination of SCC:\n\t+-- Transitions:{}\n\t+-- Nodes:{}".format(trs,ns))
+        r = termination.analyse_nontermination(config["nontermination"], scc, close_walk_depth=5, stop_if_fail=config["stop_if_fail"])
+        if r.get_status().is_nonterminate():
+            sols.append((scc,r))
+            unk_sccs.remove(scc)
+            termination_result.set_response(status=TerminationResult.NONTERMINATE)
+            if config["stop_if_fail"]:
+                break
+    termination_result.set_response(unknown_sccs=unk_sccs, scc_sols_nt=sols)
+    return termination_result
+
+def show_result(result, cfg):
     OM.printseparator(1)
-    OM.printf("Final Termination Result")
+    OM.printf(result.toString(cfg.get_info("global_vars")))
+
     no_lin = [tr["name"] for tr in cfg.get_edges() if not tr["linear"]]
     if no_lin:
-        OM.printf("Removed no linear constraints from transitions: " +
-                  str(no_lin))
-    OM.printf(result.toString(cfg.get_info("global_vars")))
+        OM.printif(1, "Removed no linear constraints from transitions: " +
+                   str(no_lin))
     OM.printseparator(1)
-    unk_sccs = result.get("unknown_sccs")
-    if len(unk_sccs) > 0:
-        OM.printf("SCCs where we can not proof termination.")
-        for scc in unk_sccs:
-            ns = scc.get_nodes()
-            ts = scc.get_edges()
-            OM.printf("SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
-                ",".join([t["name"] for t in ts]), ",".join(ns)))
 
-def show_nontermination_result(result, cfg):
-    OM.printseparator(1)
-    OM.printf("Final NON-Termination Result")
-    for n, m in result:
-        OM.printf("{} : {}".format(n,m))
-    OM.show_output()
-    OM.printseparator(1)
 
 def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
     cfg.build_polyhedrons()
