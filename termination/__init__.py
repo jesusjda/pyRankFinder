@@ -4,12 +4,24 @@ from .output import Output_Manager
 from .result import Result
 from .result import TerminationResult
 
-__all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "analyse"]
+__all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager","Output_Manager", "Result", "TerminationResult", "analyse", "analyse_nontermination"]
 
 
 def analyse(algs, cfg, sccd=1, dt_modes=[False], stop_if_fail=False):
     response = rank(algs,[(cfg,sccd)],dt_modes=dt_modes, stop_if_fail=stop_if_fail)
     response.set_response(cfg_analysed=cfg)
+    return response
+
+def analyse_nontermination(algs, scc, close_walk_depth=5, stop_if_fail=False):
+    response = None
+    for cw in scc.get_close_walks(close_walk_depth):
+        Output_Manager.printif(1, "\n\tAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
+        for a in algs:
+            response = a.run(scc, cw)
+            if response.get_status().is_nonterminate():
+                break
+        if response.get_status().is_nonterminate():
+            break
     return response
 
 def rank(algs, CFGs, dt_modes=[False], stop_if_fail=False):
@@ -74,8 +86,12 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
         if dt:
             Output_Manager.printif(1, "\t- Using Different Template") 
         R = run_algs(algs, cfg, different_template=dt)
+        if R.has("info"):
+            Output_Manager.printif(1, R.get("info"))
         if R.get_status().is_terminate():
             Output_Manager.printif(2, "--> Found with dt={}.\n".format(dt))
+            vars_name = cfg.get_info("global_vars")
+            Output_Manager.printif(1, R.toStrRankingFunctions(vars_name))
             found = True
             break
     if found:
@@ -86,7 +102,6 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
 
 def run_algs(algs, cfg, different_template=False):
     response = Result()
-    vars_name = cfg.get_info("global_vars")
     R = None
     f = False
     if len(cfg.get_edges()) == 0:
@@ -102,12 +117,10 @@ def run_algs(algs, cfg, different_template=False):
                     different_template=different_template)
 
         Output_Manager.printif(3, R.debug())
-        Output_Manager.printif(1, R.toString(vars_name))
         if R.get_status().is_terminate():
             if R.get("rfs"):
                 f = True
                 break
-
     if f:
         response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
