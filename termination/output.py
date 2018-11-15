@@ -46,7 +46,7 @@ class Output:
                 self._ei_commands = eiol.eicommands(dest=cdest)
                 self._ei_actions = eiol.eiactions(dest=cdest)
             self.cdest = cdest
-        self._vars_name = vars_name
+        self._vars_name = vars_name[:]
         self.outtxt = ""
         if verbosity is not None:
             self.verbosity = verbosity
@@ -92,7 +92,7 @@ class Output:
             self._ei_commands.append(eiol.command_print(content=c, **kkwargs))
         elif self.destination is not None:
             self.outtxt += msg + '\n'
-        else:
+        elif msg != "":
             print(msg)
 
     def print_rf_tr(self, verbosity, cfg, tr_name, rfs):
@@ -140,11 +140,12 @@ class Output:
             tmpfile = os.path.join(os.path.curdir, self.destination)
             with open(tmpfile, "w") as f:
                 f.write(out)
-        else:
+        elif out != "":
             print(out)
         return
 
     def tostr(self, cs, vars_name=None):
+        vs_name = None if vars_name is None else vars_name[:]
         response = ""
         if isinstance(cs, Constraint_System):
             constraints = [c for c in cs]
@@ -154,7 +155,7 @@ class Output:
                 if not first:
                     response += ","
                 first = False
-                response += "\n  " + self.tostr(c, vars_name)
+                response += "\n  " + self.tostr(c, vs_name)
             if not first:
                 response += "\n"
             response += "}"
@@ -165,10 +166,10 @@ class Output:
             if ispoint:
                 p = 1
             dim = cs.space_dimension()
-            if vars_name is None:
-                vars_name = self._vars_name
-                for i in range(len(vars_name), dim):
-                    vars_name.append("x" + str(i + p))
+            if vs_name is None:
+                vs_name = self._vars_name
+                for i in range(len(vs_name), dim):
+                    vs_name.append("x" + str(i + p))
             first = True
             divisor = 1
             if ispoint:
@@ -188,7 +189,7 @@ class Output:
                         if divisor != 1:
                             response += "/" + str(divisor)
                         response += " * "
-                    response += vars_name[v]
+                    response += vs_name[v]
             if ispoint:
                 coeff = cs.coefficient(Variable(0))
             else:

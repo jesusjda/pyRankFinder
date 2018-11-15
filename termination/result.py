@@ -20,6 +20,9 @@ class TerminationResult(Enum):
     def is_terminate(self):
         return self == TerminationResult.TERMINATE
 
+    def is_nonterminate(self):
+        return self == TerminationResult.NONTERMINATE
+
     def is_error(self):
         return self == TerminationResult.ERROR
 
@@ -100,20 +103,73 @@ class Result:
         return sr
 
     def toString(self, vars_name=None, ei=False):
+        res_str = "MAYBE\n"
+        if self.get_status().is_terminate():\
+            res_str = "YES\n"
+        if self.get_status().is_nonterminate():
+            res_str = "NO\n"
         if self._data["status"].is_error():
-            return "ERROR: " + self._data["errormsg"]
-        if not self._data["status"].is_terminate():
-            return "NOT FOUND " + self._data["info"]
+            return res_str + "\nERROR: " + self._data["errormsg"]
 
-        res = "FOUND"
-        if "type" in self._data:
-            res += " (" + self._data["type"] + ")"
-        res += ":\n"
         if "rfs" in self._data:
-            res += self._rfs2str(self._data["rfs"], vars_name)
-        else:
-            res += self._data
-        return res
+            res_str += self._rfs(self._data["rfs"], vars_name)
+        if "scc_sols_nt" in self._data:
+            res_str += self._scc_sols_nt(self._data["scc_sols_nt"], vars_name)
+        if "unknown_sccs" in self._data:
+            res_str += self._unknown_sccs(self._data["unknown_sccs"])
+        return res_str
+
+    def _rfs(self, rfs, vars_name=None):
+        if len(rfs) == 0:
+            return ""
+        res_str = "\nRanking Functions Found:\n"
+        res_str += "------------------------\n"
+        return res_str + self._rfs2str(rfs, vars_name) + "\n"
+
+    def toStrRankingFunctions(self, vars_name=None):
+        rfs = self._data["rfs"] if self.has("rfs") else []
+        if len(rfs) == 0:
+            return ""
+        return self._rfs2str(rfs, vars_name)
+
+    def _scc_sols_nt(self, scc_sols_nt, vars_name):
+        if len(scc_sols_nt) == 0:
+            return ""
+        res_str = "\nNON-Termination:\n"
+        res_str += "----------------\n"
+        for scc, sol in scc_sols_nt:
+            vs_name = scc.get_info("global_vars")
+            ns = scc.get_nodes()
+            ts = scc.get_edges()
+            res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
+                ",".join([t["name"] for t in ts]), ",".join(ns))
+            if sol.has("close_walk"):
+                res_str += "\tOn close walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
+            if sol.has("info"):
+                res_str += "\n\t- "+sol.get("info") +"\n"
+            if sol.has("model"):
+                res_str += "\n Model not shown for simplicity.\n"
+            if sol.has("rec_set"):
+                from termination.algorithm.utils import generate_names
+                N = int(len(vs_name)/2)
+                rec_set = sol.get("rec_set")
+                dim = rec_set.get_dimension() - 2*N
+                lvs = generate_names(["local"+str(i) for i in range(dim)], vs_name)
+                res_str += OM.tostr(rec_set.get_constraints(), vs_name[:N]+lvs+vs_name[N:]) + "\n"
+        return res_str
+
+    def _unknown_sccs(self, unk_sccs):
+        if len(unk_sccs) == 0:
+            return ""
+        res_str = "\nUnknown SCCs:\n"
+        res_str += "-------------\n"
+        for scc in unk_sccs:
+            ns = scc.get_nodes()
+            ts = scc.get_edges()
+            res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
+                ",".join([t["name"] for t in ts]), ",".join(ns))
+
+        return res_str + "\n"
 
     def __repr__(self):
         return self.toString()

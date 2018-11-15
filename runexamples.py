@@ -249,8 +249,8 @@ if __name__ == "__main__":
     cfr_au = 4
     cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
     lib = ["z3"]
-    inv = ["none", "polyhedra"]
-    cfr_invs = ["none", "polyhedra"]
+    inv = ["polyhedra"]
+    cfr_invs = ["none"]
     rniv = True
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
@@ -261,12 +261,12 @@ if __name__ == "__main__":
         mout = int(ar["memoryout"])
     else:
         mout = None
-    algs = []
-    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
-    algs.append([termination.algorithm.lrf.PR()])
-    for i in range(1, 3):
-        algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
-                                                        "version": 1})])
+    algs = [[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
+    # algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
+    # algs.append([termination.algorithm.lrf.PR()])
+    # for i in range(1, 3):
+    #     algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
+    #                                                     "version": 1})])
 
     numm = len(files)
     info = {}
@@ -300,9 +300,10 @@ if __name__ == "__main__":
                                 if status:
                                     continue
                                 name = os.path.basename(f)  # .replace("/","_")
+                                nname = extractname(f)
                                 config = {
                                     "scc_depth": sccd,
-                                    "verbosity": verb,
+                                    "verbosity": 3,
                                     "ei_out": False,
                                     "termination": a,
                                     "invariants": i,
@@ -325,9 +326,10 @@ if __name__ == "__main__":
                                     "remove_no_important_variables": rniv,
                                     "user_reachability": False,
                                     "reachability": "none",
-                                    "stop_if_fail": True,
+                                    "stop_if_fail": False,
                                     "conditional_termination": False,
-                                    "show_with_invariants": False
+                                    "show_with_invariants": False,
+                                    "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
                                 }
                                 skip = False
                                 if ar["only_errors"]:
@@ -345,7 +347,7 @@ if __name__ == "__main__":
                                 info["analysis"].append(response)
                                 if response["status"].is_terminate():
                                     status = ar["stop_if_terminate"]
-        save_info(info, cachedir, f, ar["prefix"])
+        #save_info(info, cachedir, f, ar["prefix"])
 
 
 
