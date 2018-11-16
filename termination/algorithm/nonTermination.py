@@ -28,7 +28,7 @@ class FixPoint(Algorithm):
         except:
             init_node = cfg.get_edges()[0]["source"]
 
-        OM.printif(1, "\t\t-> with "+self.NAME)
+        OM.printif(1, "--> with "+self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
@@ -57,13 +57,13 @@ class FixPoint(Algorithm):
         response = Result()
         if s.check() == sat:
             m = s.model()
-            OM.printif(1, "\tFixPoint Found")
+            OM.printif(1, "FixPoint Found")
             response.set_response(status=TerminationResult.NONTERMINATE,
                                   info="FixPoint Found",
                                   close_walk=close_walk,
                                   model=m)
         else:
-            OM.printif(1, "\tNo fixpoint found.")
+            OM.printif(1, "No fixpoint found.")
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="No fixpoint found.")
         return response
@@ -98,7 +98,7 @@ class MonotonicRecurrentSets(Algorithm):
         from ppl import Linear_Expression
         from lpi import C_Polyhedron
         from copy import deepcopy
-        OM.printif(1, "\t\t-> with "+self.NAME)
+        OM.printif(1, "--> with "+self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
@@ -111,9 +111,10 @@ class MonotonicRecurrentSets(Algorithm):
             lvs += tr["local_vars"]
             trvs_idx.append(countVar)
             countVar += Nvars
-        dummy_var = generate_names(["local"+str(i) for i in range(countVar)],global_vars+lvs)
+        
         farkas_constraints = []
         countVar -= Nvars
+        dummy_var = generate_names(["local"+str(i) for i in range(countVar)],global_vars+lvs)
         countVar = 0
         ppl_cons = []
         for tr in close_walk:
@@ -128,7 +129,7 @@ class MonotonicRecurrentSets(Algorithm):
         pvs_idx = len(close_walk)*(Nvars)
         while depth < self.get_prop("max_depth"):
             if tr_poly.is_empty():
-                OM.printif(1, "\tEmpty polyhedron.")
+                OM.printif(1, "Empty polyhedron.")
                 response.set_response(status=TerminationResult.UNKNOWN,
                                       close_walk=close_walk,
                                       info="No Recurrent Set Found. Empty Polyhedron.")
@@ -152,7 +153,7 @@ class MonotonicRecurrentSets(Algorithm):
                 tr_poly_p.add_constraint(exp <= 0)
 
             if tr_poly_p.contains(tr_poly):
-                OM.printif(1, "\tRecurrent Set Found:\n" +
+                OM.printif(1, "Recurrent Set Found:\n" +
                            OM.tostr(tr_poly.get_constraints(), vs+dummy_var+pvs+lvs))
                 response.set_response(status=TerminationResult.NONTERMINATE,
                                       info="Recurrent Set Found:",
@@ -161,7 +162,7 @@ class MonotonicRecurrentSets(Algorithm):
                 return response
             tr_poly = tr_poly_p
             depth += 1
-        OM.printif(1, "\tNo Recurrent Set Found.")
+        OM.printif(1, "No Recurrent Set Found.")
 
         response.set_response(status=TerminationResult.UNKNOWN,
                               close_walk=close_walk,

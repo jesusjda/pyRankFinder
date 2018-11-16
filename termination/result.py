@@ -104,13 +104,13 @@ class Result:
 
     def toString(self, vars_name=None, ei=False):
         res_str = "MAYBE\n"
-        if self.get_status().is_terminate():\
+        if self.get_status().is_terminate():
             res_str = "YES\n"
         if self.get_status().is_nonterminate():
             res_str = "NO\n"
         if self._data["status"].is_error():
             return res_str + "\nERROR: " + self._data["errormsg"]
-
+ 
         if "rfs" in self._data:
             res_str += self._rfs(self._data["rfs"], vars_name)
         if "scc_sols_nt" in self._data:
@@ -122,8 +122,8 @@ class Result:
     def _rfs(self, rfs, vars_name=None):
         if len(rfs) == 0:
             return ""
-        res_str = "\nRanking Functions Found:\n"
-        res_str += "------------------------\n"
+        res_str = "\nTermination: (Ranking Functions Found)\n"
+        res_str += "------------\n"
         return res_str + self._rfs2str(rfs, vars_name) + "\n"
 
     def toStrRankingFunctions(self, vars_name=None):
@@ -135,7 +135,7 @@ class Result:
     def _scc_sols_nt(self, scc_sols_nt, vars_name):
         if len(scc_sols_nt) == 0:
             return ""
-        res_str = "\nNON-Termination:\n"
+        res_str = "\nNON-Termination: (Didn't check reachability)\n"
         res_str += "----------------\n"
         for scc, sol in scc_sols_nt:
             vs_name = scc.get_info("global_vars")
@@ -144,9 +144,9 @@ class Result:
             res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
                 ",".join([t["name"] for t in ts]), ",".join(ns))
             if sol.has("close_walk"):
-                res_str += "\tOn close walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
+                res_str += "On close walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
             if sol.has("info"):
-                res_str += "\n\t- "+sol.get("info") +"\n"
+                res_str += "\n- "+sol.get("info") +"\n"
             if sol.has("model"):
                 res_str += "\n Model not shown for simplicity.\n"
             if sol.has("rec_set"):
@@ -161,8 +161,8 @@ class Result:
     def _unknown_sccs(self, unk_sccs):
         if len(unk_sccs) == 0:
             return ""
-        res_str = "\nUnknown SCCs:\n"
-        res_str += "-------------\n"
+        res_str = "\nConnected Subgraphs where we couldn't prove Termination:\n"
+        res_str += "--------------------------------------------------------\n"
         for scc in unk_sccs:
             ns = scc.get_nodes()
             ts = scc.get_edges()

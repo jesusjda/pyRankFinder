@@ -15,7 +15,7 @@ def analyse(algs, cfg, sccd=1, dt_modes=[False], stop_if_fail=False):
 def analyse_nontermination(algs, scc, close_walk_depth=5, stop_if_fail=False):
     response = None
     for cw in scc.get_close_walks(close_walk_depth):
-        Output_Manager.printif(1, "\n\tAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
+        Output_Manager.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
         for a in algs:
             response = a.run(scc, cw)
             if response.get_status().is_nonterminate():
@@ -84,7 +84,7 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
 
     for dt in dt_modes:
         if dt:
-            Output_Manager.printif(1, "\t- Using Different Template") 
+            Output_Manager.printif(1, "- Using Different Template") 
         R = run_algs(algs, cfg, different_template=dt)
         if R.has("info"):
             Output_Manager.printif(1, R.get("info"))
@@ -111,7 +111,7 @@ def run_algs(algs, cfg, different_template=False):
                               pending_trs=[])
         return response
     for alg in algs:
-        Output_Manager.printif(1, "\t-> with: " + str(alg))
+        Output_Manager.printif(1, "--> with: " + str(alg))
 
         R = alg.run(cfg,
                     different_template=different_template)
