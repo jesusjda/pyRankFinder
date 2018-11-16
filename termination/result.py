@@ -144,7 +144,7 @@ class Result:
             res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
                 ",".join([t["name"] for t in ts]), ",".join(ns))
             if sol.has("close_walk"):
-                res_str += "On close walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
+                res_str += "Checking closed walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
             if sol.has("info"):
                 res_str += "\n- "+sol.get("info") +"\n"
             if sol.has("model"):
