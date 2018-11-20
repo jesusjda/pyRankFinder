@@ -21,6 +21,8 @@ teralg_name = ter_name+'.algorithm'
 
 inv_dir = os.path.join(base, 'nodeproperties')
 inv_name = 'nodeproperties'
+inv_abs_dir = os.path.join(inv_dir, 'abstractStates')
+inv_abs_name = inv_name+'.abstractStates'
 
 pe_dir = os.path.join(base, 'partialevaluation')
 pe_name = 'partialevaluation'
@@ -38,7 +40,7 @@ setup(
     platforms=['any'],
     packages=[ter_name, inv_name, pe_name, teralg_name],
     package_dir={ter_name: ter_dir, inv_name: inv_dir, pe_name: pe_dir, teralg_name: teralg_dir},
-    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: pe_pkg_data, teralg_name: ["*.py"]},
+    package_data={ter_name: ['*.py'], inv_name: ['*.py'], pe_name: pe_pkg_data, teralg_name: ["*.py"], inv_abs_name: ["*.py"]},
     install_requires=requires,
     dependency_links=dependency_links,
     classifiers=[
