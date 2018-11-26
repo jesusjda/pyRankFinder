@@ -1,10 +1,11 @@
 # pyRankFinder
 Ranking Functions Finder 
 
-Documentation no up to date.
-[![Documentation Status](https://readthedocs.org/projects/pyrankfinder/badge/?version=latest)](http://pyrankfinder.readthedocs.io/en/latest/?badge=latest)
+%Documentation no up to date.
+%[![Documentation Status](https://readthedocs.org/projects/pyrankfinder/badge/?version=latest)](http://pyrankfinder.readthedocs.io/en/latest/?badge=latest)
 
-<kbd>pyRankFinder</kbd> is a python module which try to find **Ranking Functions** to study termination in program's loops. 
+<kbd>pyRankFinder</kbd> is a python module which try to find **Ranking
+Functions** to study termination and nontermination of program's loops. 
 
 This module has three main python-module dependencies:
 - <kbd>pyLPi</kbd>
@@ -13,44 +14,42 @@ This module has three main python-module dependencies:
 
 ----------
 
-How to Install
+## How to Install
 ------------------
 
-We recommend to have <kbd>ppl</kbd> already installed.
+Check the [installation info here](https://github.com/costa-group/iRankFinder/tree/master/installer#install).
 
-Then you only have to run the script: [install.sh](install.sh) <sub><sup>(it will ask you some questions.)</sup></sub>
 
-```bash
-
-```
-
-How to Use
+## How to Use
 ---------------
 
 There are two ways to execute this tool. 
 
-The main file is [rankfinder.py](rankfinder.py),
+The main file is [irankfinder.py](irankfinder.py),
 you can run this command to get all the information:
 
 ```bash
-$ python rankfinder.py --help
+$ python irankfinder.py --help
 ```
 
-**(No tested yet)** The second way is: including the module [termination.py](termination/termination.py)
+The second way is: including the module [termination](termination/)
 ```python
 import termination
 # config must be a dictionary with all the information needed
-termination.run(config)
+termination.analyse(algorithms, cfg)
+# or for non termination
+termination.analyse_nontermination(algorithms, cfg)
+# where algorithms is a list of algorithm objects from termination.algorithm
 ```
-**(No tested yet)** If you know what are you doing you can run inside your code a concrete algorithm, but it is no recommend if you don't know them
 
+You can also run a concrete algorithm, but it is not recomended.
 ```python
-import termination.algorithm
+from termination.algorithm.lrf import PR
 
-termination.algorithem.LexicograficRF(config)
+lrf_pr = PR()
+lrf_pr.run(cfg)
 ```
 
-Statically-Linked Binary
-========================
-
-See  [INSTRUCTIONS](./staticallylinkedbinary.md)
+## Statically-Linked Binary
+---------------------------
+Check [this url](https://github.com/costa-group/iRankFinder/tree/master/installer#statically-linked-binary-standalone).
