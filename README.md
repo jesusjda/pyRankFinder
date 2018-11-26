@@ -5,7 +5,7 @@ Ranking Functions Finder
 [![Documentation Status](https://readthedocs.org/projects/pyrankfinder/badge/?version=latest)](http://pyrankfinder.readthedocs.io/en/latest/?badge=latest) -->
 
 <kbd>pyRankFinder</kbd> is a python module which try to find **Ranking
-Functions** to study termination and nontermination of program's loops. 
+Functions** to analyse termination and nontermination of program's loops. 
 
 This module has three main python-module dependencies:
 - <kbd>pyLPi</kbd>
