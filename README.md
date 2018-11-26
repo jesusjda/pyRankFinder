@@ -1,8 +1,8 @@
 # pyRankFinder
 Ranking Functions Finder 
 
-%Documentation no up to date.
-%[![Documentation Status](https://readthedocs.org/projects/pyrankfinder/badge/?version=latest)](http://pyrankfinder.readthedocs.io/en/latest/?badge=latest)
+<!-- Documentation no up to date.
+[![Documentation Status](https://readthedocs.org/projects/pyrankfinder/badge/?version=latest)](http://pyrankfinder.readthedocs.io/en/latest/?badge=latest) -->
 
 <kbd>pyRankFinder</kbd> is a python module which try to find **Ranking
 Functions** to study termination and nontermination of program's loops. 
@@ -15,13 +15,11 @@ This module has three main python-module dependencies:
 ----------
 
 ## How to Install
-------------------
 
 Check the [installation info here](https://github.com/costa-group/iRankFinder/tree/master/installer#install).
 
 
 ## How to Use
----------------
 
 There are two ways to execute this tool. 
 
@@ -51,5 +49,5 @@ lrf_pr.run(cfg)
 ```
 
 ## Statically-Linked Binary
----------------------------
+
 Check [this url](https://github.com/costa-group/iRankFinder/tree/master/installer#statically-linked-binary-standalone).
