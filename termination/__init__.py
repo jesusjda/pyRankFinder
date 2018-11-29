@@ -32,13 +32,13 @@ def rank(algs, CFGs, dt_modes=[False], stop_if_fail=False):
     unknown_sccs = []
     while (not fail and CFGs):
         current_cfg, sccd = CFGs.pop(0)
-        if len(current_cfg.get_edges()) == 0:
-            Output_Manager.printif(2, "CFG ranked because it is empty.")
-            continue
         for t in current_cfg.get_edges():
             if t["polyhedron"].is_empty():
                 Output_Manager.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
                 current_cfg.remove_edge(t["source"], t["target"], t["name"])
+        if len(current_cfg.get_edges()) == 0:
+            Output_Manager.printif(2, "This cfg has not transitions.")
+            continue
         if sccd > 0:
             CFGs_aux = current_cfg.get_scc()
         else:
@@ -80,7 +80,6 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
     if not cfg.has_cycle():
         Output_Manager.printif(1, "-> Ranked because it has not cycles.")
         return None
-    found = False
 
     for dt in dt_modes:
         if dt:
@@ -90,14 +89,9 @@ def analyse_scc(algs, cfg, dt_modes=[False]):
             Output_Manager.printif(1, R.get("info"))
         if R.get_status().is_terminate():
             Output_Manager.printif(2, "--> Found with dt={}.\n".format(dt))
-            vars_name = cfg.get_info("global_vars")
-            Output_Manager.printif(1, R.toStrRankingFunctions(vars_name))
-            found = True
-            break
-    if found:
-        return R
-    else:
-        return False
+            Output_Manager.printif(1, R.toStrRankingFunctions(cfg.get_info("global_vars")))
+            return R
+    return False
 
 
 def run_algs(algs, cfg, different_template=False):

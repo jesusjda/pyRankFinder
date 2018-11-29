@@ -9,6 +9,8 @@ except ImportError:
 from ppl import Generator
 from .output import Output_Manager as OM
 
+__all__ = ["TerminationResult", "Result"]
+
 class TerminationResult(Enum):
     TERMINATE = "Terminate"
     NONTERMINATE = "Non-Terminate"

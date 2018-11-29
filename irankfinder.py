@@ -253,9 +253,6 @@ def launch_file(config, f, out):
 
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-
-    OM.show_output()
-    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if config["user_reachability"]:
         cfg.build_polyhedrons()
         compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"], user_props=True,
@@ -266,7 +263,7 @@ def launch_file(config, f, out):
     termination_result = Result()
     has_to_run = lambda key: key in config and config[key]
     if has_to_run("termination"):
-        termination_result = analyse_termination(config , cfg)
+        termination_result = analyse_termination(config, cfg)
         OM.show_output()
         OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if has_to_run("nontermination"):
