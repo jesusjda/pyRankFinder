@@ -3,11 +3,11 @@ import sys
 import argparse
 import genericparser
 from termination import Output_Manager as OM
-from irankfinder import control_flow_refinement
+from partialevaluation import control_flow_refinement
 from irankfinder import compute_invariants
-from irankfinder import showgraph
+from termination.algorithm.utils import showgraph
 
-_version = "1.0"
+_version = "1.2"
 _name = "CFRefinement"
 
 def setArgumentParser():
@@ -75,7 +75,6 @@ def launch_file(config, f):
     try:
         config["name"] = extractname(f)
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
-                                         au_prop=config["cfr_automatic_properties"],
                                          console=True, writef=True)
         if config["invariants"] != "none":
             config["show_with_invariants"] = True
