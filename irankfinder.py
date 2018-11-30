@@ -107,13 +107,13 @@ def setArgumentParser():
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="z3", help="select lib")
     # CFR Parameters
-    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False, nargs='+',
-                           type=int, choices=range(0,5), default=[4],
+    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False,
+                           type=int, choices=range(0,5), default=4,
                            help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
     argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
-                           choices=["none", "before", "scc", "after", "both"], default="before",
+                           choices=["none", "before", "scc"], default="before",
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
@@ -176,56 +176,6 @@ def parse_file(f):
     import genericparser
     return genericparser.parse(f)
 
-def remove_no_important_variables(cfg, doit=False):
-    if not doit:
-        return
-    def are_related_vars(vs, vas):
-        if len(vs) != 2: 
-            return False
-        N = int(len(vas)/2)
-        try:
-            pos1 = vas.index(vs[0])
-            pos2 = vas.index(vs[1])
-        except:
-            return False
-        return pos1%N == pos2%N
-        
-    gvars = cfg.get_info("global_vars")
-    N = int(len(gvars)/2)
-    nivars = list(gvars[:N])
-    for tr in cfg.get_edges():
-        for c in tr["constraints"]:
-            if c.isequality():
-                if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars):
-                    continue
-            for v in c.get_variables():
-                if v in tr["local_vars"]:
-                    continue
-                pos = gvars.index(v)
-                vt = gvars[pos%N]
-                if vt in nivars:
-                    nivars.remove(vt)
-
-            if len(nivars) == 0:
-                break
-        if len(nivars) == 0:
-            break
-    count = 0
-    for v in nivars:
-        pos = gvars.index(v)
-        vp = gvars[pos+N]
-        for tr in cfg.get_edges():
-            for c in list(tr["constraints"]):
-                vs = c.get_variables()
-                if v in vs or vp in vs:
-                    count += 1
-                    tr["constraints"].remove(c)
-        pos = gvars.index(v)
-        gvars.pop(pos+N)
-        gvars.pop(pos)
-        N = int(len(gvars)/2)
-    OM.printif(1, "Removed {} constraint(s) with variables: [{}]".format(count, ",".join(nivars)))
-
 def launch_file(config, f, out):
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
@@ -259,203 +209,53 @@ def launch_file(config, f, out):
                              use_threshold=config["invariants_threshold"])
         return None
     # Compute Termination
-    from termination import Result
-    termination_result = Result()
-    has_to_run = lambda key: key in config and config[key]
-    if has_to_run("termination"):
-        termination_result = analyse_termination(config, cfg)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if has_to_run("nontermination"):
-        termination_result = analyse_nontermination(config, cfg, termination_result)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if termination_result:
-        show_result(termination_result, cfg)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
+    termination_result = analyse(config, cfg)
+    show_result(termination_result, cfg)
+    OM.show_output()
+    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     ncfg = {}
     ncfg["name"] = config["name"]
     ncfg["output_destination"] = config["output_destination"]
     ncfg["output_formats"] = ["fc", "svg"]
+    from termination.algorithm.utils import showgraph
     showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariants"], console=True, writef=False)
     return termination_result
 
-def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False):
-    if not console and not writef:
+def remove_no_important_variables(cfg, doit=False):
+    if not doit:
         return
-    name = config["name"] +str(sufix)
-    destname = config["output_destination"]
-    if destname is None:
-        return
-    show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
-    os.makedirs(os.path.dirname(destname), exist_ok=True)
-    if not show_with_inv:
-        invariant_type = "none"
-    print(invariant_type)
-    from io import StringIO
-    stream = StringIO()
-    if "fc" in config["output_formats"]:
-        cfg.toFc(stream, invariant_type=invariant_type)
-        fcstr=stream.getvalue()
-        if console:
-            OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
-            OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
-        if writef:
-            OM.writefile(0, name+".fc", fcstr)
-        stream.close()
-        stream = StringIO()
-    if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
-        cfg.toDot(stream, invariant_type=invariant_type)
-        dotstr = stream.getvalue()
-        dotfile = os.path.join(destname, name+".dot")
-        os.makedirs(os.path.dirname(dotfile), exist_ok=True)
-        
-        with open(dotfile, "w") as f:
-            f.write(dotstr)
-        stream.close()
-        stream = StringIO()
-        if "dot" in config["output_formats"] and writef:
-            if console:
-                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-                OM.printif(0, dotstr, format="text", consoleid="graphs", consoletitle="Graphs")
-            if writef:
-                OM.writefile(0, name+".dot", dotstr)
-        if "svg" in config["output_formats"]:
-            svgfile = os.path.join(destname, name+".svg")
-            svgstr = dottoSvg(dotfile, svgfile)
-            if console:
-                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-                OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
-            if writef:
-                OM.writefile(0, name+".svg", svgstr)
-    if "koat" in config["output_formats"]:
-        cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
-        koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
-        OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
-        OM.writefile(0, name+".koat", koatstr)
-        stream.close()
-        stream = StringIO()
-    if "pl" in config["output_formats"]:
-        cfg.toProlog(path=stream, invariant_type=invariant_type)
-        koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
-        OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
-        OM.writefile(0, name+".pl", koatstr)
-        stream.close()
-        stream = StringIO()
-    stream.close()
+    cons, nivars = cfg.remove_no_important_variables()
+    OM.printif(1, "Removed {} constraint(s) with variable(s): [{}]".format(cons, ",".join(nivars)))
 
-def dottoSvg(dotfile, svgfile):
-    from subprocess import check_call
-    check_call(['dot', '-Tsvg', dotfile ,'-o', svgfile])
-    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
-    svgstr = ""
-    with open(svgfile, "r") as f:
-        svgstr += f.read()
-    return svgstr
-
-def file2string(filepath):
-    with open(filepath, 'r') as f:
-        data=f.read()
-    return data
-
-def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False, only_nodes=[]):
-    cfr_ite = config["cfr_iterations"]
-    cfr_inv = config["cfr_invariants"]
-    # cfr_it_st = config["cfr_iteration_strategy"]
-    cfr_usr_props = config["cfr_user_properties"]
-    cfr_inv_thre = config["cfr_invariants_threshold"]
-    tmpdir = config["tmpdir"]
-    pe_cfg = cfg
-    sufix = ""
-    for it in range(0, cfr_ite):
-        compute_invariants(pe_cfg, abstract_domain=cfr_inv, use=False, use_threshold=cfr_inv_thre)
-        pe_cfg.remove_unsat_edges()
-        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
-        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
-                                 user_props=cfr_usr_props, tmpdir=tmpdir,
-                                 invariant_type=cfr_inv, nodes_to_refine=only_nodes)
-        sufix="_cfr"+str(it+1)
-        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
-            sufix += "_with_inv_"+str(cfr_inv)
-    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
-    return pe_cfg
-
-def analyse_termination(config, cfg):
-    algs = config["termination"]
-    if "lib" in config:
-        for alg in algs:
-            alg.set_prop("lib", config["lib"])
-    if config["different_template"] == "always":
-        dt_modes = [True]
-    elif config["different_template"] == "iffail":
-        dt_modes = [False, True]
+def analyse(config, cfg):
+    from termination.algorithm.utils import showgraph
+    from partialevaluation import control_flow_refinement
+    cfr_first = config["cfr_strategy"] in ["before"] if "cfr_strategy" in config else True
+    OM.printseparator(1)
+    rmded = cfg.remove_unsat_edges()
+    if len(rmded)> 0:
+        OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
+    if cfr_first:
+        pe_cfg = control_flow_refinement(cfg, config)
+        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], config["cfr_automatic_properties"],config["cfr_user_properties"], config["cfr_invariants"])
     else:
-        dt_modes = [False]
-    skip = False
-    if "cfr_strategy" in config:
-        cfr_first = config["cfr_strategy"] in ["before", "both"]
-        cfr_last = config["cfr_strategy"] in ["after", "both"]
+        pe_cfg = cfg
+        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "False", "none")
+    compute_invariants(pe_cfg, abstract_domain=config["invariants"],
+                       use_threshold=config["invariants_threshold"])
+    r = termination.analyse(config, pe_cfg)
+    ncfg = {}
+    ncfg["name"] = config["name"]
+    ncfg["output_destination"] = config["output_destination"]
+    ncfg["output_formats"] = ["fc", "svg"]
+    showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
+    if r.get_status().is_terminate():
+        return r
+    if r.has("unknown_sccs"):
+        unk_sccs = r.get("unknown_sccs")
     else:
-        cfr_first = True
-        cfr_last = False
-    for au_prop in config["cfr_automatic_properties"]:
-        if skip:
-            break
-        if config["cfr_iterations"] == 0:
-            skip = True
-        else:
-            OM.printif(1, "- CFR properties: {}".format(au_prop))
-        OM.printseparator(1)
-        rmded = cfg.remove_unsat_edges()
-        if len(rmded)> 0:
-            OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
-        if cfr_first:
-            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
-        else:
-            pe_cfg = cfg
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "False", "none")
-        compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                           use_threshold=config["invariants_threshold"])
-        r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
-        ncfg = {}
-        ncfg["name"] = config["name"]
-        ncfg["output_destination"] = config["output_destination"]
-        ncfg["output_formats"] = ["fc", "svg"]
-        showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
-        if r.get_status().is_terminate():
-            return r
-    unk_sccs = r.get("unknown_sccs")
-    if cfr_last:
-        num_it = 0
-        while num_it < config["cfr_iterations"] and len(unk_sccs) > 0:
-            num_it += 1
-            OM.printseparator(2)
-            OM.printif(2, "CFR only the nodes where we failed (iteration:{})".format(num_it))
-            only_nodes = []
-            for scc in unk_sccs:
-                only_nodes += scc.get_nodes()
-            OM.printif(2,"Nodes to refine:", only_nodes)
-            if len(only_nodes) == 0:
-                OM.printif(1, "No nodes to refine.")
-                break
-            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop, only_nodes=only_nodes)
-            compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                               use_threshold=config["invariants_threshold"])
-            r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                    dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
-            ncfg = {}
-            ncfg["name"] = config["name"]
-            ncfg["output_destination"] = config["output_destination"]
-            ncfg["output_formats"] = ["fc", "svg"]
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}, nodes:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"], only_nodes)
-            showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
-            unk_sccs = r.get("unknown_sccs")
-            OM.printseparator(2)
+        return r
+
     if config["conditional_termination"] and len(unk_sccs) > 0:
         # analyse reachability for all the nodes where we don't prove termination
         OM.printseparator(0)
@@ -476,37 +276,6 @@ def analyse_termination(config, cfg):
             count += 1
         OM.printseparator(0)
     return r
-
-
-def analyse_nontermination(config, cfg, termination_result):
-    sols = []
-    if termination_result is not None and termination_result.has("unknown_sccs"):
-        unk_sccs = termination_result.get("unknown_sccs")
-    else:
-        unk_sccs = cfg.get_scc()
-
-    from termination.result import TerminationResult
-    for scc in unk_sccs[:]:
-        if len(scc.get_edges()) == 0:
-            #OM.printif(2, "CFG ranked because it is empty.")
-            continue
-        for t in scc.get_edges():
-            if t["polyhedron"].is_empty():
-                #OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
-                scc.remove_edge(t["source"], t["target"], t["name"])
-                continue
-        trs = [t["name"] for t in scc.get_edges()]
-        ns = scc.get_nodes()
-        OM.printif(1, "Analysing NON-termination of SCC:\n\t+-- Transitions:{}\n\t+-- Nodes:{}".format(trs,ns))
-        r = termination.analyse_nontermination(config["nontermination"], scc, close_walk_depth=5, stop_if_fail=config["stop_if_fail"])
-        if r.get_status().is_nonterminate():
-            sols.append((scc,r))
-            unk_sccs.remove(scc)
-            termination_result.set_response(status=TerminationResult.NONTERMINATE)
-            if config["stop_if_fail"]:
-                break
-    termination_result.set_response(unknown_sccs=unk_sccs, scc_sols_nt=sols)
-    return termination_result
 
 def show_result(result, cfg):
     OM.printseparator(1)

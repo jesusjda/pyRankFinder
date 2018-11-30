@@ -3,8 +3,93 @@ from termination.output import Output_Manager as OM
 from subprocess import PIPE
 from subprocess import Popen
     
-__all__ = ['partialevaluate']
+__all__ = ['partialevaluate', 'control_flow_refinement','prepare_scc']
 
+def prepare_scc(cfg, scc, invariant_type):
+    edges = scc.get_edges()
+    scc_copy = scc.edge_data_subgraph(edges)
+    nodes = scc.get_nodes()
+    init_node = "scc_init"
+    entries = scc.get_info("entry_nodes")
+    it = 0
+    while init_node in nodes:
+        it += 1
+        init_node = "scc_init_"+str(it)
+    from lpi.Lazy_Polyhedron import C_Polyhedron
+    inv_name = "invariant_"+str(invariant_type)
+    edges = cfg.get_edges()
+    Nvars = len(cfg.get_info("global_vars"))
+    for e in edges:
+        Nlocal_vars = len(e["local_vars"])
+        tr_cons = e["tr_polyhedron"].get_constraints()
+        try:
+            inv = cfg.nodes[e["source"]][inv_name].get_constraints()
+        except:
+            inv = []
+        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
+        for c in tr_cons:
+            tr_poly.add_constraint(c)
+        for c in inv:
+            tr_poly.add_constraint(c)
+        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
+                          key="polyhedron", value=tr_poly)
+    t_names = [e["name"] for e in edges]
+    it = 0
+    from copy import deepcopy
+    for entry in entries:
+        for t in cfg.get_edges(target=entry):
+            new_t = deepcopy(t)
+            src = t["source"]
+            if src == entry:
+                continue
+            new_t["source"] = init_node
+            name = "tr"+str(it)
+            while name in t_names:
+                name = "tr"+str(it)
+                it += 1
+            new_t["name"] = name
+            Nlocal_vars = len(t["local_vars"])
+            tr_cons = t["tr_polyhedron"].get_constraints()
+            try:
+                inv = cfg.nodes[src][inv_name].get_constraints()
+            except:
+                inv = []
+            tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
+            for c in tr_cons:
+                tr_poly.add_constraint(c)
+            for c in inv:
+                tr_poly.add_constraint(c)
+            new_t["polyhedron"] = tr_poly
+            scc_copy.add_edge(**new_t)
+    scc_copy.set_info("init_node",init_node)
+    scc_copy.set_info("entry_nodes",[init_node])
+    return scc_copy
+
+def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=[]):
+    from termination.algorithm.utils import showgraph
+    from nodeproperties import compute_invariants
+    au_prop = config["cfr_automatic_properties"]
+    cfr_ite = config["cfr_iterations"]
+    cfr_inv = config["cfr_invariants"]
+    # cfr_it_st = config["cfr_iteration_strategy"]
+    cfr_usr_props = config["cfr_user_properties"]
+    cfr_inv_thre = config["cfr_invariants_threshold"]
+    tmpdir = config["tmpdir"]
+    pe_cfg = cfg
+    sufix = ""
+    for it in range(0, cfr_ite):
+        pe_cfg.build_polyhedrons()
+        compute_invariants(pe_cfg, abstract_domain=cfr_inv, use_threshold=cfr_inv_thre)
+        pe_cfg.remove_unsat_edges()
+        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
+        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
+                                 user_props=cfr_usr_props, tmpdir=tmpdir,
+                                 invariant_type=cfr_inv, nodes_to_refine=only_nodes)
+        sufix="_cfr"+str(it+1)
+        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
+            sufix += "_with_inv_"+str(cfr_inv)
+    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
+    return pe_cfg
 
 def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_type=None, nodes_to_refine=[]):
     if not(auto_props in range(0, 5)):

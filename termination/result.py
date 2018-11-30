@@ -112,11 +112,12 @@ class Result:
             res_str = "NO\n"
         if self._data["status"].is_error():
             return res_str + "\nERROR: " + self._data["errormsg"]
- 
+        if "info" in self._data:
+            res_str += "\n"+str(self._data["info"])
         if "rfs" in self._data:
             res_str += self._rfs(self._data["rfs"], vars_name)
-        if "scc_sols_nt" in self._data:
-            res_str += self._scc_sols_nt(self._data["scc_sols_nt"], vars_name)
+        if "nonterminate" in self._data:
+            res_str += self._scc_nonterminate(self._data["nonterminate"], vars_name)
         if "unknown_sccs" in self._data:
             res_str += self._unknown_sccs(self._data["unknown_sccs"])
         return res_str
@@ -134,12 +135,13 @@ class Result:
             return ""
         return self._rfs2str(rfs, vars_name)
 
-    def _scc_sols_nt(self, scc_sols_nt, vars_name):
-        if len(scc_sols_nt) == 0:
+    def _scc_nonterminate(self, sols_nt, vars_name):
+        if len(sols_nt) == 0:
             return ""
         res_str = "\nNON-Termination: (Didn't check reachability)\n"
         res_str += "----------------\n"
-        for scc, sol in scc_sols_nt:
+        for sol in sols_nt:
+            scc = sol.get("graph")
             vs_name = scc.get_info("global_vars")
             ns = scc.get_nodes()
             ts = scc.get_edges()
