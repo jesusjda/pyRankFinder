@@ -26,10 +26,6 @@ def setArgumentParser():
     argParser.add_argument("-sccd", "--scc_depth", type=int,
                            choices=range(0, 10), default=5,
                            help="Strategy based on SCC to go through the CFG.")# CFR Parameters
-    argParser.add_argument("-cfr-it-max", "--cfr-iterations-max", type=int, choices=range(0, 5),
-                           help="# times to apply cfr", default=0)
-    argParser.add_argument("-cfr-it-min", "--cfr-iterations-min", type=int, choices=range(0, 5),
-                           help="# times to apply cfr", default=2)
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -126,7 +122,7 @@ def config2Tag(config):
     tag += "_CFR-it:"+str(config["cfr_iterations"])
     tag += "_CFR-au:"+str(config["cfr_automatic_properties"])
     tag += "_CFR-inv:"+str(config["cfr_invariants"])
-    tag += "_CFR-sc:"+str(config["cfr_simplify_constraints"])
+    tag += "_CFR-st:"+str(config["cfr_strategy"])
     return tag
 
 def file2ID(file, prefix=""):
@@ -246,11 +242,33 @@ if __name__ == "__main__":
     sccd = ar["scc_depth"]
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    cfr_au = 4
-    cfr_ite= (ar["cfr_iterations_min"],ar["cfr_iterations_max"])
+    cfr_au = [4]
+    cfr_ite= [0]
     lib = ["z3"]
     inv = ["polyhedra"]
     cfr_invs = ["none"]
+    cfr_strat = ["none", "before", "scc"]
+    cfr_configs = []
+    conf = {"cfr_iterations": 0, "cfr_automatic_properties":4, "cfr_user_properties":False,
+            "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
+            "cfr_strategy":"none"}    
+    if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
+        cfr_configs.append(conf)
+    for it in cfr_ite:
+        if it ==0:
+            continue
+        conf["cfr_iterations"] = it
+        for au in cfr_au:
+            if au == 0:
+                continue
+            conf["cfr_automatic_properties"] = au
+            for strat in cfr_strat:
+                if strat == "none":
+                    continue
+                conf["cfr_strategy"] = strat
+                for i in cfr_invs:
+                    conf["cfr_invariants"] = i
+                    cfr_configs.append(conf)
     rniv = True
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
@@ -261,12 +279,12 @@ if __name__ == "__main__":
         mout = int(ar["memoryout"])
     else:
         mout = None
-    algs = [[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
-    # algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
-    # algs.append([termination.algorithm.lrf.PR()])
-    # for i in range(1, 3):
-    #     algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
-    #                                                     "version": 1})])
+    algs = [] #[[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
+    algs.append([termination.algorithm.lrf.PR()])
+    for i in range(1, 3):
+        algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
+                                                        "version": 1})])
 
     numm = len(files)
     info = {}
@@ -278,76 +296,74 @@ if __name__ == "__main__":
         info = get_info(cachedir, f, ar["prefix"])
         todel = []
         for a in info["analysis"]:
-            if a["status"] == "Error":
-                todel.append(a)
+            todel.append(a)
         #for a in todel:
         #    info["analysis"].remove(a)
-        for cfr_it in range(cfr_ite[0], cfr_ite[1]+1):
+        for cfr_conf in cfr_configs:
             for i in inv:
+                print(i)
                 if status:
                     continue
-                for cfr_inv in cfr_invs:
+                for l in lib:
+                    print(l)
                     if status:
                         continue
-                    for l in lib:
+                    for a in algs:
                         if status:
                             continue
-                        for a in algs:
+                        a[0].set_prop("lib", l)
+                        for d in dt:
                             if status:
                                 continue
-                            a[0].set_prop("lib", l)
-                            for d in dt:
-                                if status:
-                                    continue
-                                name = os.path.basename(f)  # .replace("/","_")
-                                nname = extractname(f)
-                                config = {
-                                    "scc_depth": sccd,
-                                    "verbosity": 3,
-                                    "ei_out": False,
-                                    "termination": a,
-                                    "invariants": i,
-                                    "different_template": d,
-                                    "simplify_constraints": True,
-                                    "cfr_automatic_properties": [cfr_au],
-                                    "cfr_iterations": cfr_it,
-                                    "cfr_invariants": cfr_inv,
-                                    "cfr_simplify_constraints": True,
-                                    "cfr_user_properties": False,
-                                    "cfr_invariants_threshold": False,
-                                    "cfr_strategy" : "before",
-                                    "invariants_threshold": False,
-                                    "files": [f],
-                                    "lib": l,
-                                    "tmpdir": None,
-                                    "name": extractname(f),
-                                    "output_destination": None,
-                                    "output_formats": [],
-                                    "remove_no_important_variables": rniv,
-                                    "user_reachability": False,
-                                    "reachability": "none",
-                                    "stop_if_fail": False,
-                                    "conditional_termination": False,
-                                    "show_with_invariants": False,
-                                    "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
-                                }
-                                skip = False
-                                if ar["only_errors"]:
-                                    skip = True
-                                    if is_error(config,info):
-                                        skip = False
-                                if skip:
-                                    print("skip with : " + config2Tag(config))
-                                    continue
-                                print("Trying with : " + config2Tag(config))
-                                response = sandbox(irankfinder.launch_file, args=(config, f, None),
-                                                    time_segs=tout, memory_mb=mout)
-                                response["date"] = datetime.datetime.today()
-                                response["config"] = config
-                                info["analysis"].append(response)
-                                if response["status"].is_terminate():
-                                    status = ar["stop_if_terminate"]
-        #save_info(info, cachedir, f, ar["prefix"])
+                            name = os.path.basename(f)  # .replace("/","_")
+                            nname = extractname(f)
+                            config = {
+                                "scc_depth": sccd,
+                                "verbosity": 3,
+                                "ei_out": False,
+                                "termination": a,
+                                "invariants": i,
+                                "different_template": d,
+                                "simplify_constraints": True,
+                                "cfr_automatic_properties": cfr_conf["cfr_automatic_properties"],
+                                "cfr_iterations": cfr_conf["cfr_iterations"],
+                                "cfr_invariants": cfr_conf["cfr_invariants"],
+                                "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
+                                "cfr_user_properties": cfr_conf["cfr_user_properties"],
+                                "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
+                                "cfr_strategy" : cfr_conf["cfr_strategy"],
+                                "invariants_threshold": False,
+                                "files": [f],
+                                "lib": l,
+                                "tmpdir": None,
+                                "name": extractname(f),
+                                "output_destination": None,
+                                "output_formats": [],
+                                "remove_no_important_variables": rniv,
+                                "user_reachability": False,
+                                "reachability": "none",
+                                "stop_if_fail": False,
+                                "conditional_termination": False,
+                                "show_with_invariants": False,
+                                "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+                            }
+                            skip = False
+                            if ar["only_errors"]:
+                                skip = True
+                                if is_error(config,info):
+                                    skip = False
+                            if skip:
+                                print("skip with : " + config2Tag(config))
+                                continue
+                            print("Trying with : " + config2Tag(config))
+                            response = sandbox(irankfinder.launch_file, args=(config, f, None),
+                                                time_segs=tout, memory_mb=mout)
+                            response["date"] = datetime.datetime.today()
+                            response["config"] = config
+                            info["analysis"].append(response)
+                            if response["status"].is_terminate():
+                                status = ar["stop_if_terminate"]
+        save_info(info, cachedir, f, ar["prefix"])
 
 
 
