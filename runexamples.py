@@ -243,17 +243,17 @@ if __name__ == "__main__":
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
     cfr_au = [4]
-    cfr_ite= [0]
+    cfr_ite= [0, 1]
     lib = ["z3"]
     inv = ["polyhedra"]
-    cfr_invs = ["none"]
+    cfr_invs = ["polyhedra"]
     cfr_strat = ["none", "before", "scc"]
     cfr_configs = []
     conf = {"cfr_iterations": 0, "cfr_automatic_properties":4, "cfr_user_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
             "cfr_strategy":"none"}    
     if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
-        cfr_configs.append(conf)
+        cfr_configs.append(dict(conf))
     for it in cfr_ite:
         if it ==0:
             continue
@@ -268,7 +268,7 @@ if __name__ == "__main__":
                 conf["cfr_strategy"] = strat
                 for i in cfr_invs:
                     conf["cfr_invariants"] = i
-                    cfr_configs.append(conf)
+                    cfr_configs.append(dict(conf))
     rniv = True
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     else:
         mout = None
     algs = [] #[[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
-    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
+    #algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
     algs.append([termination.algorithm.lrf.PR()])
     for i in range(1, 3):
         algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
@@ -344,14 +344,15 @@ if __name__ == "__main__":
                                 "reachability": "none",
                                 "stop_if_fail": False,
                                 "conditional_termination": False,
-                                "show_with_invariants": False,
-                                "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+                                "show_with_invariants": False
+                                #"recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
                             }
                             skip = False
                             if ar["only_errors"]:
                                 skip = True
                                 if is_error(config,info):
                                     skip = False
+                            config["cfr_invariants"] = "none"
                             if skip:
                                 print("skip with : " + config2Tag(config))
                                 continue
@@ -364,6 +365,15 @@ if __name__ == "__main__":
                             if response["status"].is_terminate():
                                 status = ar["stop_if_terminate"]
         save_info(info, cachedir, f, ar["prefix"])
+
+
+
+
+
+
+
+
+
 
 
 

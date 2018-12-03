@@ -98,8 +98,9 @@ def analyse(config, cfg):
                 if not do_cfr:
                     maybe_sccs.append(scc)
             else:
-                merge(rfs, R.get("rfs"))
-                pending_trs = R.get("pending_trs")
+                if R.has("rfs"):
+                    merge(rfs, R.get("rfs"))
+                pending_trs = R.get("pending_trs") if R.has("pending_trs") else []
                 R.set_response(graph=scc)
                 terminating_sccs.append(R)
                 if pending_trs:
@@ -146,8 +147,9 @@ def analyse(config, cfg):
                             return fast_answer_result
                         maybe_sccs.append(cfr_scc)
                     else:
-                        merge(rfs, R.get("rfs"))
-                        pending_trs = R.get("pending_trs")
+                        if R.has("rfs"):
+                            merge(rfs, R.get("rfs"))
+                        pending_trs = R.get("pending_trs") if R.has("pending_trs") else []
                         R.set_response(graph=cfr_scc)
                         terminating_sccs.append(R)
                         if pending_trs:
@@ -242,3 +244,5 @@ def run_algs(algs, cfg, different_template=False):
     response.set_response(status=TerminationResult.UNKNOWN,
                           info="Not Found")
     return response
+
+
