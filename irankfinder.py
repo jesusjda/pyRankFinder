@@ -112,6 +112,8 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
+    argParser.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
+                           help="max tries to apply cfr on scc level", default=4)
     argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
                            choices=["none", "before", "scc"], default="before",
                            help="")

@@ -35,6 +35,7 @@ def analyse(config, cfg):
                   "cfr_iterations": config["cfr_iterations"],
                   "cfr_invariants": config["cfr_invariants"],
                   "cfr_invariants_threshold": config["cfr_invariants_threshold"],
+                  "cfr_max_tries":config["cfr_max_tries"],
                   "tmpdir": config["tmpdir"]
                   }
             if not cfr["cfr_user_properties"] and cfr["cfr_automatic_properties"] == 0:
@@ -44,13 +45,13 @@ def analyse(config, cfg):
     # SCC spliting and analysis
     from .algorithm.utils import merge
     stop = False
-    CFGs = [(cfg, max_sccd, False)]
+    CFGs = [(cfg, max_sccd, 0)]
     rfs = {}
     maybe_sccs = []
     terminating_sccs = []
     nonterminating_sccs = []
     while (not stop and CFGs):
-        current_cfg, sccd, cfred = CFGs.pop(0)
+        current_cfg, sccd, cfr_num = CFGs.pop(0)
         for t in current_cfg.get_edges():
             if t["polyhedron"].is_empty():
                 Output_Manager.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
@@ -58,15 +59,20 @@ def analyse(config, cfg):
         if len(current_cfg.get_edges()) == 0:
             Output_Manager.printif(2, "This cfg has not transitions.")
             continue
-
-        CFGs_aux = current_cfg.get_scc() if sccd > 0 else [current_cfg]
+        cfg_cfr = current_cfg
+        if cfr_num > 0:
+            from partialevaluation import control_flow_refinement
+            from partialevaluation import prepare_scc
+            cfg_cfr = control_flow_refinement(prepare_scc(cfg,current_cfg,"polyhedra"), cfr)
+            # Compute invariants ?? incorrect or more generic?
+        CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
         sccd -= 1
         CFGs_aux.sort()
 
 
         can_be_terminate = len(t_algs) > 0
         can_be_nonterminate = len(nt_algs) > 0
-        do_cfr = cfr["cfr_iterations"] > 0 and not cfred
+        do_cfr = cfr["cfr_iterations"] > 0 and cfr_num < cfr["cfr_max_tries"]
 
         for scc in CFGs_aux:
             for t in scc.get_edges():
@@ -97,7 +103,9 @@ def analyse(config, cfg):
                     fast_answer_result.set_response(info="NON-termination is not being analysed and terminate can't be proved.",
                                                     graph=scc)
                     return fast_answer_result
-                if not do_cfr:
+                if do_cfr:
+                    CFGs = [(scc, max_sccd, cfr_num+1)] + CFGs
+                else:
                     maybe_sccs.append(scc)
             else:
                 if R.has("rfs"):
@@ -107,57 +115,8 @@ def analyse(config, cfg):
                 terminating_sccs.append(R)
                 if pending_trs:
                     CFGs = [(cfg.edge_data_subgraph(pending_trs),
-                             sccd, False)] + CFGs
+                             sccd, cfr_num)] + CFGs
                 continue
-            # try with cfr
-            if do_cfr:
-                cfg_cfr = None
-                from partialevaluation import control_flow_refinement
-                from partialevaluation import prepare_scc
-                cfg_cfr = control_flow_refinement(prepare_scc(cfg,scc,"polyhedra"), cfr)
-                cfr_CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
-                sccd -= 1
-                cfr_CFGs_aux.sort()
-                for cfr_scc in cfr_CFGs_aux:
-                    for t in cfr_scc.get_edges():
-                        if t["polyhedron"].is_empty():
-                            #OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
-                            cfr_scc.remove_edge(t["source"], t["target"], t["name"])
-                            continue
-                        if len(cfr_scc.get_edges()) == 0:
-                            #OM.printif(2, "CFG ranked because it is empty.")
-                            continue
-                    R = False
-                    R_nt = False
-                    # analyse termination with cfr
-                    if can_be_terminate:
-                        R = analyse_scc_termination(t_algs, cfr_scc, dt_modes=dt_modes)
-                    if not R or not R.get_status().is_terminate():
-                        # analyse NON-termination with cfr
-                        if can_be_nonterminate:
-                            R_nt = analyse_scc_nontermination(nt_algs, cfr_scc)
-                            if R_nt and R_nt.get_status().is_nonterminate():
-                                R_nt.set_response(graph=cfr_scc)
-                                nonterminating_sccs.append(R_nt)
-                                if fast_answer:
-                                    return R_nt
-                                continue
-                        can_be_terminate = not fast_answer
-                        if fast_answer and not can_be_nonterminate:
-                            fast_answer_result.set_response(info="NON-termination is not being analysed and terminate can't be proved.",
-                                                            graph=cfr_scc)
-                            return fast_answer_result
-                        maybe_sccs.append(cfr_scc)
-                    else:
-                        if R.has("rfs"):
-                            merge(rfs, R.get("rfs"))
-                        pending_trs = R.get("pending_trs") if R.has("pending_trs") else []
-                        R.set_response(graph=cfr_scc)
-                        terminating_sccs.append(R)
-                        if pending_trs:
-                            CFGs = [(cfg.edge_data_subgraph(pending_trs),
-                                     sccd, True)] + CFGs
-                        continue
 
     status=TerminationResult.UNKNOWN
     if len(nonterminating_sccs) > 0:
