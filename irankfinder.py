@@ -131,9 +131,9 @@ def setArgumentParser():
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
-                           nargs='*', required=False,
+                           nargs='*', required=False, default=[],
                            help=nontermination_alg_desc())
-    argParser.add_argument("-t", "--termination", type=termination_alg,
+    argParser.add_argument("-t", "--termination", type=termination_alg, default=[],
                            nargs='*', required=False,
                            help=termination_alg_desc())
     argParser.add_argument("-ct", "--conditional-termination", required=False,
@@ -330,9 +330,6 @@ if __name__ == "__main__":
             config["termination"] = [alg for alg in config["termination"] if alg is not None]
         if "nontermination" in config and config["nontermination"] is not None:
             config["nontermination"] = [alg for alg in config["nontermination"] if alg is not None]
-        # if(not(config["termination"]) and
-        #   not(config["nontermination"])):
-        #    argParser.error("Either --termination or --nontermination algorithms is required.")
         launch(config)
     finally:
         OM.show_output()

@@ -46,6 +46,9 @@ def analyse(config, cfg):
     stop = False
     CFGs = [(cfg, max_sccd, False)]
     rfs = {}
+    maybe_sccs = []
+    terminating_sccs = []
+    nonterminating_sccs = []
     while (not stop and CFGs):
         current_cfg, sccd, cfred = CFGs.pop(0)
         for t in current_cfg.get_edges():
@@ -59,13 +62,12 @@ def analyse(config, cfg):
         CFGs_aux = current_cfg.get_scc() if sccd > 0 else [current_cfg]
         sccd -= 1
         CFGs_aux.sort()
-        maybe_sccs = []
-        terminating_sccs = []
-        nonterminating_sccs = []
+
 
         can_be_terminate = len(t_algs) > 0
         can_be_nonterminate = len(nt_algs) > 0
         do_cfr = cfr["cfr_iterations"] > 0 and not cfred
+
         for scc in CFGs_aux:
             for t in scc.get_edges():
                 if t["polyhedron"].is_empty():

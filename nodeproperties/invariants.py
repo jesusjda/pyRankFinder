@@ -19,7 +19,6 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
     else:
         nodes = {node:{"state": state(Nvars, bottom=True, abstract_domain=abstract_domain), "accesses": 0}
                  for node in graph_nodes}
-
         nodes[init_node]["state"] = state(Nvars, abstract_domain=abstract_domain)
         from termination.output import Output_Manager as OM
         queue = [init_node]

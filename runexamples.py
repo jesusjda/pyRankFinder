@@ -243,13 +243,13 @@ if __name__ == "__main__":
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
     cfr_au = [4]
-    cfr_ite= [0, 1]
+    cfr_ite= [1]
     lib = ["z3"]
     inv = ["polyhedra"]
     cfr_invs = ["polyhedra"]
     cfr_strat = ["none", "before", "scc"]
     cfr_configs = []
-    conf = {"cfr_iterations": 0, "cfr_automatic_properties":4, "cfr_user_properties":False,
+    conf = {"cfr_iterations": 1, "cfr_automatic_properties":4, "cfr_user_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
             "cfr_strategy":"none"}    
     if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
@@ -301,11 +301,9 @@ if __name__ == "__main__":
         #    info["analysis"].remove(a)
         for cfr_conf in cfr_configs:
             for i in inv:
-                print(i)
                 if status:
                     continue
                 for l in lib:
-                    print(l)
                     if status:
                         continue
                     for a in algs:
@@ -352,7 +350,6 @@ if __name__ == "__main__":
                                 skip = True
                                 if is_error(config,info):
                                     skip = False
-                            config["cfr_invariants"] = "none"
                             if skip:
                                 print("skip with : " + config2Tag(config))
                                 continue

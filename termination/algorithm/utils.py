@@ -91,7 +91,6 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
     os.makedirs(os.path.dirname(destname), exist_ok=True)
     if not show_with_inv:
         invariant_type = "none"
-    print(invariant_type)
     from io import StringIO
     stream = StringIO()
     if "fc" in config["output_formats"]:

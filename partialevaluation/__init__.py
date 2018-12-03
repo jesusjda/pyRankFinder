@@ -6,42 +6,27 @@ from subprocess import Popen
 __all__ = ['partialevaluate', 'control_flow_refinement','prepare_scc']
 
 def prepare_scc(cfg, scc, invariant_type):
-    edges = scc.get_edges()
-    scc_copy = scc.edge_data_subgraph(edges)
+    scc_edges = scc.get_edges()
+    scc_copy = scc.edge_data_subgraph(scc_edges)
     nodes = scc.get_nodes()
     init_node = "scc_init"
-    entries = scc.get_info("entry_nodes")
     it = 0
     while init_node in nodes:
         it += 1
         init_node = "scc_init_"+str(it)
     from lpi.Lazy_Polyhedron import C_Polyhedron
     inv_name = "invariant_"+str(invariant_type)
-    edges = cfg.get_edges()
     Nvars = len(cfg.get_info("global_vars"))
-    for e in edges:
-        Nlocal_vars = len(e["local_vars"])
-        tr_cons = e["tr_polyhedron"].get_constraints()
-        try:
-            inv = cfg.nodes[e["source"]][inv_name].get_constraints()
-        except:
-            inv = []
-        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
-        for c in tr_cons:
-            tr_poly.add_constraint(c)
-        for c in inv:
-            tr_poly.add_constraint(c)
-        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
-                          key="polyhedron", value=tr_poly)
-    t_names = [e["name"] for e in edges]
+    t_names = [e["name"] for e in scc_edges]
     it = 0
     from copy import deepcopy
-    for entry in entries:
+    for entry in nodes:
         for t in cfg.get_edges(target=entry):
-            new_t = deepcopy(t)
-            src = t["source"]
-            if src == entry:
+            name = t["name"]
+            if name in t_names:
                 continue
+            src = t["source"]
+            new_t = deepcopy(t)
             new_t["source"] = init_node
             name = "tr"+str(it)
             while name in t_names:
@@ -61,6 +46,7 @@ def prepare_scc(cfg, scc, invariant_type):
                 tr_poly.add_constraint(c)
             new_t["polyhedron"] = tr_poly
             scc_copy.add_edge(**new_t)
+    scc_copy.set_nodes_info({init_node:C_Polyhedron(dim=int(Nvars/2))},inv_name)
     scc_copy.set_info("init_node",init_node)
     scc_copy.set_info("entry_nodes",[init_node])
     return scc_copy
@@ -246,7 +232,6 @@ def remove_nodes_props(filename, nodes):
     from shutil import move
     destfile=filename+".tmp"
     ops = tuple([("n_{}(".format(n)) for n in nodes])
-    print(ops)
     with open(filename, "r") as fin, open(destfile, "w") as fout:
         for line in fin:
             if not line.startswith(ops):
