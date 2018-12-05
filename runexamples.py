@@ -251,7 +251,7 @@ if __name__ == "__main__":
     cfr_configs = []
     conf = {"cfr_iterations": 1, "cfr_automatic_properties":4, "cfr_user_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
-            "cfr_strategy":"none"}    
+            "cfr_strategy":"none", "cfr_max_tries":1}
     if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
@@ -330,6 +330,7 @@ if __name__ == "__main__":
                                 "cfr_user_properties": cfr_conf["cfr_user_properties"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
                                 "cfr_strategy" : cfr_conf["cfr_strategy"],
+                                "cfr_max_tries" : cfr_conf["cfr_max_tries"],
                                 "invariants_threshold": False,
                                 "files": [f],
                                 "lib": l,

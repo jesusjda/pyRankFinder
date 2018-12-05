@@ -23,6 +23,10 @@ class Algorithm(object):
         return None
 
     @classmethod
+    def use_close_walk(cls):
+        return False
+
+    @classmethod
     def description(cls, long=False):
         desc = str(cls.ID)
         if long:

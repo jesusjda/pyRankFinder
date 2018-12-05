@@ -8,11 +8,9 @@ from termination.output import Output_Manager as OM
 from .utils import get_z3_transition_polyhedron
 from .utils import generate_prime_names
 from .utils import generate_names
-
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
-
 
 class FixPoint(Algorithm):
     ID = "fixpoint"
@@ -22,12 +20,11 @@ class FixPoint(Algorithm):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, close_walk):
-        try:
-            init_node = cfg.get_info("init_node")
-        except:
-            init_node = cfg.get_edges()[0]["source"]
+    @classmethod
+    def use_close_walk(cls):
+        return True
 
+    def run(self, cfg, close_walk=[]):
         OM.printif(1, "--> with "+self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
@@ -78,6 +75,10 @@ class MonotonicRecurrentSets(Algorithm):
         self.props = properties
 
     @classmethod
+    def use_close_walk(cls):
+        return True
+
+    @classmethod
     def generate(cls, data):
         if(len(data) == 0 or
            data[0] != cls.ID):
@@ -92,7 +93,7 @@ class MonotonicRecurrentSets(Algorithm):
             return cls(properties)
         return None
 
-    def run(self, cfg, close_walk):
+    def run(self, cfg, close_walk=[]):
         from ppl import Constraint_System
         from ppl import Variable
         from ppl import Linear_Expression

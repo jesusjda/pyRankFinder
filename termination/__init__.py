@@ -64,11 +64,10 @@ def analyse(config, cfg):
             from partialevaluation import control_flow_refinement
             from partialevaluation import prepare_scc
             cfg_cfr = control_flow_refinement(prepare_scc(cfg,current_cfg,"polyhedra"), cfr)
-            # Compute invariants ?? incorrect or more generic?
+
         CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
         sccd -= 1
         CFGs_aux.sort()
-
 
         can_be_terminate = len(t_algs) > 0
         can_be_nonterminate = len(nt_algs) > 0
@@ -77,11 +76,11 @@ def analyse(config, cfg):
         for scc in CFGs_aux:
             for t in scc.get_edges():
                 if t["polyhedron"].is_empty():
-                    #OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
+                    # OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
                     scc.remove_edge(t["source"], t["target"], t["name"])
                     continue
             if len(scc.get_edges()) == 0:
-                #OM.printif(2, "CFG ranked because it is empty.")
+                # OM.printif(2, "CFG ranked because it is empty.")
                 continue
             R = False
             R_nt = False
@@ -135,10 +134,19 @@ def analyse(config, cfg):
     return response
 
 def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
-    for cw in scc.get_close_walks(close_walk_depth):
-        Output_Manager.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
-        for a in algs:
-            response = a.run(scc, cw)
+    cw_algs = [a for a in algs if a.use_close_walk()]
+    nt_algs = [a for a in algs if not a.use_close_walk()]
+
+    if len(cw_algs) > 0:
+        for cw in scc.get_close_walks(close_walk_depth):
+            Output_Manager.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
+            for a in cw_algs:
+                response = a.run(scc, cw)
+                if response.get_status().is_nonterminate():
+                    return response
+    if len(nt_algs) > 0:
+        for a in nt_algs:
+            response = a.run(scc)
             if response.get_status().is_nonterminate():
                 return response
     return False
