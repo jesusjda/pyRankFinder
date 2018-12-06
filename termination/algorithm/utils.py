@@ -100,7 +100,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
             OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
         if writef:
-            OM.writefile(0, name+".fc", fcstr)
+            OM.writefile(0,  os.path.join(destname, name+".fc"), fcstr)
         stream.close()
         stream = StringIO()
     if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
@@ -130,17 +130,21 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
     if "koat" in config["output_formats"]:
         cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
         koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
-        OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
-        OM.writefile(0, name+".koat", koatstr)
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
+            OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
+        if writef:
+            OM.writefile(0, os.path.join(destname, name+".koat"), koatstr)
         stream.close()
         stream = StringIO()
     if "pl" in config["output_formats"]:
         cfg.toProlog(path=stream, invariant_type=invariant_type)
         koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
-        OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
-        OM.writefile(0, name+".pl", koatstr)
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
+            OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
+        if writef:
+            OM.writefile(0, os.path.join(destname, name+".pl"), koatstr)
         stream.close()
         stream = StringIO()
     stream.close()
