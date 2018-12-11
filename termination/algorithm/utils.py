@@ -78,7 +78,7 @@ def merge(base, to_add):
             result[key] = [to_add[key]]
     return result
 
-def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False):
+def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False, output_formats=None):
     import os
     from termination.output import Output_Manager as OM
     if not console and not writef:
@@ -89,11 +89,13 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
     tmpdir = config["tmpdir"]
     show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
     #os.makedirs(os.path.dirname(destname), exist_ok=True)
+    if output_formats is None:
+        output_formats = config["output_formats"]
     if not show_with_inv:
         invariant_type = "none"
     from io import StringIO
     stream = StringIO()
-    if "fc" in config["output_formats"]:
+    if "fc" in output_formats:
         cfg.toFc(stream, invariant_type=invariant_type)
         fcstr=stream.getvalue()
         if console:
@@ -103,7 +105,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             OM.writefile(0, completename+".fc", fcstr)
         stream.close()
         stream = StringIO()
-    if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
+    if "dot" in output_formats or "svg" in output_formats:
         cfg.toDot(stream, invariant_type=invariant_type)
         dotstr = stream.getvalue()
         dotfile = os.path.join(tmpdir, name+".dot")
@@ -113,13 +115,13 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             f.write(dotstr)
         stream.close()
         stream = StringIO()
-        if "dot" in config["output_formats"] and writef:
+        if "dot" in output_formats and writef:
             if console:
                 OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
                 OM.printif(0, dotstr, format="text", consoleid="graphs", consoletitle="Graphs")
             if writef:
                 OM.writefile(0, completename+".dot", dotstr)
-        if "svg" in config["output_formats"]:
+        if "svg" in output_formats:
             svgfile = os.path.join(tmpdir, name+".svg")
             svgstr = dottoSvg(dotfile, svgfile)
             if console:
@@ -127,7 +129,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
                 OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
             if writef:
                 OM.writefile(0, completename+".svg", svgstr)
-    if "koat" in config["output_formats"]:
+    if "koat" in output_formats:
         cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
         koatstr=stream.getvalue()
         if console:
@@ -137,7 +139,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             OM.writefile(0, completename+".koat", koatstr)
         stream.close()
         stream = StringIO()
-    if "pl" in config["output_formats"]:
+    if "pl" in output_formats:
         cfg.toProlog(path=stream, invariant_type=invariant_type)
         koatstr=stream.getvalue()
         if console:
@@ -162,3 +164,19 @@ def file2string(filepath):
     with open(filepath, 'r') as f:
         data=f.read()
     return data
+
+def compute_way_nodes(cfg, target_nodes):
+    visited = {n:False for n in cfg.get_nodes()}
+    way_node = {n:(n in target_nodes) for n in cfg.get_nodes()}
+    def rec_way(src):
+        if visited[src]:
+            return
+        visited[src] = True
+        for tr in cfg.get_edges(source=src):
+            if tr["target"] == src:
+                continue
+            rec_way(tr["target"])
+            if way_node[tr["target"]]:
+                way_node[src] = True
+    rec_way(cfg.get_info("init_node"))
+    return sorted([n for n in way_node if way_node[n]])

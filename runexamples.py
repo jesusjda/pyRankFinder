@@ -122,7 +122,9 @@ def config2Tag(config):
     tag += "_CFR-it:"+str(config["cfr_iterations"])
     tag += "_CFR-au:"+str(config["cfr_automatic_properties"])
     tag += "_CFR-inv:"+str(config["cfr_invariants"])
-    tag += "_CFR-st:"+str(config["cfr_strategy"])
+    tag += "_CFR-st-bf:"+str(config["cfr_strategy_before"])
+    tag += "_CFR-st-scc:"+str(config["cfr_strategy_scc"])
+    tag += "_CFR-st-af:"+str(config["cfr_strategy_after"])
     return tag
 
 def file2ID(file, prefix=""):
@@ -247,11 +249,12 @@ if __name__ == "__main__":
     lib = ["z3"]
     inv = ["polyhedra"]
     cfr_invs = ["polyhedra"]
-    cfr_strat = ["none", "before", "scc"]
+    # ["scc", "after"] is not allowed
+    cfr_strat = ["none", ["before"], ["scc"], ["after"], ["before", "after"], ["before", "scc"]] 
     cfr_configs = []
     conf = {"cfr_iterations": 1, "cfr_automatic_properties":4, "cfr_user_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
-            "cfr_strategy":"none", "cfr_max_tries":1}
+            "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":1}
     if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
@@ -265,7 +268,9 @@ if __name__ == "__main__":
             for strat in cfr_strat:
                 if strat == "none":
                     continue
-                conf["cfr_strategy"] = strat
+                conf["cfr_strategy_before"] = "before" in strat
+                conf["cfr_strategy_scc"] = "scc" in strat
+                conf["cfr_strategy_after"] = "after" in strat
                 for i in cfr_invs:
                     conf["cfr_invariants"] = i
                     cfr_configs.append(dict(conf))
@@ -329,7 +334,9 @@ if __name__ == "__main__":
                                 "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
                                 "cfr_user_properties": cfr_conf["cfr_user_properties"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
-                                "cfr_strategy" : cfr_conf["cfr_strategy"],
+                                "cfr_strategy_before" : cfr_conf["cfr_strategy_before"],
+                                "cfr_strategy_after" : cfr_conf["cfr_strategy_after"],
+                                "cfr_strategy_scc" : cfr_conf["cfr_strategy_scc"],
                                 "cfr_max_tries" : cfr_conf["cfr_max_tries"],
                                 "invariants_threshold": False,
                                 "files": [f],
@@ -343,7 +350,8 @@ if __name__ == "__main__":
                                 "reachability": "none",
                                 "stop_if_fail": False,
                                 "conditional_termination": False,
-                                "show_with_invariants": False
+                                "show_with_invariants": False,
+                                "print_graphs": False
                                 #"recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
                             }
                             skip = False

@@ -81,12 +81,12 @@ def setArgumentParser():
                            help="Formats to print the graphs.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
-    argParser.add_argument("--tmpdir", required=False, default=None,
+    argParser.add_argument("--tmpdir", required=False, default="",
                            help="Temporary directory.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
-    argParser.add_argument("--fc-out", required=False, action='store_true',
-                           help="Shows the output in fc format")
+    argParser.add_argument("--print-graphs", required=False, action='store_true',
+                           help="Shows the output in fc and svg format")
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
@@ -114,8 +114,11 @@ def setArgumentParser():
                            help="# times to apply cfr", default=0)
     argParser.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
                            help="max tries to apply cfr on scc level", default=4)
-    argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
-                           choices=["none", "before", "scc"], default="before",
+    argParser.add_argument("-cfr-st-before", "--cfr-strategy-before", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-st-scc", "--cfr-strategy-scc", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-st-after", "--cfr-strategy-after", action='store_true',
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
@@ -215,12 +218,8 @@ def launch_file(config, f, out):
     show_result(termination_result, cfg)
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    ncfg = {}
-    ncfg["name"] = config["name"]
-    ncfg["output_destination"] = config["output_destination"]
-    ncfg["output_formats"] = ["fc", "svg"]
     from termination.algorithm.utils import showgraph
-    showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariants"], console=True, writef=False)
+    showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"], writef=False, output_formats=["fc"])
     return termination_result
 
 def remove_no_important_variables(cfg, doit=False):
@@ -230,34 +229,20 @@ def remove_no_important_variables(cfg, doit=False):
     OM.printif(1, "Removed {} constraint(s) with variable(s): [{}]".format(cons, ",".join(nivars)))
 
 def analyse(config, cfg):
-    from termination.algorithm.utils import showgraph
-    from partialevaluation import control_flow_refinement
-    cfr_first = config["cfr_strategy"] in ["before"] if "cfr_strategy" in config else True
     OM.printseparator(1)
-    rmded = cfg.remove_unsat_edges()
-    if len(rmded)> 0:
-        OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
-    if cfr_first:
-        pe_cfg = control_flow_refinement(cfg, config)
-        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], config["cfr_automatic_properties"],config["cfr_user_properties"], config["cfr_invariants"])
-    else:
-        pe_cfg = cfg
-        sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "False", "none")
-    compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                       use_threshold=config["invariants_threshold"])
-    r = termination.analyse(config, pe_cfg)
-    ncfg = {}
-    ncfg["name"] = config["name"]
-    ncfg["output_destination"] = config["output_destination"]
-    ncfg["output_formats"] = ["fc", "svg"]
-    showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
+    r = termination.analyse(config, cfg)
     if r.get_status().is_terminate():
         return r
     if r.has("unknown_sccs"):
         unk_sccs = r.get("unknown_sccs")
+        if r.has("graph"):
+            graph = r.get("graph")
+        else:
+            graph = cfg
     else:
         return r
 
+    # from here all is experimental. This doesn't produce termination results.
     if config["conditional_termination"] and len(unk_sccs) > 0:
         # analyse reachability for all the nodes where we don't prove termination
         OM.printseparator(0)
@@ -268,7 +253,7 @@ def analyse(config, cfg):
         if len(nodes_to_analyse) == 0:
             OM.printf("No nodes to analyse reachability.")
         else:
-            compute_reachability(pe_cfg,use=False, init_nodes=nodes_to_analyse)
+            compute_reachability(graph,use=False, init_nodes=nodes_to_analyse)
         OM.printseparator(0)
     elif "recurrent_set" in config and config["recurrent_set"] and len(unk_sccs) > 0:
         OM.printseparator(0)
@@ -289,20 +274,6 @@ def show_result(result, cfg):
                    str(no_lin))
     OM.printseparator(1)
 
-
-def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
-    cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_invariants(cfg, abstract_domain, use_threshold=use_threshold)
-    if use:
-        OM.printseparator(1)
-        OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
-        gvars = cfg.get_info("global_vars")
-        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
-                                 str(node_inv[n].toString(gvars))
-                                 for n in sorted(node_inv)]))
-        OM.printseparator(1)
-    if use:
-        nodeproperties.use_invariants(cfg, abstract_domain)
 
 def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False, user_props=False, init_nodes=[]):
     cfg.build_polyhedrons()
@@ -332,6 +303,8 @@ if __name__ == "__main__":
             config["termination"] = [alg for alg in config["termination"] if alg is not None]
         if "nontermination" in config and config["nontermination"] is not None:
             config["nontermination"] = [alg for alg in config["nontermination"] if alg is not None]
+        if config["cfr_strategy_scc"] and config["cfr_strategy_after"]:
+            raise argparse.ArgumentTypeError("CFR strategies `scc` and `after` can not be applied together.")
         launch(config)
     finally:
         OM.show_output()

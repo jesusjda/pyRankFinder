@@ -3,11 +3,32 @@ __all__ = ["user_invariants", "compute_invariants"]
 from .thresholds import user_thresholds
 from .abstractStates import state
 
+def use_invariants(cfg, invariant_type):
+    from lpi.Lazy_Polyhedron import C_Polyhedron
+    inv_name = "invariant_"+str(invariant_type)
+    edges = cfg.get_edges()
+    Nvars = len(cfg.get_info("global_vars"))
+    for e in edges:
+        Nlocal_vars = len(e["local_vars"])
+        tr_cons = e["tr_polyhedron"].get_constraints()
+        try:
+            inv = cfg.nodes[e["source"]][inv_name].get_constraints()
+        except:
+            inv = []
+        tr_poly = C_Polyhedron(dim=Nvars+Nlocal_vars)
+        for c in tr_cons:
+            tr_poly.add_constraint(c)
+        for c in inv:
+            tr_poly.add_constraint(c)
+        cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
+                          key="polyhedron", value=tr_poly)
+
 def user_invariants(cfg):
     raise NotImplementedError("User invariants is not implemented yet.")
 
 
-def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False):
+def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False, add_to_polyhedron=False):
+    cfg.build_polyhedrons()
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
     threshold = user_thresholds(cfg, use_threshold)
@@ -52,4 +73,13 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
                     queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_"+str(abstract_domain))
+    if add_to_polyhedron:
+        OM.printseparator(1)
+        OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
+        gvars = cfg.get_info("global_vars")
+        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
+                                 str(invariants[n].toString(gvars))
+                                 for n in sorted(invariants)]))
+        OM.printseparator(1)
+        use_invariants(cfg, abstract_domain)
     return invariants

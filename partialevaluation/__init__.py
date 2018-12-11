@@ -51,7 +51,7 @@ def prepare_scc(cfg, scc, invariant_type):
     scc_copy.set_info("entry_nodes",[init_node])
     return scc_copy
 
-def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=[]):
+def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=[], inner_invariants=True):
     from termination.algorithm.utils import showgraph
     from nodeproperties import compute_invariants
     au_prop = config["cfr_automatic_properties"]
@@ -64,8 +64,8 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
-        pe_cfg.build_polyhedrons()
-        compute_invariants(pe_cfg, abstract_domain=cfr_inv, use_threshold=cfr_inv_thre)
+        if inner_invariants:
+            compute_invariants(pe_cfg, abstract_domain=cfr_inv, use_threshold=cfr_inv_thre)
         pe_cfg.remove_unsat_edges()
         showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
@@ -81,7 +81,7 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_
     if not(auto_props in range(0, 5)):
         raise ValueError("CFR automatic properties mode unknown: {}.".format(auto_props))
     
-    if tmpdir is None:
+    if tmpdir is None or tmpdir == "":
         import tempfile
         tmpdirname = tempfile.mkdtemp()
     else:

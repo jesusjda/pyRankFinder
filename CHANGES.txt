@@ -1,6 +1,9 @@
 - remove no important variables has been moved.
-- partialevaluation now can handle simple sccs calling "prepare" first
+- partialevaluation now can handle simple sccs calling "prepare" first.
 - analyse termination and nontermination in one single call.
+- three possible strategies to apply CFR. After, at scc level and Before.
+- algorithm to compute nodes on the way to a set of nodes.
+- 'print-graphs' argument to print the fc and svg of the cfg and their correspoinding refined graphs.
 v0.5 2018/10/02
 
 v0.2 2018/09/19
