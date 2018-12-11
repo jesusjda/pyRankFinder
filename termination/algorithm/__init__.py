@@ -4,13 +4,13 @@ from .manager import Manager
 from .nonTermination import NonTermination
 from .qlrf import QuasiLinearRF
 from .qnlrf import QuasiNestedLRF
-from .structured import Structured
+# from .structured import Structured
 
 __all__ = ["Termination_Algorithm_Manager", "NonTermination_Algorithm_Manager"]
 
 
 class Termination_Algorithm_Manager(Manager):
-    ALGORITHMS = [LinearRF, QuasiLinearRF, QuasiNestedLRF, Structured]
+    ALGORITHMS = [LinearRF, QuasiLinearRF, QuasiNestedLRF]
     ID = ""
 
     @classmethod
