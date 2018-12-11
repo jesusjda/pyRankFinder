@@ -84,11 +84,11 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
     if not console and not writef:
         return
     name = config["name"] +str(sufix)
-    destname = config["output_destination"]
-    if destname is None:
-        return
+    destname = config["output_destination"] if config["output_destination"] is not None else ""
+    completename = os.path.join(destname, name)
+    tmpdir = config["tmpdir"]
     show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
-    os.makedirs(os.path.dirname(destname), exist_ok=True)
+    #os.makedirs(os.path.dirname(destname), exist_ok=True)
     if not show_with_inv:
         invariant_type = "none"
     from io import StringIO
@@ -100,13 +100,13 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
             OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
         if writef:
-            OM.writefile(0, name+".fc", fcstr)
+            OM.writefile(0, completename+".fc", fcstr)
         stream.close()
         stream = StringIO()
     if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
         cfg.toDot(stream, invariant_type=invariant_type)
         dotstr = stream.getvalue()
-        dotfile = os.path.join(destname, name+".dot")
+        dotfile = os.path.join(tmpdir, name+".dot")
         os.makedirs(os.path.dirname(dotfile), exist_ok=True)
 
         with open(dotfile, "w") as f:
@@ -118,29 +118,33 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
                 OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
                 OM.printif(0, dotstr, format="text", consoleid="graphs", consoletitle="Graphs")
             if writef:
-                OM.writefile(0, name+".dot", dotstr)
+                OM.writefile(0, completename+".dot", dotstr)
         if "svg" in config["output_formats"]:
-            svgfile = os.path.join(destname, name+".svg")
+            svgfile = os.path.join(tmpdir, name+".svg")
             svgstr = dottoSvg(dotfile, svgfile)
             if console:
                 OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
                 OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
             if writef:
-                OM.writefile(0, name+".svg", svgstr)
+                OM.writefile(0, completename+".svg", svgstr)
     if "koat" in config["output_formats"]:
         cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
         koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
-        OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
-        OM.writefile(0, name+".koat", koatstr)
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
+            OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
+        if writef:
+            OM.writefile(0, completename+".koat", koatstr)
         stream.close()
         stream = StringIO()
     if "pl" in config["output_formats"]:
         cfg.toProlog(path=stream, invariant_type=invariant_type)
         koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
-        OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
-        OM.writefile(0, name+".pl", koatstr)
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
+            OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
+        if writef:
+            OM.writefile(0, completename+".pl", koatstr)
         stream.close()
         stream = StringIO()
     stream.close()

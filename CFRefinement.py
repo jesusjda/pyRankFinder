@@ -56,7 +56,7 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
-    argParser.add_argument("--tmpdir", required=False, default=None,
+    argParser.add_argument("--tmpdir", required=False, default="/tmp",
                            help="Temporary directory.")
     return argParser
 
@@ -64,7 +64,7 @@ def extractname(filename):
     f = os.path.split(filename)
     b = os.path.split(f[0])
     c = os.path.splitext(f[1])
-    return os.path.join(b[1], c[0])
+    return c[0]
 
 def launch(config):
     for f in config["files"]:
@@ -72,10 +72,12 @@ def launch(config):
         OM.show_output()
 
 def launch_file(config, f):
+    writef = config["output_destination"] is not None
+    console = not writef or config["ei_out"]
     try:
         config["name"] = extractname(f)
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
-                                         console=True, writef=True)
+                                         console=console, writef=writef)
         if config["invariants"] != "none":
             config["show_with_invariants"] = True
             compute_invariants(pe_cfg, abstract_domain=config["invariants"],
@@ -83,7 +85,7 @@ def launch_file(config, f):
             if config["cfr_iterations"] > 0:
                 sufix = "_cfr"+str(config["cfr_iterations"])
             sufix += "_with_inv"+str(config["invariants"])
-            showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=True, writef=True)
+            showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef)
     except Exception as e:
         OM.printf("Exception  -> "+str(e))
         raise Exception() from e
