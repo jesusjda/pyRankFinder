@@ -29,6 +29,7 @@ def prepare_scc(cfg, scc, invariant_type):
             new_t = deepcopy(t)
             new_t["source"] = init_node
             name = "tr"+str(it)
+            it += 1
             while name in t_names:
                 name = "tr"+str(it)
                 it += 1

@@ -4,7 +4,7 @@ import argparse
 import genericparser
 from termination import Output_Manager as OM
 from partialevaluation import control_flow_refinement
-from irankfinder import compute_invariants
+from nodeproperties import compute_invariants
 from termination.algorithm.utils import showgraph
 
 _version = "1.2"
@@ -62,7 +62,6 @@ def setArgumentParser():
 
 def extractname(filename):
     f = os.path.split(filename)
-    b = os.path.split(f[0])
     c = os.path.splitext(f[1])
     return c[0]
 
