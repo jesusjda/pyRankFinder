@@ -38,13 +38,14 @@ def analyse(config, cfg):
     if cfr_scc or cfr_after or cfr_before:
         cfr = {"cfr_automatic_properties": config["cfr_automatic_properties"],
                "cfr_user_properties": config["cfr_user_properties"],
+               "cfr_cone_properties": config["cfr_cone_properties"],
                "cfr_iterations": config["cfr_iterations"],
                "cfr_invariants": config["cfr_invariants"],
                "cfr_invariants_threshold": config["cfr_invariants_threshold"],
                "cfr_max_tries": config["cfr_max_tries"],
                "tmpdir": config["tmpdir"]
               }
-        if not cfr["cfr_user_properties"] and cfr["cfr_automatic_properties"] == 0:
+        if not cfr["cfr_user_properties"] and not cfr["cfr_cone_properties"] and cfr["cfr_automatic_properties"] == 0:
             cfr["cfr_iterations"] = 0
             cfr["cfr_max_tries"] = 0
             cfr_scc = False
@@ -74,6 +75,7 @@ def analyse(config, cfg):
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
         cfr_it += 1
         if cfr_before and cfr_it == 0:
+            print("BEFORE!")
             cfg = control_flow_refinement(cfg, cfr)
             compute_invariants(cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"],
@@ -81,6 +83,7 @@ def analyse(config, cfg):
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
             CFGs = [(cfg, max_sccd, 0)]
         elif cfr_after and cfr_it != 0:
+            print("AFTER!")
             if len(maybe_sccs) == 0:
                 stop_all = True
                 continue
@@ -114,9 +117,11 @@ def analyse(config, cfg):
                     current_cfg.remove_edge(t["source"], t["target"], t["name"])
             if len(current_cfg.get_edges()) == 0:
                 OM.printif(2, "This cfg has not transitions.")
+                OM.printif(2, "|-- nodes: {}".format(cfg.get_nodes()))
                 continue
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0:
+                print("AT SCC!")
                 cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, "polyhedra"), cfr, inner_invariants=False)
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1

@@ -22,18 +22,25 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
         if "asserts" in node_data and node_data["asserts"]:
             OM.printif(1, "Checking asserts of node {}".format(node))
             inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints())
-            node_correct = True
-            for asert in node_data["asserts"]:
-                st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl") 
-                                                           for c in asert
-                                                           if c.is_linear()]), dim=Nvars),
-                           abstract_domain=abstract_domain)
-                if not st.contains(inv):
-                    OM.printf("Assertion Fail at node {}:\n{} no include {}".format(node, st, inv))
-                    correct = False
-                    node_correct = False
+            node_correct = len(node_data["asserts"]) == 0
+            for disjunction in node_data["asserts"]:
+                for conjunction in disjunction:
+                    st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl")
+                                                               for c in conjunction
+                                                               if c.is_linear()]), dim=Nvars),
+                               abstract_domain=abstract_domain)
+                    if st.contains(inv):
+                        node_correct = True
+                        break
+                if node_correct:
+                    break
             if node_correct:
                 OM.printif(1, "Correct!")
+            else:
+                OM.printf("{} invariant doesn't hold!".format(node))
+                correct = False
     if correct:
-        OM.printf("The invariants ({}) hold into the asserts!".format(abstract_domain))
+        OM.printf("All the invariants ({}) hold into the asserts!".format(abstract_domain))
+    else:
+        OM.printf("There where some invariants where it fails!".format(abstract_domain))
     return correct

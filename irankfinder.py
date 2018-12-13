@@ -6,8 +6,8 @@ from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 import termination
-from partialevaluation import partialevaluate
 import cProfile
+from nodeproperties.assertions import check_assertions
 # from termination.profiler import register_as
 
 def do_cprofile(func):
@@ -106,6 +106,8 @@ def setArgumentParser():
                            help="Remove No Important variables before do anything else.")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="z3", help="select lib")
+    argParser.add_argument("--check-assertions", action='store_true',
+                           help="Check Invariants with the assertions defined")
     # CFR Parameters
     argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False,
                            type=int, choices=range(0,5), default=4,
@@ -121,6 +123,8 @@ def setArgumentParser():
     argParser.add_argument("-cfr-st-after", "--cfr-strategy-after", action='store_true',
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
                            help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
@@ -202,6 +206,8 @@ def launch_file(config, f, out):
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
         return
+    if "check_assertions" not in config:
+        config["check_assertions"] = False
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
     OM.show_output()
@@ -231,6 +237,7 @@ def remove_no_important_variables(cfg, doit=False):
 def analyse(config, cfg):
     OM.printseparator(1)
     r = termination.analyse(config, cfg)
+    check_assertions(cfg, config["invariants"], do=config["check_assertions"])
     if r.get_status().is_terminate():
         return r
     if r.has("unknown_sccs"):
