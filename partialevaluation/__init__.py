@@ -52,7 +52,7 @@ def prepare_scc(cfg, scc, invariant_type):
     scc_copy.set_info("entry_nodes",[init_node])
     return scc_copy
 
-def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=[], inner_invariants=True):
+def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=None, inner_invariants=True):
     from termination.algorithm.utils import showgraph
     from nodeproperties import compute_invariants
     au_prop = config["cfr_automatic_properties"]
@@ -60,6 +60,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     cfr_inv = config["cfr_invariants"]
     # cfr_it_st = config["cfr_iteration_strategy"]
     cfr_usr_props = config["cfr_user_properties"]
+    cfr_cone_props = config["cfr_cone_properties"] if "cfr_cone_properties" in config else False
     cfr_inv_thre = config["cfr_invariants_threshold"]
     tmpdir = config["tmpdir"]
     pe_cfg = cfg
@@ -69,7 +70,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
             compute_invariants(pe_cfg, abstract_domain=cfr_inv, use_threshold=cfr_inv_thre)
         pe_cfg.remove_unsat_edges()
         showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
-        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
+        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop, cone_props=cfr_cone_props,
                                  user_props=cfr_usr_props, tmpdir=tmpdir,
                                  invariant_type=cfr_inv, nodes_to_refine=only_nodes)
         sufix="_cfr"+str(it+1)
@@ -78,7 +79,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
     return pe_cfg
 
-def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_type=None, nodes_to_refine=[]):
+def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_type=None, nodes_to_refine=None, cone_props=False):
     if not(auto_props in range(0, 5)):
         raise ValueError("CFR automatic properties mode unknown: {}.".format(auto_props))
     
@@ -107,7 +108,7 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_
 
 
     # PROPERTIES
-    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine)
+    propsfile = set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, cone_props)
 
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','pe.sh')
@@ -128,7 +129,7 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_
     return pe_cfg
     
 
-def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine):
+def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, cone_props):
     if auto_props in range(1,5):
         propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
         pipe = Popen([propspath, tmpplfile, '-l', str(auto_props), '-r', tmpdirname],
@@ -147,19 +148,23 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
     gvars = cfg.get_info("global_vars")
     gvars = gvars[:int(len(gvars)/2)]
     pvars = _plVars(len(gvars))
-
+    if cone_props:
+        c_props = cone_properties(cfg, nodes_to_refine)
+        _add_props(propsfile, c_props, gvars, pvars)
     if user_props:
         node_data = cfg.get_nodes(data=True)
 
         usr_props = {}
         for node, data in node_data:
+            if nodes_to_refine is not None and node not in nodes_to_refine:
+                continue
             if "cfr_properties" in data:
                 n_props = [p for p in data["cfr_properties"]]
                 if len(n_props) > 0:
                     usr_props[node] = n_props
         _add_props(propsfile, usr_props, gvars, pvars)
 
-    if len(nodes_to_refine) > 0:
+    if nodes_to_refine is not None and len(nodes_to_refine) > 0:
         nodes = cfg.get_nodes()
         if len(nodes) != len(nodes_to_refine):
             remove_nodes_props(propsfile, list(set(nodes) - set(nodes_to_refine)))
@@ -200,6 +205,57 @@ def _parse_props(filename, gvars, pvars):
         props[node_name].append(cons)
     return props
 
+
+def cone_properties(cfg, nodes_to_refine):
+    from ppl import Constraint_System
+    from ppl import Variable
+    from genericparser.expressions import ExprTerm
+    from lpi import C_Polyhedron
+    from termination import farkas
+    global_vars = cfg.get_info("global_vars")
+    Nvars = int(len(global_vars) / 2)
+    cone_props = {}
+    for node in cfg.get_nodes():
+        n_props = []
+        if nodes_to_refine is not None and node not in nodes_to_refine:
+            continue
+        for t in cfg.get_edges(source=node):
+            t_props = []
+            tr_poly = t["polyhedron"]
+            # PROJECT TO VARS
+            from ppl import Variables_Set
+            var_set = Variables_Set()
+            # (prime and local variables)
+            for i in range(Nvars, tr_poly.get_dimension()):  # Vars from n to m-1 inclusive
+                var_set.insert(Variable(i))
+            # tr_poly.remove_dimensions(var_set)
+            if tr_poly.is_empty():
+                continue
+            Mcons = len(tr_poly.get_constraints())
+            f = [Variable(i) for i in range(0, Nvars + 1)]
+            countVar = Nvars + 1
+            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
+            farkas_constraints = farkas.f(tr_poly, lambdas, f, 0)
+            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            generators = farkas_poly.get_generators()
+            OM.printif(3, generators)
+            for g in generators:
+                exp = ExprTerm(g.coefficient(Variable(0)))
+                is_cero = True
+                for i in range(Nvars):
+                    coef = g.coefficient(Variable(i+1))
+                    if coef != 0:
+                        is_cero = False
+                    exp += ExprTerm(coef)*ExprTerm(global_vars[i])
+                if not is_cero:
+                    t_props.append(exp >= ExprTerm(0))
+                
+            if len(t_props) > 0:
+                n_props.append(t_props)
+        if len(n_props) > 0:
+            OM.printif(2, "Node {}: Adding props {}".format(node, n_props))
+            cone_props[node] = n_props
+    return cone_props
 
 def _add_props(filename, props, gvars, pvars):
     vars_str = ",".join(pvars)
