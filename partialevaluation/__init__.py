@@ -251,9 +251,21 @@ def cone_properties(cfg, nodes_to_refine):
                     t_props.append(exp >= ExprTerm(0))
                 
             if len(t_props) > 0:
-                n_props.append(t_props)
+                def lattice(l):
+                    s = [[]]
+                    for e in l:
+                        ns = []
+                        for ps in s:
+                            nps = ps[:]
+                            nps.append(e)
+                            ns.append(nps)
+                        s = s + ns
+                    return s[1:]
+                n_props += lattice(t_props)
+                #n_props += [[p] for p in t_props]
+                #n_props.append(t_props)
         if len(n_props) > 0:
-            OM.printif(2, "Node {}: Adding props {}".format(node, n_props))
+            OM.printif(2, "Node {}: Adding props {}".format(node, str(n_props)))
             cone_props[node] = n_props
     return cone_props
 
