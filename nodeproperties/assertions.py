@@ -3,12 +3,12 @@ from .abstractStates import state as absState
 
 
 def check_assertions(cfg, abstract_domain="polyhedra", do=True):
-    def state(A, abstract_domain):
+    def state(A, abstract_domain, dim):
         if abstract_domain == "polyhedra":
             return A
         else:
-            st = absState(A,abstract_domain=abstract_domain)
-            return C_Polyhedron(st.get_constraints())
+            st = absState(A, abstract_domain=abstract_domain)
+            return C_Polyhedron(st.get_constraints(), dim=dim)
         
     if not do or abstract_domain is None or abstract_domain == "none":
         return True
@@ -21,14 +21,14 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
     for node, node_data in graph_nodes:
         if "asserts" in node_data and node_data["asserts"]:
             OM.printif(1, "Checking asserts of node {}".format(node))
-            inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints())
+            inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints(), dim=Nvars)
             node_correct = len(node_data["asserts"]) == 0
             for disjunction in node_data["asserts"]:
                 for conjunction in disjunction:
                     st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl")
                                                                for c in conjunction
                                                                if c.is_linear()]), dim=Nvars),
-                               abstract_domain=abstract_domain)
+                               abstract_domain=abstract_domain, dim=Nvars)
                     if st.contains(inv):
                         node_correct = True
                         break

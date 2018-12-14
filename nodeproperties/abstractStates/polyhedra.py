@@ -23,7 +23,7 @@ class PolyhedraAbstractState(AbstractState):
                 dim = int(arg1)
                 cs = Constraint_System()
             except ValueError:
-                raise TypeError("Only int or lpi.C_Polyhedron")
+                raise TypeError("First argument must be int or lpi.C_Polyhedron")
         self._state = C_Polyhedron(cs, dim=dim)
         if bottom:
             false = Linear_Expression(0) == Linear_Expression(1)

@@ -16,9 +16,22 @@ class IntervalAbstractState(AbstractState):
     dim = 0
 
     def __init__(self, arg1, bottom=False):
-        self.dim = int(arg1)
+        if isinstance(arg1, C_Polyhedron):
+            self.dim = arg1.get_dimension()
+            poly = arg1
+        elif isinstance(arg1, Constraint_System):
+            self.dim = arg1.space_dimension()
+            poly = C_Polyhedron(arg1, dim=self.dim)
+        else:
+            try:
+                self.dim = int(arg1)
+                poly=None
+            except ValueError:
+                raise TypeError("First argument must be int or lpi.C_Polyhedron")
         if bottom:
             self._state = [interval() for _ in range(self.dim)]
+        elif poly is not None:
+            self._state = IntervalAbstractState.poly2interval(poly, self.dim)
         else:
             self._state = [interval([-inf,inf]) for _ in range(self.dim)]
 
@@ -56,10 +69,27 @@ class IntervalAbstractState(AbstractState):
         s1._state = state
         return s1
 
+    @classmethod
+    def poly2interval(self, poly, dimension, primed=False):
+        state = []
+        offset = dimension if primed else 0
+        for i in range(dimension):
+            exp = Linear_Expression(Variable(offset + i))
+            b1 = poly.minimize(exp)
+            c1 = -inf
+            if b1['bounded']:
+                c1 = b1['inf_n']
+            b2 = poly.maximize(exp)
+            c2 = inf
+            if b2['bounded']:
+                c2 = b2['sup_n']
+            state.append(interval([c1,c2]))
+        return state
+            
+            
     def apply_tr(self, tr, copy=False):
         s1 = self.copy(copy)
         st = self._state
-        state = []
         poly_tr = tr["tr_polyhedron"]
         poly = C_Polyhedron(poly_tr.get_constraints())
 
@@ -75,18 +105,7 @@ class IntervalAbstractState(AbstractState):
             if a2 != inf:
                 poly.add_constraint(Variable(i) <= a2 )
 
-        for i in range(self.dim):
-            exp = Linear_Expression(Variable(self.dim + i))
-            b1 = poly.minimize(exp)
-            c1 = -inf
-            if b1['bounded']:
-                c1 = b1['inf_n']
-            b2 = poly.maximize(exp)
-            c2 = inf
-            if b2['bounded']:
-                c2 = b2['sup_n']
-            state.append(interval([c1,c2]))
-        s1._state = state
+        s1._state = IntervalAbstractState.poly2interval(poly, self.dim, primed=True)
         return s1
 
     def get_constraints(self):
