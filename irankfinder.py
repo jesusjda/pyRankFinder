@@ -8,6 +8,7 @@ from termination import Output_Manager as OM
 import termination
 import cProfile
 from nodeproperties.assertions import check_assertions
+from nodeproperties.invariants import compute_invariants
 # from termination.profiler import register_as
 
 def do_cprofile(func):
@@ -218,10 +219,21 @@ def launch_file(config, f, out):
         cfg.build_polyhedrons()
         compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"], user_props=True,
                              use_threshold=config["invariants_threshold"])
-        return None
+
     # Compute Termination
     termination_result = analyse(config, cfg)
     show_result(termination_result, cfg)
+    if config["check_assertions"]:
+        if config["invariants"] == "none":
+            OM.printf("You have not selected any abstract domain to check.")
+        else:
+            t_algs = config["termination"] if "termination" in config else []
+            nt_algs = config["nontermination"] if "nontermination" in config else []
+            if len(t_algs) == 0 and len(nt_algs) == 0:
+                compute_invariants(cfg, abstract_domain=config["invariants"],
+                       use_threshold=config["invariants_threshold"],
+                       add_to_polyhedron=False)
+            check_assertions(cfg, config["invariants"], do=config["check_assertions"])
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     from termination.algorithm.utils import showgraph
@@ -237,7 +249,6 @@ def remove_no_important_variables(cfg, doit=False):
 def analyse(config, cfg):
     OM.printseparator(1)
     r = termination.analyse(config, cfg)
-    check_assertions(cfg, config["invariants"], do=config["check_assertions"])
     if r.get_status().is_terminate():
         return r
     if r.has("unknown_sccs"):

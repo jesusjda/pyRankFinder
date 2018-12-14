@@ -18,10 +18,14 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
     global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
     correct = True
+
     for node, node_data in graph_nodes:
         if "asserts" in node_data and node_data["asserts"]:
             OM.printif(1, "Checking asserts of node {}".format(node))
-            inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints(), dim=Nvars)
+            try:
+                inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints(), dim=Nvars)
+            except:
+                inv = C_Polyhedron(dim=Nvars)
             node_correct = len(node_data["asserts"]) == 0
             for disjunction in node_data["asserts"]:
                 for conjunction in disjunction:
