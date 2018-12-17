@@ -223,35 +223,38 @@ def cone_properties(cfg, nodes_to_refine):
             continue
         for t in cfg.get_edges(source=node):
             t_props = []
-            tr_poly = t["polyhedron"]
+            from copy import deepcopy
+            tr_poly = deepcopy(t["polyhedron"])
             # PROJECT TO VARS
             from ppl import Variables_Set
             var_set = Variables_Set()
             # (prime and local variables)
             for i in range(Nvars, tr_poly.get_dimension()):  # Vars from n to m-1 inclusive
                 var_set.insert(Variable(i))
-            # tr_poly.remove_dimensions(var_set)
+            tr_poly.remove_dimensions(var_set)
             if tr_poly.is_empty():
                 continue
             Mcons = len(tr_poly.get_constraints())
-            f = [Variable(i) for i in range(0, Nvars + 1)]
+            f = [Variable(i) for i in range(1, Nvars + 1)]
             countVar = Nvars + 1
             lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            farkas_constraints = farkas.f(tr_poly, lambdas, f, 0)
+            farkas_constraints = farkas.farkas(tr_poly, lambdas, f, Variable(0))
             farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
             generators = farkas_poly.get_generators()
             OM.printif(3, generators)
             for g in generators:
+                if not g.is_ray():
+                    continue
                 exp = ExprTerm(g.coefficient(Variable(0)))
-                is_cero = True
+                is_constant = True
                 for i in range(Nvars):
                     coef = g.coefficient(Variable(i+1))
                     if coef != 0:
-                        is_cero = False
+                        is_constant = False
                     exp += ExprTerm(coef)*ExprTerm(global_vars[i])
-                if not is_cero:
+                if not is_constant:
                     t_props.append(exp >= ExprTerm(0))
-                
+
             if len(t_props) > 0:
                 def lattice(l):
                     s = [[]]
@@ -266,6 +269,7 @@ def cone_properties(cfg, nodes_to_refine):
                 n_props += lattice(t_props)
                 #n_props += [[p] for p in t_props]
                 #n_props.append(t_props)
+
         if len(n_props) > 0:
             OM.printif(2, "Node \"{}\", Adding props {}".format(node, str(n_props)))
             cone_props[node] = n_props
