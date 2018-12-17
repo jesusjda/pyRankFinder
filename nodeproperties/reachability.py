@@ -47,7 +47,6 @@ def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3,
                 if not(nodes[node]["state"] <= original_states[node]):
                     nodes[node]["accesses"] += 1
                     if nodes[node]["accesses"] >= widening_frecuency:
-                        #print("WIDENING", node)
                         if use_threshold:
                             nodes[node]["state"].widening(original_states[node], threshold=threshold[node])
                         else:

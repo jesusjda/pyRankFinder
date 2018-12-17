@@ -35,13 +35,13 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
     nodes = {}
     global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
+    from termination.output import Output_Manager as OM
     if(abstract_domain is None or abstract_domain == "none"):
         invariants = {node: state(Nvars) for node in graph_nodes}
     else:
         nodes = {node:{"state": state(Nvars, bottom=True, abstract_domain=abstract_domain), "accesses": 0}
                  for node in graph_nodes}
         nodes[init_node]["state"] = state(Nvars, abstract_domain=abstract_domain)
-        from termination.output import Output_Manager as OM
         queue = [init_node]
         while len(queue) > 0:
             original_states = {}

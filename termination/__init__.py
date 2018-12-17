@@ -75,7 +75,6 @@ def analyse(config, cfg):
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
         cfr_it += 1
         if cfr_before and cfr_it == 0:
-            print("BEFORE!")
             cfg = control_flow_refinement(cfg, cfr)
             compute_invariants(cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"],
@@ -83,7 +82,6 @@ def analyse(config, cfg):
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
             CFGs = [(cfg, max_sccd, 0)]
         elif cfr_after and cfr_it != 0:
-            print("AFTER!")
             if len(maybe_sccs) == 0:
                 stop_all = True
                 continue
@@ -121,7 +119,6 @@ def analyse(config, cfg):
                 continue
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0:
-                print("AT SCC!")
                 cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, "polyhedra"), cfr, inner_invariants=False)
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1

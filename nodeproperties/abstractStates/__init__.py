@@ -22,11 +22,8 @@ class AbstractState(object):
 
     def widening(self, s2, threshold=None, copy=False):
         if threshold is not None:
-            print("state widening with threshold")
-            print(s2, threshold)
             self.extrapolation_assign(s2, threshold, copy)
         else:
-            #print("state widening")
             self.widening_assign(s2, copy)
 
     def apply_tr(self, tr, copy=False):

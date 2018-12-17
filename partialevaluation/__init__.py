@@ -150,6 +150,7 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
     pvars = _plVars(len(gvars))
     if cone_props:
         c_props = cone_properties(cfg, nodes_to_refine)
+        cfg.set_nodes_info(c_props, "cfr_cone_properties")
         _add_props(propsfile, c_props, gvars, pvars)
     if user_props:
         node_data = cfg.get_nodes(data=True)
@@ -215,6 +216,7 @@ def cone_properties(cfg, nodes_to_refine):
     global_vars = cfg.get_info("global_vars")
     Nvars = int(len(global_vars) / 2)
     cone_props = {}
+    OM.printif(2, "Positive functions of the cone as properties of CFR")
     for node in cfg.get_nodes():
         n_props = []
         if nodes_to_refine is not None and node not in nodes_to_refine:
@@ -265,7 +267,7 @@ def cone_properties(cfg, nodes_to_refine):
                 #n_props += [[p] for p in t_props]
                 #n_props.append(t_props)
         if len(n_props) > 0:
-            OM.printif(2, "Node {}: Adding props {}".format(node, str(n_props)))
+            OM.printif(2, "Node \"{}\", Adding props {}".format(node, str(n_props)))
             cone_props[node] = n_props
     return cone_props
 
