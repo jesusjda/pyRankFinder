@@ -147,6 +147,10 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_
     
 
 def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refine, cone_props):
+    gvars = cfg.get_info("global_vars")
+    gvars = gvars[:int(len(gvars)/2)]
+    pvars = _plVars(len(gvars))
+    au_props, c_props, usr_props = [], [], []
     if auto_props in range(1,5):
         propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin','props.sh')
         pipe = Popen([propspath, tmpplfile, '-l', str(auto_props), '-r', tmpdirname],
@@ -155,6 +159,8 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
         if err is not None and err:
                 raise Exception(err)
         propsfile = propsfile.decode("utf-8")
+        au_props = _parse_props(propsfile, gvars, pvars)
+        cfg.set_nodes_info(au_props, "cfr_auto_properties")
     else:
         propsfile = os.path.join(tmpdirname, "source_output/source.props")
         basedir = os.path.dirname(propsfile)
@@ -162,9 +168,6 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
             os.makedirs(basedir)
         open(propsfile,'a').close()
 
-    gvars = cfg.get_info("global_vars")
-    gvars = gvars[:int(len(gvars)/2)]
-    pvars = _plVars(len(gvars))
     if cone_props:
         c_props = cone_properties(cfg, nodes_to_refine)
         cfg.set_nodes_info(c_props, "cfr_cone_properties")
@@ -182,15 +185,20 @@ def set_props(cfg, tmpdirname, tmpplfile, auto_props, user_props, nodes_to_refin
                     usr_props[node] = n_props
         _add_props(propsfile, usr_props, gvars, pvars)
 
+    nodes = cfg.get_nodes()
     if nodes_to_refine is not None and len(nodes_to_refine) > 0:
-        nodes = cfg.get_nodes()
         if len(nodes) != len(nodes_to_refine):
             remove_nodes_props(propsfile, list(set(nodes) - set(nodes_to_refine)))
-
+    def merge_dicts(list_dict):
+        res = {}
+        for di in list_dict:
+            for k in di:
+                if k not in res:
+                    res[k] = []
+                res[k] += di[k]
+        return res
     # SAVE PROPS
-    props = _parse_props(propsfile, gvars, pvars)
-    cfg.set_nodes_info(props, "cfr_used_properties")
-    OM.printif(2, "CFR with props: {}".format(props))
+    OM.printif(2, "CFR with props: {}".format(merge_dicts([au_props,c_props,usr_props])))
     if OM.verbosity > 2:
         with open(propsfile, "r") as f:
             OM.printif(3, f.read())
