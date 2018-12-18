@@ -126,6 +126,23 @@ def partialevaluate(cfg, auto_props=4, user_props=False, tmpdir=None, invariant_
     if len(rmded)> 0:
         OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
     OM.printif(4, fcpeprogram.decode("utf-8"))
+    properties_to_copy = ["asserts", "cfr_properties"]
+    original_data = {n:v for n,v in cfg.get_nodes(data=True)}
+    for p in properties_to_copy:
+        p_dict = {}
+        new_init = pe_cfg.get_info("init_node")
+        if p in original_data[new_init[2:]]:
+            p_dict[new_init] = original_data[new_init[2:]][p]
+        for pe_node in pe_cfg.get_nodes():
+            if pe_node == init_node:
+                continue
+            orig_node = pe_node[2:-4]
+            if orig_node in original_data:
+                if p in original_data[orig_node]:
+                    p_dict[pe_node] = original_data[orig_node][p]
+        if p_dict:
+            OM.printif(2, "WARNING: property {} added to the cfr graph without renaming variables.".format(p))
+            pe_cfg.set_nodes_info(p_dict, p)
     return pe_cfg
     
 
