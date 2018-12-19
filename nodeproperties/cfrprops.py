@@ -1,7 +1,7 @@
 from termination import Output_Manager as OM
 
 def cfrprops_options():
-    return ["cfr_user_properties", "cfr_user_properties", "cfr_head_properties",
+    return ["cfr_user_properties", "cfr_cone_properties", "cfr_head_properties",
             "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties"]
 
 def compute_cfrprops(cfg, only_nodes=None, props=[], invariant_type="none"):
