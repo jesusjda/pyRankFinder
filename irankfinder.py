@@ -22,7 +22,7 @@ def do_cprofile(func):
             profile.print_stats('launch_file')
     return profiled_func
 
-_version = "1.0"
+_version = "1.1"
 _name = "irankfinder"
 
 
