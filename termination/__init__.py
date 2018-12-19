@@ -36,16 +36,18 @@ def analyse(config, cfg):
     cfr_after = config["cfr_strategy_after"]
     cfr_before = config["cfr_strategy_before"]
     if cfr_scc or cfr_after or cfr_before:
-        cfr = {"cfr_automatic_properties": config["cfr_automatic_properties"],
-               "cfr_user_properties": config["cfr_user_properties"],
-               "cfr_cone_properties": config["cfr_cone_properties"],
-               "cfr_iterations": config["cfr_iterations"],
+        cfr = {"cfr_iterations": config["cfr_iterations"],
                "cfr_invariants": config["cfr_invariants"],
                "cfr_invariants_threshold": config["cfr_invariants_threshold"],
                "cfr_max_tries": config["cfr_max_tries"],
                "tmpdir": config["tmpdir"]
               }
-        if not cfr["cfr_user_properties"] and not cfr["cfr_cone_properties"] and cfr["cfr_automatic_properties"] == 0:
+        from nodeproperties.cfrprops import cfrprops_options
+        do_it = False
+        for op in cfrprops_options():
+            cfr[op] = config[op] if op in config else False
+            do_it = do_it or cfr[op]
+        if not do_it:
             cfr["cfr_iterations"] = 0
             cfr["cfr_max_tries"] = 0
             cfr_scc = False
@@ -69,9 +71,15 @@ def analyse(config, cfg):
     from partialevaluation import control_flow_refinement
     from partialevaluation import prepare_scc
     from .algorithm.utils import compute_way_nodes
+    from nodeproperties.assertions import check_assertions
     compute_invariants(cfg, abstract_domain=config["invariants"],
                        use_threshold=config["invariants_threshold"],
                        add_to_polyhedron=True)
+    if config["check_assertions"]:
+        OM.printseparator(0)
+        OM.printf("Checking assertions of Original Graph")
+        check_assertions(cfg, config["invariants"], do=config["check_assertions"])
+        OM.printseparator(0)
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
         cfr_it += 1
         if cfr_before and cfr_it == 0:
@@ -79,6 +87,11 @@ def analyse(config, cfg):
             compute_invariants(cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"],
                                add_to_polyhedron=True)
+            if config["check_assertions"]:
+                OM.printseparator(0)
+                OM.printf("Checking assertions of Refined Graph")
+                check_assertions(cfg, config["invariants"], do=config["check_assertions"])
+                OM.printseparator(0)
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
             CFGs = [(cfg, max_sccd, 0)]
         elif cfr_after and cfr_it != 0:

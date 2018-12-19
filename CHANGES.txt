@@ -1,3 +1,6 @@
+v1.1 2018/12/19
+- check assertions of cfgs and refined cfgs
+- properties of projection are computed now on python side
 - remove no important variables has been moved.
 - partialevaluation now can handle simple sccs calling "prepare" first.
 - analyse termination and nontermination in one single call.

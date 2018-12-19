@@ -18,10 +18,9 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
     global_vars = cfg.get_info("global_vars")
     Nvars = len(global_vars)/2
     correct = True
-
     for node, node_data in graph_nodes:
         if "asserts" in node_data and node_data["asserts"]:
-            OM.printif(1, "Checking asserts of node {}".format(node))
+            OM.printf("- Checking asserts of node {}".format(node))
             try:
                 inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints(), dim=Nvars)
             except:
@@ -39,12 +38,12 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
                 if node_correct:
                     break
             if node_correct:
-                OM.printif(1, "Correct!")
+                OM.printf("- - Correct!")
             else:
-                OM.printf("{} invariant doesn't hold!".format(node))
+                OM.printf("- - {} invariant doesn't hold!".format(node))
                 correct = False
     if correct:
-        OM.printf("All the invariants ({}) hold into the asserts!".format(abstract_domain))
+        OM.printf("- All the invariants ({}) hold into the asserts!".format(abstract_domain))
     else:
-        OM.printf("There where some invariants ({}) where it fails!".format(abstract_domain))
+        OM.printf("- There where some invariants ({}) where it fails!".format(abstract_domain))
     return correct

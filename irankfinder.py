@@ -7,8 +7,6 @@ from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 import termination
 import cProfile
-from nodeproperties.assertions import check_assertions
-from nodeproperties.invariants import compute_invariants
 # from termination.profiler import register_as
 
 def do_cprofile(func):
@@ -110,9 +108,6 @@ def setArgumentParser():
     argParser.add_argument("--check-assertions", action='store_true',
                            help="Check Invariants with the assertions defined")
     # CFR Parameters
-    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False,
-                           type=int, choices=range(0,5), default=4,
-                           help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
     argParser.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
@@ -126,6 +121,14 @@ def setArgumentParser():
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
     argParser.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head", "--cfr-head-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head-var", "--cfr-head-var-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call", "--cfr-call-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
                            help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
@@ -207,8 +210,7 @@ def launch_file(config, f, out):
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
         return
-    if "check_assertions" not in config:
-        config["check_assertions"] = False
+    config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
     OM.show_output()
@@ -223,17 +225,6 @@ def launch_file(config, f, out):
     # Compute Termination
     termination_result = analyse(config, cfg)
     show_result(termination_result, cfg)
-    if config["check_assertions"]:
-        if config["invariants"] == "none":
-            OM.printf("You have not selected any abstract domain to check.")
-        else:
-            t_algs = config["termination"] if "termination" in config else []
-            nt_algs = config["nontermination"] if "nontermination" in config else []
-            if len(t_algs) == 0 and len(nt_algs) == 0:
-                compute_invariants(cfg, abstract_domain=config["invariants"],
-                       use_threshold=config["invariants_threshold"],
-                       add_to_polyhedron=False)
-            check_assertions(cfg, config["invariants"], do=config["check_assertions"])
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     from termination.algorithm.utils import showgraph
