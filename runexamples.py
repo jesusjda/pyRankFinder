@@ -22,10 +22,6 @@ def setArgumentParser():
                            help="increase output verbosity", default=0)
     argParser.add_argument("--dotDestination", required=False,
                            help="Folder to save dot graphs.")
-    # Algorithm Parameters
-    argParser.add_argument("-sccd", "--scc_depth", type=int,
-                           choices=range(0, 10), default=5,
-                           help="Strategy based on SCC to go through the CFG.")# CFR Parameters
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -120,7 +116,6 @@ def config2Tag(config):
     tag += "_dt:"+str(config["different_template"])
     tag += "_sc:"+str(config["simplify_constraints"])
     tag += "_CFR-it:"+str(config["cfr_iterations"])
-    tag += "_CFR-au:"+str(config["cfr_automatic_properties"])
     tag += "_CFR-inv:"+str(config["cfr_invariants"])
     tag += "_CFR-st-bf:"+str(config["cfr_strategy_before"])
     tag += "_CFR-st-scc:"+str(config["cfr_strategy_scc"])
@@ -241,10 +236,14 @@ if __name__ == "__main__":
     cachedir = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), ar["cache"])
     files = ar["files"]
-    sccd = ar["scc_depth"]
+    sccd = 5
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    cfr_au = [4]
+    cfr_h = [False, True]
+    cfr_h_v = [False, True]
+    cfr_c = [False, True]
+    cfr_c_v = [False, True]
+    cfr_co = [False, True]
     cfr_ite= [1]
     lib = ["z3"]
     inv = ["polyhedra"]
@@ -252,28 +251,33 @@ if __name__ == "__main__":
     # ["scc", "after"] is not allowed
     cfr_strat = ["none", ["before"], ["scc"], ["after"], ["before", "after"], ["before", "scc"]] 
     cfr_configs = []
-    conf = {"cfr_iterations": 1, "cfr_automatic_properties":4, "cfr_user_properties":False,
+    conf = {"cfr_iterations": 1, "cfr_head_properties":False, "cfr_head_var_properties":False, "cfr_call_properties":False,
+            "cfr_call_var_properties":False, "cfr_user_properties":False, "cfr_cone_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
             "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":1}
-    if 0 in cfr_ite or "none" in cfr_strat or 0 in cfr_au:
+    if 0 in cfr_ite or "none" in cfr_strat or (False in cfr_h and False in cfr_c and False in cfr_h_v and False in cfr_c_v and False in cfr_co):
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
         if it ==0:
             continue
         conf["cfr_iterations"] = it
-        for au in cfr_au:
-            if au == 0:
-                continue
-            conf["cfr_automatic_properties"] = au
-            for strat in cfr_strat:
-                if strat == "none":
-                    continue
-                conf["cfr_strategy_before"] = "before" in strat
-                conf["cfr_strategy_scc"] = "scc" in strat
-                conf["cfr_strategy_after"] = "after" in strat
-                for i in cfr_invs:
-                    conf["cfr_invariants"] = i
-                    cfr_configs.append(dict(conf))
+        for p1 in cfr_h:
+            conf["cfr_head_properties"] = p1
+            for p2 in cfr_h_v:
+                conf["cfr_head_var_properties"] = p2
+                for p3 in cfr_c:
+                    conf["cfr_call_properties"] = p3
+                    for p4 in cfr_h_v:
+                        conf["cfr_call_var_properties"] = p4
+                        for strat in cfr_strat:
+                            if strat == "none":
+                                continue
+                            conf["cfr_strategy_before"] = "before" in strat
+                            conf["cfr_strategy_scc"] = "scc" in strat
+                            conf["cfr_strategy_after"] = "after" in strat
+                            for i in cfr_invs:
+                                conf["cfr_invariants"] = i
+                                cfr_configs.append(dict(conf))
     rniv = True
     dt = ["iffail"]
     if "timeout" in ar and ar["timeout"]:
@@ -328,11 +332,15 @@ if __name__ == "__main__":
                                 "invariants": i,
                                 "different_template": d,
                                 "simplify_constraints": True,
-                                "cfr_automatic_properties": cfr_conf["cfr_automatic_properties"],
+                                "cfr_head_properties": cfr_conf["cfr_head_properties"],
+                                "cfr_head_var_properties": cfr_conf["cfr_head_var_properties"],
+                                "cfr_call_properties": cfr_conf["cfr_call_properties"],
+                                "cfr_call_var_properties": cfr_conf["cfr_call_var_properties"],
+                                "cfr_user_properties": cfr_conf["cfr_user_properties"],
+                                "cfr_cone_properties": cfr_conf["cfr_cone_properties"],
                                 "cfr_iterations": cfr_conf["cfr_iterations"],
                                 "cfr_invariants": cfr_conf["cfr_invariants"],
                                 "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
-                                "cfr_user_properties": cfr_conf["cfr_user_properties"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
                                 "cfr_strategy_before" : cfr_conf["cfr_strategy_before"],
                                 "cfr_strategy_after" : cfr_conf["cfr_strategy_after"],

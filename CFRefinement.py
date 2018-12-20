@@ -32,15 +32,21 @@ def setArgumentParser():
                            action='store_true', help="add invariants to the output formats")
     
     # CFR Parameters
-    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False,
-                           type=int, choices=range(0,5), default=4, help="")
-    argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
-                           help="# times to apply cfr", default=1)
-    # argParser.add_argument("-cfr-it-st", "--cfr-iteration-strategy", required=False,
-    #                       choices=["acumulate", "inmutate", "recompute"], default="recompute",
-    #                       help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
+    argParser.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head", "--cfr-head-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head-var", "--cfr-head-var-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call", "--cfr-call-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
+                           help="# times to apply cfr", default=1)
+
     argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
