@@ -10,8 +10,9 @@ from termination.algorithm.utils import showgraph
 _version = "1.2"
 _name = "CFRefinement"
 
+
 def setArgumentParser():
-    desc = _name+": Control Flow refinement."
+    desc = _name + ": Control Flow refinement."
     absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
         description=desc,
@@ -30,7 +31,6 @@ def setArgumentParser():
                            help="Folder to save output files.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
-    
     # CFR Parameters
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
@@ -66,15 +66,18 @@ def setArgumentParser():
                            help="Temporary directory.")
     return argParser
 
+
 def extractname(filename):
     f = os.path.split(filename)
     c = os.path.splitext(f[1])
     return c[0]
 
+
 def launch(config):
     for f in config["files"]:
         launch_file(config, f)
         OM.show_output()
+
 
 def launch_file(config, f):
     writef = config["output_destination"] is not None
@@ -88,12 +91,13 @@ def launch_file(config, f):
             compute_invariants(pe_cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"])
             if config["cfr_iterations"] > 0:
-                sufix = "_cfr"+str(config["cfr_iterations"])
-            sufix += "_with_inv"+str(config["invariants"])
+                sufix = "_cfr" + str(config["cfr_iterations"])
+            sufix += "_with_inv" + str(config["invariants"])
             showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef)
     except Exception as e:
-        OM.printf("Exception  -> "+str(e))
+        OM.printf("Exception  -> " + str(e))
         raise Exception() from e
+
 
 if __name__ == "__main__":
     try:
@@ -109,4 +113,3 @@ if __name__ == "__main__":
     except Exception as e:
         OM.show_output()
         raise Exception() from e
-

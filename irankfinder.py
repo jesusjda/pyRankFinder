@@ -9,6 +9,7 @@ import termination
 import cProfile
 # from termination.profiler import register_as
 
+
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
         profile = cProfile.Profile()
@@ -18,9 +19,10 @@ def do_cprofile(func):
             profile.disable()
             return result
         finally:
-            #profile.print_stats('time', 'name')
+            # profile.print_stats('time', 'name')
             profile.print_stats('launch_file')
     return profiled_func
+
 
 _version = "1.1"
 _name = "irankfinder"
@@ -43,8 +45,8 @@ def termination_alg(value):
 
 
 def termination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(TAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(TAM.options(True)))
 
 
 def nontermination_alg(value):
@@ -53,16 +55,16 @@ def nontermination_alg(value):
     try:
         return NTAM.get_algorithm(value)
     except ValueError:
-        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value)) 
+        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value))
 
 
 def nontermination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(NTAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(NTAM.options(True)))
 
 
 def setArgumentParser():
-    desc = _name+": a Ranking Function finder on python."
+    desc = _name + ": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
     absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
@@ -168,6 +170,7 @@ def extractname(filename):
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
+
 def launch(config):
     files = config["files"]
     if "outs" in config:
@@ -189,6 +192,7 @@ def parse_file(f):
     import genericparser
     return genericparser.parse(f)
 
+
 def launch_file(config, f, out):
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
@@ -209,6 +213,7 @@ def launch_file(config, f, out):
                 f.write(e)
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+            raise Exception() from e
         return
     config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
