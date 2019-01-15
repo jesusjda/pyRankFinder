@@ -1,7 +1,8 @@
+from .thresholds import user_thresholds
+from .assertions import check_assertions
+from .abstractStates import state
 
 __all__ = ["user_invariants", "compute_invariants"]
-from .thresholds import user_thresholds
-from .abstractStates import state
 
 def use_invariants(cfg, invariant_type):
     from lpi.Lazy_Polyhedron import C_Polyhedron
@@ -27,7 +28,7 @@ def user_invariants(cfg):
     raise NotImplementedError("User invariants is not implemented yet.")
 
 
-def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False, add_to_polyhedron=False):
+def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False, check=False, add_to_polyhedron=False):
     cfg.build_polyhedrons()
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
@@ -73,6 +74,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
                     queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_"+str(abstract_domain))
+    check_assertions(cfg, str(abstract_domain), do=check_assertions)
     if add_to_polyhedron:
         OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(abstract_domain))

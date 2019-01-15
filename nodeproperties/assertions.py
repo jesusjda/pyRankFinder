@@ -1,8 +1,8 @@
-from termination.output import Output_Manager as OM
 from .abstractStates import state as absState
 
 
 def check_assertions(cfg, abstract_domain="polyhedra", do=True):
+    from termination.output import Output_Manager as OM
     def state(A, abstract_domain, dim):
         if abstract_domain == "polyhedra":
             return A

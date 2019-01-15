@@ -74,24 +74,16 @@ def analyse(config, cfg):
     from nodeproperties.assertions import check_assertions
     compute_invariants(cfg, abstract_domain=config["invariants"],
                        use_threshold=config["invariants_threshold"],
+                       check=config["check_assertions"],
                        add_to_polyhedron=True)
-    if config["check_assertions"]:
-        OM.printseparator(0)
-        OM.printf("Checking assertions of Original Graph")
-        check_assertions(cfg, config["invariants"], do=config["check_assertions"])
-        OM.printseparator(0)
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
         cfr_it += 1
         if cfr_before and cfr_it == 0:
             cfg = control_flow_refinement(cfg, cfr)
             compute_invariants(cfg, abstract_domain=config["invariants"],
                                use_threshold=config["invariants_threshold"],
+                               check=config["check_assertions"],
                                add_to_polyhedron=True)
-            if config["check_assertions"]:
-                OM.printseparator(0)
-                OM.printf("Checking assertions of Refined Graph")
-                check_assertions(cfg, config["invariants"], do=config["check_assertions"])
-                OM.printseparator(0)
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
             CFGs = [(cfg, max_sccd, 0)]
         elif cfr_after and cfr_it != 0:

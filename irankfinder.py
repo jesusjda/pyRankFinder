@@ -105,7 +105,7 @@ def setArgumentParser():
                            help="Remove No Important variables before do anything else.")
     argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
                            default="z3", help="select lib")
-    argParser.add_argument("--check-assertions", action='store_true',
+    argParser.add_argument("-ca", "--check-assertions", action='store_true',
                            help="Check Invariants with the assertions defined")
     # CFR Parameters
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
@@ -154,7 +154,7 @@ def setArgumentParser():
                            help="Do conditional temination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
-    argParser.add_argument("-ithre", "--invariants-threshold", required=False,
+    argParser.add_argument("-inv-thre", "--invariants-threshold", required=False,
                            action='store_true', help="Use user thresholds.")
     argParser.add_argument("-sif", "--stop-if-fail", required=False,
                            default=False, action='store_true',
