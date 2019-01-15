@@ -74,7 +74,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, u
                     queue.append(node)
         invariants = {node: nodes[node]["state"] for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_"+str(abstract_domain))
-    check_assertions(cfg, str(abstract_domain), do=check_assertions)
+    check_assertions(cfg, str(abstract_domain), do=check)
     if add_to_polyhedron:
         OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
