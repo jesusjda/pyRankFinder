@@ -7,6 +7,7 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
     global_vars = cfg.get_info("global_vars")
     Nvars = int(len(global_vars) / 2)
     vars_ = global_vars[:Nvars]
+    correct = True
     for node, node_data in graph_nodes:
         if "asserts" in node_data and node_data["asserts"]:
             OM.printf("- Checking asserts of node {}".format(node))
