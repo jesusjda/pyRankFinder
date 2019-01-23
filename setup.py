@@ -9,20 +9,20 @@ VERSION = open(os.path.join(base, 'version.txt')).read()[:-1]
 requires = ['pplpy>=0.7', 'pyLPi', 'genericparser', 'pyinterval', 'crlibm']
 
 dependency_links = [
-    'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7',
-    'git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi-0.2',
+    'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7.1',
+    'git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi-1.0',
     'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-1.0'
 ]
 
 ter_dir = os.path.join(base, 'termination')
 ter_name = 'termination'
 teralg_dir = os.path.join(ter_dir, 'algorithm')
-teralg_name = ter_name+'.algorithm'
+teralg_name = ter_name + '.algorithm'
 
 inv_dir = os.path.join(base, 'nodeproperties')
 inv_name = 'nodeproperties'
 inv_abs_dir = os.path.join(inv_dir, 'abstractStates')
-inv_abs_name = inv_name+'.abstractStates'
+inv_abs_name = inv_name + '.abstractStates'
 
 pe_dir = os.path.join(base, 'partialevaluation')
 pe_name = 'partialevaluation'
@@ -46,7 +46,7 @@ setup(
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Operating System :: Unix",
         "Intended Audience :: Science/Research",
         'Programming Language :: Python :: 3',
@@ -56,5 +56,3 @@ setup(
     ],
     keywords=['termination', 'ranking functions', 'static analysis', 'invariants', 'partial evaluation'],
 )
-
-

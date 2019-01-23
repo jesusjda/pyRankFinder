@@ -1,7 +1,4 @@
 from lpi import C_Polyhedron
-from ppl import Constraint_System
-from ppl import Linear_Expression
-from ppl import Variable
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
@@ -10,7 +7,7 @@ from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
 from .utils import get_use_z3
-from .utils import max_dim
+from .utils import get_free_name
 
 
 class QLRF_ADFG(Algorithm):
@@ -24,13 +21,9 @@ class QLRF_ADFG(Algorithm):
     def run(self, cfg, different_template=False, use_z3=None):
         response = Result()
         transitions = cfg.get_edges()
-
-        dim = max_dim(transitions)
-        Nvars = int(dim / 2)
+        gvs = cfg.get_info("global_vars")
+        Nvars = int(len(gvs) / 2)
         use_z3 = get_use_z3(self.props, use_z3)
-        shifter = 0
-        if different_template:
-            shifter = Nvars + 1
         # farkas Variables
         rfvars = {}
         # farkas constraints
@@ -39,24 +32,32 @@ class QLRF_ADFG(Algorithm):
         rfs = {}  # rfs coefficients (result)
         no_ranked = []  # transitions sets no ranked by rfs
         # other stuff
-        countVar = 0
+        taken_vars = []
         # 1.1 - store rfs variables
-        for tr in transitions:
-            if not(tr["source"] in rfvars):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["source"]] = f
-                countVar += shifter
-            if not(tr["target"] in rfvars):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["target"]] = f
-                countVar += shifter
-        countVar += Nvars + 1
+        from lpi import Expression
+        if different_template:
+            for tr in transitions:
+                # taken_vars += tr["local_vars"]
+                if not(tr["source"] in rfvars):
+                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+                    taken_vars += f
+                    rfvars[tr["source"]] = [Expression(v) for v in f]
+                if not(tr["target"] in rfvars):
+                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+                    taken_vars += f
+                    rfvars[tr["target"]] = [Expression(v) for v in f]
+        else:
+            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+            taken_vars += f
+            exp_f = [Expression(v) for v in f]
+            for n in cfg.get_nodes():
+                rfvars[n] = exp_f
+
         # 1.2 - store delta variables
-        deltas = {transitions[i]["name"]: Variable(countVar + i)
-                  for i in range(len(transitions))}
-        countVar += len(transitions)
+        ds = get_free_name(taken_vars, name="d", num=len(transitions))
+        taken_vars += ds
+        deltas = {transitions[i]["name"]: ds[i] for i in range(len(transitions))}
+
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
             rf_t = rfvars[tr["target"]]
@@ -64,32 +65,32 @@ class QLRF_ADFG(Algorithm):
 
             Mcons = len(poly.get_constraints())
             # f_s >= 0
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons
-            farkas_constraints += farkas.f(poly, lambdas,
-                                           rf_s, 0)
-
             # f_s - f_t >= delta[tr]
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons
-            farkas_constraints += farkas.df(poly, lambdas,
-                                            rf_s, rf_t, deltas[tr["name"]])
-            # 0 <= delta[tr] <= 1
-            farkas_constraints += [0 <= deltas[tr["name"]],
-                                   deltas[tr["name"]] <= 1]
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            lambdas2 = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas2
+            farkas_constraints += farkas.LRF(poly,
+                                             [[Expression(v) for v in lambdas],
+                                              [Expression(v) for v in lambdas2]],
+                                             rf_s, rf_t, Expression(deltas[tr["name"]]))
 
-        exp = sum([deltas[tr] for tr in deltas])
+            # 0 <= delta[tr] <= 1
+            farkas_constraints += [0 <= Expression(deltas[tr["name"]]),
+                                   Expression(deltas[tr["name"]]) <= 1]
+
+        exp = sum([Expression(deltas[tr]) for tr in deltas])
 
         if self.props["nonoptimal"]:
             farkas_constraints += [exp >= 1]
-            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-            point = farkas_poly.get_point(use_z3=use_z3)
-            if point is None:
+            farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
+            point = farkas_poly.get_point()
+            if point[0] is None:
                 response.set_response(status=TerminationResult.UNKNOWN,
                                       info="No point found for non-optimal adfg.")
                 return response
         else:
-            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
             result = farkas_poly.maximize(exp)
             if not result['bounded']:
                 response.set_response(status=TerminationResult.UNKNOWN,
@@ -97,21 +98,16 @@ class QLRF_ADFG(Algorithm):
                 return response
             point = result["generator"]
 
-        zeros = True
-        for c in point.coefficients():
-            if c != 0:
-                zeros = False
-        if point is None or zeros:
+        if point[0].degree() == 0 and point[0].get_coeff() == 0:
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="F === 0 " + str(point))
             return response
 
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], point)
+            rfs[node] = get_rf(rfvars[node], gvs, point)
 
             no_ranked = [tr for tr in transitions
-                         if(point.coefficient(deltas[tr["name"]])
-                            == 0)]
+                         if(point[0].get_coeff(deltas[tr["name"]]) == 0)]
 
         response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
@@ -119,14 +115,12 @@ class QLRF_ADFG(Algorithm):
                               pending_trs=no_ranked)
         return response
 
-
     @classmethod
     def description(cls, long=False):
         desc = str(cls.ID) + "[_nonoptimal]"
         if long:
             desc += ": " + str(cls.DESC)
         return desc
-
 
     @classmethod
     def generate(cls, data):
@@ -148,7 +142,6 @@ class QLRF_ADFG(Algorithm):
         return None
 
 
-
 class QLRF_BG(Algorithm):
     ID = "bg"
     NAME = "qlrf_bg"
@@ -160,13 +153,10 @@ class QLRF_BG(Algorithm):
     def run(self, cfg, different_template=False, use_z3=None):
         response = Result()
         transitions = cfg.get_edges()
-
-        dim = max_dim(transitions)
-        Nvars = int(dim / 2)
+        gvs = cfg.get_info("global_vars")
+        Nvars = int(len(gvs) / 2)
         use_z3 = get_use_z3(self.props, use_z3)
-        shifter = 0
-        if different_template:
-            shifter = Nvars + 1
+
         # farkas Variables
         rfvars = {}
         # farkas constraints
@@ -175,27 +165,32 @@ class QLRF_BG(Algorithm):
         rfs = {}  # rfs coefficients (result)
         no_ranked = []  # transitions sets no ranked by rfs
         freeConsts = []
+        rf_vars = []
         # other stuff
-        countVar = 0
+        taken_vars = []
         # 1.1 - store rfs variables
-        for tr in transitions:
-            if not(tr["source"] in rfvars):
-                if not(countVar in freeConsts):
-                    freeConsts.append(countVar)
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["source"]] = f
-                countVar += shifter
-            if not(tr["target"] in rfvars):
-                if not(countVar in freeConsts):
-                    freeConsts.append(countVar)
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["target"]] = f
-                countVar += shifter
-        if shifter == 0:
-            countVar += Nvars + 1
-        size_rfs = countVar
+        from lpi import Expression
+        if different_template:
+            for tr in transitions:
+                # taken_vars += tr["local_vars"]
+                if not(tr["source"] in rfvars):
+                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+                    freeConsts.append(f[0])
+                    rf_vars += f[1:]
+                    taken_vars += f
+                    rfvars[tr["source"]] = [Expression(v) for v in f]
+                if not(tr["target"] in rfvars):
+                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+                    freeConsts.append(f[0])
+                    rf_vars += f[1:]
+                    taken_vars += f
+                    rfvars[tr["target"]] = [Expression(v) for v in f]
+        else:
+            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+            taken_vars += f
+            exp_f = [Expression(v) for v in f]
+            for n in cfg.get_nodes():
+                rfvars[n] = exp_f
 
         for tr in transitions:
             rf_s = rfvars[tr["source"]]
@@ -203,26 +198,27 @@ class QLRF_BG(Algorithm):
             poly = tr["polyhedron"]
             Mcons = len(poly.get_constraints())
             # f_s >= 0
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons
-            farkas_constraints += farkas.f(poly, lambdas,
-                                           rf_s, 0)
+            # f_s - f_t >= 1
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            lambdas2 = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas2
+            farkas_constraints += farkas.LRF(poly,
+                                             [[Expression(v) for v in lambdas],
+                                              [Expression(v) for v in lambdas2]],
+                                             rf_s, rf_t, 0)
 
-            # f_s - f_t >= 0
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons
-            farkas_constraints += farkas.df(poly, lambdas,
-                                            rf_s, rf_t, 0)
-        farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        variables = [v for v in range(size_rfs) if not(v in freeConsts)]
-        variables += freeConsts
+        farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
+
+        variables = rf_vars + freeConsts
         point = farkas_poly.get_relative_interior_point(variables)
-        if point is None:
+        if point[0] is None:
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="No relative interior point")
             return response
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], point)
+            rfs[node] = get_rf(rfvars[node], gvs, point)
+
         # check if rfs are non-trivial
         nonTrivial = False
         dfs = {}
@@ -230,13 +226,12 @@ class QLRF_BG(Algorithm):
             rf_s = rfs[tr["source"]]
             rf_t = rfs[tr["target"]]
             poly = tr["polyhedron"]
-            df = Linear_Expression(0)
-            constant = (rf_s.coefficient(Variable(0))
-                        - rf_t.coefficient(Variable(0)))
-            for i in range(Nvars):
-                df += Variable(i) * rf_s.coefficient(Variable(i + 1))
-                df -= Variable(Nvars + i) * rf_t.coefficient(Variable(i + 1))
-            dfs[tr["name"]] = df + constant
+            df = rf_s - rf_t  # ExprTerm(0)
+            constant = (rf_s.get_coeff() - rf_t.get_coeff())
+            # for i in range(Nvars):
+            #     df += gvs[i] * rf_s.coefficient(Variable(i + 1))
+            #     df -= gvs[Nvars + i] * rf_t.coefficient(Variable(i + 1))
+            dfs[tr["name"]] = df  # + constant
             if not nonTrivial:
                 answ = poly.maximize(df)
                 if(not answ["bounded"] or
@@ -262,6 +257,7 @@ class QLRF_BG(Algorithm):
         response.set_response(status=TerminationResult.UNKNOWN,
                               info="rf found was the trivial")
         return response
+
 
 class QuasiLinearRF(Manager):
     ALGORITHMS = [QLRF_ADFG, QLRF_BG]

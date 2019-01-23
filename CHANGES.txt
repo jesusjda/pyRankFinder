@@ -1,3 +1,8 @@
+v1.2 2019/01/23 (remove ppl dependecy at this level)
+- invariants and all nodeproperties are now independent from ppl.
+- all the algorithms are now independent from ppl.
+- minor other improvements.
+- pep8.
 v1.1 2018/12/19
 - check assertions of cfgs and refined cfgs
 - properties of projection are computed now on python side

@@ -9,6 +9,7 @@ import termination
 import cProfile
 # from termination.profiler import register_as
 
+
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
         profile = cProfile.Profile()
@@ -18,9 +19,10 @@ def do_cprofile(func):
             profile.disable()
             return result
         finally:
-            #profile.print_stats('time', 'name')
+            # profile.print_stats('time', 'name')
             profile.print_stats('launch_file')
     return profiled_func
+
 
 _version = "1.1"
 _name = "irankfinder"
@@ -43,8 +45,8 @@ def termination_alg(value):
 
 
 def termination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(TAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(TAM.options(True)))
 
 
 def nontermination_alg(value):
@@ -53,16 +55,16 @@ def nontermination_alg(value):
     try:
         return NTAM.get_algorithm(value)
     except ValueError:
-        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value)) 
+        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value))
 
 
 def nontermination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(NTAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(NTAM.options(True)))
 
 
 def setArgumentParser():
-    desc = _name+": a Ranking Function finder on python."
+    desc = _name + ": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
     absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
@@ -92,14 +94,11 @@ def setArgumentParser():
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc-depth", type=positive, default=1,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify-constraints", required=False,
-                           default=False, action='store_true',
-                           help="Simplify constraints")
     argParser.add_argument("-usr-reach", "--user-reachability", required=False,
                            default=False, action='store_true',
                            help="Compute reachability from user constraints")
     argParser.add_argument("-reach", "--reachability", required=False, choices=absdomains,
-                           default="none", help="Analyse reachability")
+                           default="polyhedra", help="Analyse reachability")
     argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
@@ -132,9 +131,6 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
-    argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
-                           default=False, action='store_true',
-                           help="Simplify constraints when CFR")
     argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
                            default=False, action='store_true',
                            help="Use user thresholds for CFR invariants.")
@@ -168,6 +164,7 @@ def extractname(filename):
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
+
 def launch(config):
     files = config["files"]
     if "outs" in config:
@@ -189,6 +186,7 @@ def parse_file(f):
     import genericparser
     return genericparser.parse(f)
 
+
 def launch_file(config, f, out):
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
@@ -209,6 +207,7 @@ def launch_file(config, f, out):
                 f.write(e)
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+            raise Exception() from e
         return
     config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
@@ -219,7 +218,7 @@ def launch_file(config, f, out):
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     if config["user_reachability"]:
         cfg.build_polyhedrons()
-        compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"], user_props=True,
+        compute_reachability(cfg, abstract_domain=config["reachability"], use=config["user_reachability"], user_props=True,
                              use_threshold=config["invariants_threshold"])
 
     # Compute Termination
@@ -228,14 +227,17 @@ def launch_file(config, f, out):
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     from termination.algorithm.utils import showgraph
-    showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"], writef=False, output_formats=["fc"])
+    showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"],
+              writef=False, output_formats=["fc"])
     return termination_result
+
 
 def remove_no_important_variables(cfg, doit=False):
     if not doit:
         return
     cons, nivars = cfg.remove_no_important_variables()
     OM.printif(1, "Removed {} constraint(s) with variable(s): [{}]".format(cons, ",".join(nivars)))
+
 
 def analyse(config, cfg):
     OM.printseparator(1)
@@ -262,7 +264,7 @@ def analyse(config, cfg):
         if len(nodes_to_analyse) == 0:
             OM.printf("No nodes to analyse reachability.")
         else:
-            compute_reachability(graph,use=False, init_nodes=nodes_to_analyse)
+            compute_reachability(graph, use=False, init_nodes=nodes_to_analyse)
         OM.printseparator(0)
     elif "recurrent_set" in config and config["recurrent_set"] and len(unk_sccs) > 0:
         OM.printseparator(0)
@@ -272,6 +274,7 @@ def analyse(config, cfg):
             count += 1
         OM.printseparator(0)
     return r
+
 
 def show_result(result, cfg):
     OM.printseparator(1)
@@ -287,12 +290,10 @@ def show_result(result, cfg):
 def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False, user_props=False, init_nodes=[]):
     cfg.build_polyhedrons()
     node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold, user_props=user_props, init_nodes=init_nodes)
-    if use:
-        OM.printseparator(0)
-        OM.printf("REACHABILITY ({})".format(abstract_domain))
-    gvars = cfg.get_info("global_vars")
+    OM.printseparator(0)
+    OM.printf("REACHABILITY ({})".format(abstract_domain))
     OM.printf("\n".join(["-> " + str(n) + " = " +
-                         str(node_inv[n].toString(gvars))
+                         str(node_inv[n])
                          for n in sorted(node_inv)]))
     if use:
         OM.printseparator(0)

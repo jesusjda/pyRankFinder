@@ -11,6 +11,7 @@ __all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager", 
 # alias
 OM = Output_Manager
 
+
 def analyse(config, cfg):
     fast_answer_result = Result()
     fast_answer_result.set_response(status=TerminationResult.UNKNOWN)
@@ -31,7 +32,7 @@ def analyse(config, cfg):
         dt_modes = [False, True]
     else:
         dt_modes = [False]
-    cfr = {"cfr_iterations":0, "cfr_max_tries":0}
+    cfr = {"cfr_iterations": 0, "cfr_max_tries": 0}
     cfr_scc = config["cfr_strategy_scc"]
     cfr_after = config["cfr_strategy_after"]
     cfr_before = config["cfr_strategy_before"]
@@ -41,7 +42,7 @@ def analyse(config, cfg):
                "cfr_invariants_threshold": config["cfr_invariants_threshold"],
                "cfr_max_tries": config["cfr_max_tries"],
                "tmpdir": config["tmpdir"]
-              }
+               }
         from nodeproperties.cfrprops import cfrprops_options
         do_it = False
         for op in cfrprops_options():
@@ -56,7 +57,7 @@ def analyse(config, cfg):
     max_sccd = config["scc_depth"]
     fast_answer = config["stop_if_fail"]
     rmded = cfg.remove_unsat_edges()
-    if len(rmded)> 0:
+    if len(rmded) > 0:
         OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
     showgraph(cfg, config, sufix="", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
     from .algorithm.utils import merge
@@ -99,14 +100,15 @@ def analyse(config, cfg):
             OM.printif(3, str(way_nodes))
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
-            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_"+n1 == n[:len(n1)+2]]
+            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
             compute_invariants(cfg, abstract_domain=config["invariants"],
-                              use_threshold=config["invariants_threshold"],
-                              add_to_polyhedron=True)
+                               use_threshold=config["invariants_threshold"],
+                               add_to_polyhedron=True)
             OM.printif(3, "Important nodes from the cfr graph.")
             OM.printif(3, str(new_important_nodes))
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in new_important_nodes])
-            showgraph(cfg, config, sufix="cfr_after_"+str(cfr_it), console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+            showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
+                      writef=False, output_formats=["fc", "svg"])
             CFGs = [(scc, max_sccd, 0) for scc in cfg.get_scc() if len(scc.get_edges()) > 0]
         else:
             CFGs = [(cfg, max_sccd, 0)]
@@ -116,7 +118,7 @@ def analyse(config, cfg):
             current_cfg, sccd, cfr_num = CFGs.pop(0)
             for t in current_cfg.get_edges():
                 if t["polyhedron"].is_empty():
-                    OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
+                    OM.printif(2, "Transition (" + t["name"] + ") removed because it is empty.")
                     current_cfg.remove_edge(t["source"], t["target"], t["name"])
             if len(current_cfg.get_edges()) == 0:
                 OM.printif(2, "This cfg has not transitions.")
@@ -177,13 +179,13 @@ def analyse(config, cfg):
         if len(maybe_sccs) == 0 or not cfr_after:
             stop_all = True
 
-    status=TerminationResult.UNKNOWN
+    status = TerminationResult.UNKNOWN
     if len(nonterminating_sccs) > 0:
-        status=TerminationResult.NONTERMINATE
+        status = TerminationResult.NONTERMINATE
     elif len(maybe_sccs) > 0:
-        status=TerminationResult.UNKNOWN
+        status = TerminationResult.UNKNOWN
     else:
-        status=TerminationResult.TERMINATE
+        status = TerminationResult.TERMINATE
     response = Result()
     response.set_response(status=status,
                           rfs=dict(rfs),
@@ -192,6 +194,7 @@ def analyse(config, cfg):
                           unknown_sccs=maybe_sccs[:],
                           graph=original_cfg)
     return response
+
 
 def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
     cw_algs = [a for a in algs if a.use_close_walk()]
@@ -210,6 +213,7 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
             if response.get_status().is_nonterminate():
                 return response
     return False
+
 
 def analyse_scc_termination(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
@@ -269,9 +273,7 @@ def run_algs(algs, cfg, different_template=False):
                               rfs=R.get("rfs"),
                               pending_trs=R.get("pending_trs"))
         return response
-    
+
     response.set_response(status=TerminationResult.UNKNOWN,
                           info="Not Found")
     return response
-
-

@@ -9,6 +9,7 @@ from termination.result import TerminationResult
 from pprint import pprint
 import datetime
 
+
 def setArgumentParser():
     desc = "Generator"
     argParser = argparse.ArgumentParser(description=desc)
@@ -106,7 +107,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
     softM, hardM = resource.getrlimit(resource.RLIMIT_DATA)
     softT, hardT = resource.getrlimit(resource.RLIMIT_CPU)
     usage_old = resource.getrusage(resource.RUSAGE_CHILDREN)
-    arguments=(task,r_dict)+args
+    arguments = (task, r_dict) + args
     p = Process(target=worker, args=arguments, kwargs=kwargs)
     try:
         from resource import prlimit
@@ -124,38 +125,40 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
         return returnHandler(p.exitcode, r_dict, usage, usage_old)
 
+
 def config2Tag(config):
     tag = ""
     tag += str(config["termination"][0])
-    tag += "_sccd:"+str(config["scc_depth"])
-    tag += "_invariant:"+str(config["invariants"])
-    tag += "_dt:"+str(config["different_template"])
-    tag += "_sc:"+str(config["simplify_constraints"])
-    tag += "_CFR-it:"+str(config["cfr_iterations"])
-    tag += "_CFR-inv:"+str(config["cfr_invariants"])
-    tag += "_CFR-st-bf:"+str(config["cfr_strategy_before"])
-    tag += "_CFR-st-scc:"+str(config["cfr_strategy_scc"])
-    tag += "_CFR-st-af:"+str(config["cfr_strategy_after"])
+    tag += "_sccd:" + str(config["scc_depth"])
+    tag += "_invariant:" + str(config["invariants"])
+    tag += "_dt:" + str(config["different_template"])
+    tag += "_CFR-it:" + str(config["cfr_iterations"])
+    tag += "_CFR-inv:" + str(config["cfr_invariants"])
+    tag += "_CFR-st-bf:" + str(config["cfr_strategy_before"])
+    tag += "_CFR-st-scc:" + str(config["cfr_strategy_scc"])
+    tag += "_CFR-st-af:" + str(config["cfr_strategy_after"])
     return tag
 
+
 def file2ID(file, prefix=""):
-    a = file.replace(prefix,"")
+    a = file.replace(prefix, "")
     if a[0] == "/":
         a = a[1:]
-    return a.replace("/","_")
+    return a.replace("/", "_")
+
 
 def get_info(cache, file, prefix):
     name = file2ID(file, prefix)
-    o = os.path.join(cache, name+".json")
-    print("->",os.path.isfile(o),o)
+    o = os.path.join(cache, name + ".json")
+    print("->", os.path.isfile(o), o)
     info = None
     if os.path.isfile(o):
         import json
         with open(o) as f:
             info = json.load(f)
     else:
-        info = {"id":name,"file":file}
-    if not "analysis" in info:
+        info = {"id": name, "file": file}
+    if "analysis" not in info:
         info["analysis"] = []
     for a in info["analysis"]:
         ter = []
@@ -168,16 +171,17 @@ def get_info(cache, file, prefix):
     pprint(info)
     return info
 
+
 def save_info(info, cache, file, prefix):
     name = file2ID(file, prefix)
-    o = os.path.join(cache, name+".json")
+    o = os.path.join(cache, name + ".json")
     print(o)
     if os.path.isfile(o):
         os.remove(o)
     import json
     tojson = info
     if "file" in tojson:
-        tojson["file"] = tojson["file"].replace(prefix,"")
+        tojson["file"] = tojson["file"].replace(prefix, "")
     if "analysis" in tojson:
         for a in tojson["analysis"]:
             ter = []
@@ -198,17 +202,20 @@ def save_info(info, cache, file, prefix):
     with open(o, "w") as f:
         json.dump(tojson, f, indent=4, sort_keys=True)
 
+
 def extractname(filename):
     f = os.path.split(filename)
     b = os.path.split(f[0])
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
+
 def is_error(config, info):
     inf = get_i(config, info)
     if inf is None:
         return True
     return str(inf["status"]) == "Error"
+
 
 def get_i(config, info):
     aas = info["analysis"]
@@ -232,7 +239,7 @@ def get_i(config, info):
             try:
                 if c[k] == config[k]:
                     continue
-            except:
+            except Exception:
                 if k == "invariants":
                     if c["nodeproperties"] == config[k]:
                         continue
@@ -250,8 +257,7 @@ if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
     ar = vars(args)
-    cachedir = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), ar["cache"])
+    cachedir = os.path.join(os.path.dirname(os.path.realpath(__file__)), ar["cache"])
     files = ar["files"]
     sccd = 5
     dotF = ar["dotDestination"]
@@ -268,10 +274,10 @@ if __name__ == "__main__":
     # ["scc", "after"] is not allowed
     cfr_strat = [["before"], ["scc"], ["after"]]  # , ["before", "after"], ["before", "scc"]]
     cfr_configs = []
-    conf = {"cfr_iterations": 1, "cfr_head_properties":False, "cfr_head_var_properties":False, "cfr_call_properties":False,
-            "cfr_call_var_properties":False, "cfr_user_properties":False, "cfr_cone_properties":False,
-            "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
-            "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":2}
+    conf = {"cfr_iterations": 1, "cfr_head_properties": False, "cfr_head_var_properties": False, "cfr_call_properties": False,
+            "cfr_call_var_properties": False, "cfr_user_properties": False, "cfr_cone_properties": False,
+            "cfr_invariants": "none", "cfr_invariants_threshold": False,
+            "cfr_strategy_before": False, "cfr_strategy_scc": False, "cfr_strategy_after": False, "cfr_max_tries": 1}
     if 0 in cfr_ite or "none" in cfr_strat or (False in cfr_h and False in cfr_c and False in cfr_h_v and False in cfr_c_v and False in cfr_co):
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
@@ -323,8 +329,8 @@ if __name__ == "__main__":
         todel = []
         for a in info["analysis"]:
             todel.append(a)
-        #for a in todel:
-        #    info["analysis"].remove(a)
+        # for a in todel:
+        #     info["analysis"].remove(a)
         for cfr_conf in cfr_configs:
             for i in inv:
                 if status:
@@ -348,7 +354,6 @@ if __name__ == "__main__":
                                 "termination": a,
                                 "invariants": i,
                                 "different_template": d,
-                                "simplify_constraints": True,
                                 "cfr_head_properties": cfr_conf["cfr_head_properties"],
                                 "cfr_head_var_properties": cfr_conf["cfr_head_var_properties"],
                                 "cfr_call_properties": cfr_conf["cfr_call_properties"],
@@ -357,7 +362,6 @@ if __name__ == "__main__":
                                 "cfr_cone_properties": cfr_conf["cfr_cone_properties"],
                                 "cfr_iterations": cfr_conf["cfr_iterations"],
                                 "cfr_invariants": cfr_conf["cfr_invariants"],
-                                "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
                                 "cfr_strategy_before": cfr_conf["cfr_strategy_before"],
                                 "cfr_strategy_after": cfr_conf["cfr_strategy_after"],

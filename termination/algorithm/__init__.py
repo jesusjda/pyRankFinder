@@ -4,7 +4,6 @@ from .manager import Manager
 from .nonTermination import NonTermination
 from .qlrf import QuasiLinearRF
 from .qnlrf import QuasiNestedLRF
-# from .structured import Structured
 
 __all__ = ["Termination_Algorithm_Manager", "NonTermination_Algorithm_Manager"]
 

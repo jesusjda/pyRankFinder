@@ -1,34 +1,32 @@
 from termination import Output_Manager as OM
+from lpi import C_Polyhedron
+
 
 def cfrprops_options():
     return ["cfr_user_properties", "cfr_cone_properties", "cfr_head_properties",
             "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties"]
+
 
 def compute_cfrprops(cfg, only_nodes=None, props=[], invariant_type="none"):
     if len(props) == 0:
         return {}
     if only_nodes is not None and len(only_nodes) == 0:
         return {}
-    do_head_props="cfr_head_properties" in props
-    do_head_var_props="cfr_head_var_properties" in props
-    do_call_props="cfr_call_properties" in props
-    do_call_var_props="cfr_call_var_properties" in props
-    do_user_props="cfr_user_properties" in props
-    do_cone_props="cfr_cone_properties" in props
-    from lpi.Lazy_Polyhedron import C_Polyhedron
-    from ppl import Constraint_System
-    global_vars = cfg.get_info("global_vars")
+    do_head_props = "cfr_head_properties" in props
+    do_head_var_props = "cfr_head_var_properties" in props
+    do_call_props = "cfr_call_properties" in props
+    do_call_var_props = "cfr_call_var_properties" in props
+    do_user_props = "cfr_user_properties" in props
+    do_cone_props = "cfr_cone_properties" in props
     for t in cfg.get_edges():
-        all_vars = global_vars + t["local_vars"]
-        ppl_cons = [c.transform(all_vars, lib="ppl")
-                        for c in t["constraints"] if c.is_linear()]
+        cfr_poly = t["polyhedron"].copy()
         if invariant_type != "none":
             try:
-                invariants = [c for c in cfg.nodes[t["source"]]["invariant_"+str(invariant_type)].get_constraints()]
+                invariants = [c for c in cfg.nodes[t["source"]]["invariant_" + str(invariant_type)].get_constraints()]
             except Exception:
                 invariants = []
-            ppl_cons += invariants
-        t["cfr_polyhedron"] = C_Polyhedron(Constraint_System(ppl_cons), dim=len(all_vars))
+            cfr_poly.add_constraints(invariants)
+        t["cfr_polyhedron"] = cfr_poly
     c_props, usr_props, au_props = {}, {}, {}
     if do_cone_props:
         c_props = cone_properties(cfg, only_nodes)
@@ -36,74 +34,51 @@ def compute_cfrprops(cfg, only_nodes=None, props=[], invariant_type="none"):
     if do_user_props:
         usr_props = user_properties(cfg, only_nodes)
     if do_head_props or do_head_var_props or do_call_props or do_call_var_props:
-        au_props = project_props(cfg, only_nodes, do_head_props=do_head_props, do_head_var_props=do_head_var_props, do_call_props=do_call_props, do_call_var_props=do_call_var_props)
+        au_props = project_props(cfg, only_nodes,
+                                 do_head_props=do_head_props,
+                                 do_head_var_props=do_head_var_props,
+                                 do_call_props=do_call_props,
+                                 do_call_var_props=do_call_var_props)
         cfg.set_nodes_info(au_props, "cfr_project_properties")
     # SAVE PROPS
-    final_props = merge_dicts([au_props,c_props,usr_props])
+    final_props = merge_dicts([au_props, c_props, usr_props])
     return final_props
 
 
 def project_props(cfg, only_nodes, do_head_props, do_head_var_props, do_call_props, do_call_var_props):
     global_vars = cfg.get_info("global_vars")
-    N = int(len(global_vars)/2)
-    idx_vs = [i for i in range(N)]
-    idx_pvs = [i for i in range(N,2*N)]
-    polys_props = {n:[] for n in cfg.get_nodes() if only_nodes is None or n in only_nodes}
+    N = int(len(global_vars) / 2)
+    vs = global_vars[:N]
+    pvs = global_vars[N:2 * N]
+    polys_props = {n: [] for n in cfg.get_nodes() if only_nodes is None or n in only_nodes}
     for t in cfg.get_edges():
         poly = t["cfr_polyhedron"]
         if only_nodes is None or t["source"] in only_nodes:
             if do_head_props:
-                polys_props[t["source"]].append(poly.project(idx_vs))
+                polys_props[t["source"]].append(poly.project(vs))
             if do_head_var_props:
-                for i in idx_vs:
-                    polys_props[t["source"]].append(poly.project(i))
+                for v in vs:
+                    polys_props[t["source"]].append(poly.project(v))
         if only_nodes is None or t["target"] in only_nodes:
+            if do_call_props or do_call_var_props:
+                vars_ = pvs + vs + t["local_vars"]
+                p = C_Polyhedron(constraints=poly.get_constraints(vars_), variables=vars_)
             if do_call_props:
-                polys_props[t["target"]].append(poly.project(idx_pvs))
+                polys_props[t["target"]].append(p.project(vs))
             if do_call_var_props:
-                for i in idx_pvs:
-                    polys_props[t["target"]].append(poly.project(i))
+                for v in vs:
+                    polys_props[t["target"]].append(p.project(v))
     au_props = {}
-    from ppl import Variable
-    from genericparser.expressions import ExprTerm
     for node in polys_props:
         polys = polys_props[node]
-        # Remove duplicated
-        i, j = 0, 1
-        while i < len(polys):
-            j = i + 1
-            while j < len(polys):
-                if i == j:
-                    j += 1
-                    continue
-                if polys[i] == polys[j]:
-                    del polys[j]
-                    j -= 1
-                j+=1
-            i+=1
         props = []
         for p in polys:
             cs = p.get_constraints()
-            own_cs = []
-            for c in cs:
-                exp = ExprTerm(c.inhomogeneous_term())
-                is_constant = True
-                for i in range(c.space_dimension()):
-                    coef = c.coefficient(Variable(i))
-                    if coef != 0:
-                        is_constant = False
-                        exp += ExprTerm(coef)*ExprTerm(global_vars[i])
-                if not is_constant:
-                    if not c.is_equality():
-                        own_cs.append(exp >= ExprTerm(0))
-                    elif do_call_var_props or do_head_var_props or True:
-                        own_cs.append(exp == ExprTerm(0))
-            if len(own_cs) > 0:
-                #props += lattice(own_cs)
-                props.append(own_cs)
+            props += [c for c in cs if c not in props]
         if len(props) > 0:
-            au_props[node] = props
+            au_props[node] = [[p] for p in props]
     return au_props
+
 
 def user_properties(cfg, nodes_to_refine):
     node_data = cfg.get_nodes(data=True)
@@ -118,12 +93,12 @@ def user_properties(cfg, nodes_to_refine):
                 usr_props[node] = n_props
     return usr_props
 
+
 def cone_properties(cfg, nodes_to_refine):
-    from ppl import Constraint_System
     from ppl import Variable
-    from genericparser.expressions import ExprTerm
-    from lpi import C_Polyhedron
+    from lpi import Expression
     from termination import farkas
+    from termination.algorithm.utils import get_free_name
     global_vars = cfg.get_info("global_vars")
     Nvars = int(len(global_vars) / 2)
     cone_props = {}
@@ -134,47 +109,44 @@ def cone_properties(cfg, nodes_to_refine):
             continue
         for t in cfg.get_edges(source=node):
             t_props = []
-            from copy import deepcopy
-            tr_poly = deepcopy(t["cfr_polyhedron"])
-            # PROJECT TO VARS
-            from ppl import Variables_Set
-            var_set = Variables_Set()
-            # (prime and local variables)
-            for i in range(Nvars, tr_poly.get_dimension()):  # Vars from n to m-1 inclusive
-                var_set.insert(Variable(i))
-            tr_poly.remove_dimensions(var_set)
+            tr_poly = t["cfr_polyhedron"].copy()
+            tr_poly = tr_poly.project(global_vars[:Nvars])
             if tr_poly.is_empty():
                 continue
             Mcons = len(tr_poly.get_constraints())
-            f = [Variable(i) for i in range(1, Nvars + 1)]
-            countVar = Nvars + 1
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            farkas_constraints = farkas.farkas(tr_poly, lambdas, f, Variable(0))
-            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
+            taken_vars = []
+            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+            taken_vars += f
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            farkas_constraints = farkas.farkas(tr_poly, [Expression(v) for v in lambdas],
+                                               [Expression(v) for v in f[1:]], Expression(f[0]))
+            farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
             generators = farkas_poly.get_generators()
             OM.printif(3, generators)
             for g in generators:
                 if not g.is_ray():
                     continue
-                exp = ExprTerm(g.coefficient(Variable(0)))
+                exp = Expression(g.coefficient(Variable(0)))
                 is_constant = True
                 for i in range(Nvars):
-                    coef = g.coefficient(Variable(i+1))
+                    coef = g.coefficient(Variable(i + 1))
                     if coef != 0:
                         is_constant = False
-                    exp += ExprTerm(coef)*ExprTerm(global_vars[i])
+                    exp += Expression(coef) * Expression(global_vars[i])
                 if not is_constant:
-                    t_props.append(exp >= ExprTerm(0))
+                    t_props.append(exp >= Expression(0))
 
             if len(t_props) > 0:
-                #n_props += lattice(t_props)
+                # n_props += lattice(t_props)
                 n_props += [[p] for p in t_props]
-                #n_props.append(t_props)
+                # n_props.append(t_props)
 
         if len(n_props) > 0:
             OM.printif(2, "Node \"{}\", Adding props {}".format(node, str(n_props)))
             cone_props[node] = n_props
     return cone_props
+
 
 def lattice(l):
     s = [[]]
@@ -186,6 +158,7 @@ def lattice(l):
             ns.append(nps)
         s = s + ns
     return s[1:]
+
 
 def merge_dicts(list_dict):
     res = {}

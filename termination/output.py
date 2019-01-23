@@ -1,12 +1,6 @@
-from __future__ import print_function
-
 import eiol
 import os
-from ppl import Constraint
-from ppl import Constraint_System
-from ppl import Generator
-from ppl import Linear_Expression
-from ppl import Variable
+from lpi import Constraint
 import time
 import xml.etree.ElementTree as ET
 
@@ -58,7 +52,7 @@ class Output:
         self.printif(0, *kwargs, consoleid=consoleid, consoletitle=consoletitle)
 
     def printseparator(self, verbosity=0, consoleid="default", consoletitle="Default"):
-        self.printif(verbosity, "#"*80, consoleid=consoleid, consoletitle=consoletitle)
+        self.printif(verbosity, "#" * 80, consoleid=consoleid, consoletitle=consoletitle)
 
     def printif(self, verbosity, *kwargs, format="text", consoleid="default", consoletitle="Default"):
         if self.verbosity < verbosity:
@@ -82,7 +76,7 @@ class Output:
             msg += self.tostr(m)
         if self.ei:
             if format == "html":
-                txt = "<div>"+msg+"</div>"
+                txt = "<div>" + msg + "</div>"
             else:
                 txt = msg
             c = eiol.content(format=format, text=txt)
@@ -144,22 +138,12 @@ class Output:
         return
 
     def tostr(self, cs, vars_name=None):
+        from ppl import Generator
+        from ppl import Variable
         vs_name = None if vars_name is None else vars_name[:]
         response = ""
-        if isinstance(cs, Constraint_System):
-            constraints = [c for c in cs]
-            response += "{"
-            first = True
-            for c in constraints:
-                if not first:
-                    response += ","
-                first = False
-                response += "\n  " + self.tostr(c, vs_name)
-            if not first:
-                response += "\n"
-            response += "}"
-            return response
-        elif isinstance(cs, (Constraint, Linear_Expression, Generator)):
+
+        if isinstance(cs, (Generator)):
             ispoint = isinstance(cs, Generator)
             p = 0
             if ispoint:
@@ -183,7 +167,7 @@ class Output:
                     if coeff < 0:
                         response += " - "
                         coeff = -coeff
-                    if coeff != divisor and (coeff != 1 or divisor != 1): 
+                    if coeff != divisor and (coeff != 1 or divisor != 1):
                         response += str(coeff)
                         if divisor != 1:
                             response += "/" + str(divisor)
