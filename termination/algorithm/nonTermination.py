@@ -1,16 +1,12 @@
-from z3 import Solver
-from z3 import Real
-from z3 import substitute
-from z3 import sat
+from lpi import C_Polyhedron
 from .manager import Algorithm
 from .manager import Manager
 from termination.output import Output_Manager as OM
-from .utils import get_z3_transition_polyhedron
-from .utils import generate_prime_names
-from .utils import generate_names
+from .utils import get_free_name
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
+
 
 class FixPoint(Algorithm):
     ID = "fixpoint"
@@ -25,40 +21,40 @@ class FixPoint(Algorithm):
         return True
 
     def run(self, cfg, close_walk=[]):
-        OM.printif(1, "--> with "+self.NAME)
+        """
+        looking for a fixpoint in a close walk:
+        [n0] -(x, xP)-> [n1] -(xP, x2)-> [n2] -(x2, x)-> [n0]
+        """
+        from lpi import smtlib
+        OM.printif(1, "--> with " + self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
-        pvs = global_vars[Nvars:]
 
-        s = Solver()
-        X = vs[:]
-        XP = pvs[:]
-        used_names = pvs
-        if len(close_walk) == 1:
-            for c in get_z3_transition_polyhedron(close_walk[0], vs + pvs):
-                s.add(c)
-        for tr in close_walk[:-1]:
-            used_names += tr["local_vars"]
-            XP = generate_prime_names(vs,used_names)
-            used_names += XP
-            rename = [(Real(c), Real(d)) for c, d in zip(vs, X)]
-            rename += [(Real(c), Real(d)) for c, d in zip(pvs, XP)]
-            for c in get_z3_transition_polyhedron(tr, vs + pvs):
-                s.add(substitute(c, rename))
-            X = XP
-        rename = [(Real(c), Real(d)) for c, d in zip(vs, XP)]
-        rename += [(Real(c), Real(d)) for c, d in zip(pvs, vs)]
-        for c in get_z3_transition_polyhedron(close_walk[-1], vs + pvs):
-            s.add(substitute(c, rename))
+        all_vars = [] + vs
+        all_vars += get_free_name(vs, name="X", num=Nvars * (len(close_walk) - 1))
+        all_vars += vs
+        taken_vars = all_vars
+        tr_idx = 0
+        cons = []
+        for tr in close_walk:
+            local_vars = get_free_name(taken_vars, name="Local", num=len(tr["local_vars"]))
+            tr_vars = all_vars[tr_idx:tr_idx + 2 * Nvars] + local_vars
+            taken_vars += local_vars
+            cs = [c for c in tr["polyhedron"].get_constraints(tr_vars)
+                  if c.is_linear()]
+            cons += cs
+            tr_idx += Nvars
+        poly = C_Polyhedron(constraints=cons, variables=taken_vars)
+        point, __ = smtlib.get_point(poly)
         response = Result()
-        if s.check() == sat:
-            m = s.model()
+        if point is not None:
+            fixpointvalue = {v: point.get_coeff(v) for v in vs}
             OM.printif(1, "FixPoint Found")
             response.set_response(status=TerminationResult.NONTERMINATE,
                                   info="FixPoint Found",
                                   close_walk=close_walk,
-                                  model=m)
+                                  fixpoint=fixpointvalue)
         else:
             OM.printif(1, "No fixpoint found.")
             response.set_response(status=TerminationResult.UNKNOWN,
@@ -94,40 +90,36 @@ class MonotonicRecurrentSets(Algorithm):
         return None
 
     def run(self, cfg, close_walk=[]):
-        from ppl import Constraint_System
+        """
+        looking for a Monotonic Recurrent Set in a close walk:
+        [n0] -(x0, x1)-> [n1] -(x1, x2)-> [n2] -(x2, xP)-> [n0]
+        """
+        from lpi import Expression
         from ppl import Variable
-        from ppl import Linear_Expression
-        from lpi import C_Polyhedron
-        from copy import deepcopy
-        OM.printif(1, "--> with "+self.NAME)
+        OM.printif(1, "--> with " + self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
         pvs = global_vars[Nvars:]
-        lvs = []
-        trvs_idx = []
-        countVar = 0
 
+        cicle_constraints = []
+        all_vars = [] + vs
+        all_vars += get_free_name(global_vars, name="X", num=Nvars * (len(close_walk) - 1))
+        all_vars += pvs
+        taken_vars = all_vars
+        tr_idx = 0
+        cons = []
         for tr in close_walk:
-            lvs += tr["local_vars"]
-            trvs_idx.append(countVar)
-            countVar += Nvars
-        
-        farkas_constraints = []
-        countVar -= Nvars
-        dummy_var = generate_names(["local"+str(i) for i in range(countVar)],global_vars+lvs)
-        countVar = 0
-        ppl_cons = []
-        for tr in close_walk:
-            all_vars = dummy_var[:countVar]+vs+pvs+dummy_var[countVar:]+lvs
-            ppl_cons += [c.transform(all_vars, lib="ppl")
-                         for c in tr["constraints"] if c.is_linear()]
-            countVar += Nvars
+            local_vars = get_free_name(taken_vars, name="Local", num=len(tr["local_vars"]))
+            tr_vars = all_vars[tr_idx:tr_idx + 2 * Nvars] + local_vars
+            taken_vars += local_vars
+            cons += [c for c in tr["polyhedron"].get_constraints(tr_vars)
+                     if c.is_linear()]
+            tr_idx += Nvars
         tr_poly_p = None
-        tr_poly = C_Polyhedron(Constraint_System(ppl_cons), dim=len(all_vars))
+        tr_poly = C_Polyhedron(constraints=cons, variables=taken_vars)
         response = Result()
         depth = 0
-        pvs_idx = len(close_walk)*(Nvars)
         while depth < self.get_prop("max_depth"):
             if tr_poly.is_empty():
                 OM.printif(1, "Empty polyhedron.")
@@ -136,26 +128,31 @@ class MonotonicRecurrentSets(Algorithm):
                                       info="No Recurrent Set Found. Empty Polyhedron.")
                 return response
             Mcons = len(tr_poly.get_constraints())
-            f = [Variable(i) for i in range(0, Nvars + 1)]
-            countVar = Nvars + 1
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            farkas_constraints = farkas.f(tr_poly, lambdas, f, 0)
-            farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-            generators = farkas_poly.get_generators()
-            tr_poly_p = deepcopy(tr_poly)
+            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
+            taken_vars += f
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            cicle_constraints = farkas.f(tr_poly,
+                                         [Expression(v) for v in lambdas],
+                                         [Expression(v) for v in f], 0)
+            cicle_poly = C_Polyhedron(constraints=cicle_constraints, variables=f + lambdas)
+            generators = cicle_poly.get_generators()
+            tr_poly_p = tr_poly.copy()
             generators = [g for g in generators if g.is_ray()]
-            OM.printif(2, generators)
+            OM.printif(3, generators)
+
             for g in generators:
-                exp = Linear_Expression(0)
+                exp = Expression(0)
                 for i in range(Nvars):
-                    coef = g.coefficient(Variable(i+1))
-                    exp += coef*Variable(i) - coef*Variable(pvs_idx+i)
+                    coef = int(g.coefficient(Variable(i + 1)))
+                    if coef != 0:
+                        exp += coef * Expression(vs[i]) - coef * Expression(pvs[i])
 
                 tr_poly_p.add_constraint(exp <= 0)
 
             if tr_poly_p.contains(tr_poly):
                 OM.printif(1, "Recurrent Set Found:\n" +
-                           OM.tostr(tr_poly.get_constraints(), vs+dummy_var+pvs+lvs))
+                           str(tr_poly))
                 response.set_response(status=TerminationResult.NONTERMINATE,
                                       info="Recurrent Set Found:",
                                       close_walk=close_walk,

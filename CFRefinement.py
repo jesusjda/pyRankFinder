@@ -53,9 +53,6 @@ def setArgumentParser():
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-ithre", "--invariants-threshold", required=False,
                            action='store_true', help="Use user thresholds.")
-    argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
-                           default=False, action='store_true',
-                           help="Simplify constraints when CFR")
     argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
                            default=False, action='store_true',
                            help="Use user thresholds for CFR invariants.")

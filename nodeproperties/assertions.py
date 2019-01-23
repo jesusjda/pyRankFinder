@@ -1,38 +1,27 @@
 from termination.output import Output_Manager as OM
-from .abstractStates import state as absState
 
 
 def check_assertions(cfg, abstract_domain="polyhedra", do=True):
-    def state(A, abstract_domain, dim):
-        if abstract_domain == "polyhedra":
-            return A
-        else:
-            st = absState(A, abstract_domain=abstract_domain)
-            return C_Polyhedron(st.get_constraints(), dim=dim)
-        
     if not do or abstract_domain is None or abstract_domain == "none":
         return True
     from lpi import C_Polyhedron
-    from ppl import Constraint_System
     graph_nodes = cfg.get_nodes(data=True)
     global_vars = cfg.get_info("global_vars")
-    Nvars = len(global_vars)/2
-    correct = True
+    Nvars = int(len(global_vars) / 2)
+    vars_ = global_vars[:Nvars]
     for node, node_data in graph_nodes:
         if "asserts" in node_data and node_data["asserts"]:
             OM.printf("- Checking asserts of node {}".format(node))
             try:
-                inv = C_Polyhedron(node_data["invariant_"+abstract_domain].get_constraints(), dim=Nvars)
-            except:
-                inv = C_Polyhedron(dim=Nvars)
+                inv = node_data["invariant_" + abstract_domain]
+            except Exception:
+                inv = C_Polyhedron(variables=vars_)
             node_correct = len(node_data["asserts"]) == 0
             for disjunction in node_data["asserts"]:
                 for conjunction in disjunction:
-                    st = state(C_Polyhedron(Constraint_System([c.transform(global_vars, lib="ppl")
-                                                               for c in conjunction
-                                                               if c.is_linear()]), dim=Nvars),
-                               abstract_domain=abstract_domain, dim=Nvars)
-                    if st.contains(inv):
+                    st = C_Polyhedron([c for c in conjunction if c.is_linear()],
+                                      variables=vars_)
+                    if st >= inv:
                         node_correct = True
                         break
                 if node_correct:

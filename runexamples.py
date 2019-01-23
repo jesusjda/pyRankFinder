@@ -9,6 +9,7 @@ from termination.result import TerminationResult
 from pprint import pprint
 import datetime
 
+
 def setArgumentParser():
     desc = "Generator"
     argParser = argparse.ArgumentParser(description=desc)
@@ -53,7 +54,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
             raise Exception() from e
 
     def returnHandler(exitcode, r_dict, usage=None, usage_old=[0, 0, 0]):
-        ret ={}
+        ret = {}
         try:
             if exitcode == -24:
                 ret["status"] = TerminationResult.TIMELIMIT
@@ -90,7 +91,7 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
     softM, hardM = resource.getrlimit(resource.RLIMIT_DATA)
     softT, hardT = resource.getrlimit(resource.RLIMIT_CPU)
     usage_old = resource.getrusage(resource.RUSAGE_CHILDREN)
-    arguments=(task,r_dict)+args
+    arguments = (task, r_dict) + args
     p = Process(target=worker, args=arguments, kwargs=kwargs)
     try:
         from resource import prlimit
@@ -108,38 +109,40 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         resource.setrlimit(resource.RLIMIT_DATA, (softM, hardM))
         return returnHandler(p.exitcode, r_dict, usage, usage_old)
 
+
 def config2Tag(config):
     tag = ""
     tag += str(config["termination"][0])
-    tag += "_sccd:"+str(config["scc_depth"])
-    tag += "_invariant:"+str(config["invariants"])
-    tag += "_dt:"+str(config["different_template"])
-    tag += "_sc:"+str(config["simplify_constraints"])
-    tag += "_CFR-it:"+str(config["cfr_iterations"])
-    tag += "_CFR-inv:"+str(config["cfr_invariants"])
-    tag += "_CFR-st-bf:"+str(config["cfr_strategy_before"])
-    tag += "_CFR-st-scc:"+str(config["cfr_strategy_scc"])
-    tag += "_CFR-st-af:"+str(config["cfr_strategy_after"])
+    tag += "_sccd:" + str(config["scc_depth"])
+    tag += "_invariant:" + str(config["invariants"])
+    tag += "_dt:" + str(config["different_template"])
+    tag += "_CFR-it:" + str(config["cfr_iterations"])
+    tag += "_CFR-inv:" + str(config["cfr_invariants"])
+    tag += "_CFR-st-bf:" + str(config["cfr_strategy_before"])
+    tag += "_CFR-st-scc:" + str(config["cfr_strategy_scc"])
+    tag += "_CFR-st-af:" + str(config["cfr_strategy_after"])
     return tag
 
+
 def file2ID(file, prefix=""):
-    a = file.replace(prefix,"")
+    a = file.replace(prefix, "")
     if a[0] == "/":
         a = a[1:]
-    return a.replace("/","_")
+    return a.replace("/", "_")
+
 
 def get_info(cache, file, prefix):
     name = file2ID(file, prefix)
-    o = os.path.join(cache, name+".json")
-    print("->",os.path.isfile(o),o)
+    o = os.path.join(cache, name + ".json")
+    print("->", os.path.isfile(o), o)
     info = None
     if os.path.isfile(o):
         import json
         with open(o) as f:
             info = json.load(f)
     else:
-        info = {"id":name,"file":file}
-    if not "analysis" in info:
+        info = {"id": name, "file": file}
+    if "analysis" not in info:
         info["analysis"] = []
     for a in info["analysis"]:
         ter = []
@@ -152,16 +155,17 @@ def get_info(cache, file, prefix):
     pprint(info)
     return info
 
+
 def save_info(info, cache, file, prefix):
     name = file2ID(file, prefix)
-    o = os.path.join(cache, name+".json")
+    o = os.path.join(cache, name + ".json")
     print(o)
     if os.path.isfile(o):
         os.remove(o)
     import json
     tojson = info
     if "file" in tojson:
-        tojson["file"] = tojson["file"].replace(prefix,"")
+        tojson["file"] = tojson["file"].replace(prefix, "")
     if "analysis" in tojson:
         for a in tojson["analysis"]:
             ter = []
@@ -181,17 +185,20 @@ def save_info(info, cache, file, prefix):
     with open(o, "w") as f:
         json.dump(tojson, f, indent=4, sort_keys=True)
 
+
 def extractname(filename):
     f = os.path.split(filename)
     b = os.path.split(f[0])
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
+
 def is_error(config, info):
     inf = get_i(config, info)
     if inf is None:
         return True
     return str(inf["status"]) == "Error"
+
 
 def get_i(config, info):
     aas = info["analysis"]
@@ -215,7 +222,7 @@ def get_i(config, info):
             try:
                 if c[k] == config[k]:
                     continue
-            except:
+            except Exception:
                 if k == "invariants":
                     if c["nodeproperties"] == config[k]:
                         continue
@@ -233,32 +240,31 @@ if __name__ == "__main__":
     argParser = setArgumentParser()
     args = argParser.parse_args(sys.argv[1:])
     ar = vars(args)
-    cachedir = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), ar["cache"])
+    cachedir = os.path.join(os.path.dirname(os.path.realpath(__file__)), ar["cache"])
     files = ar["files"]
     sccd = 5
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    cfr_h = [False, True]
-    cfr_h_v = [False, True]
-    cfr_c = [False, True]
-    cfr_c_v = [False, True]
-    cfr_co = [False, True]
-    cfr_ite= [1]
-    lib = ["z3"]
-    inv = ["polyhedra"]
-    cfr_invs = ["polyhedra"]
+    cfr_h = [True]
+    cfr_h_v = [True]
+    cfr_c = [True]
+    cfr_c_v = [True]
+    cfr_co = [False]  # , True]
+    cfr_ite = [1, 2]
+    lib = ["z3", "ppl"]
+    inv = ["polyhedra", "interval", "none"]
+    cfr_invs = ["polyhedra", "interval", "none"]
     # ["scc", "after"] is not allowed
-    cfr_strat = ["none", ["before"], ["scc"], ["after"], ["before", "after"], ["before", "scc"]] 
+    cfr_strat = [["before"], ["scc"], ["after"]]  # , ["before", "after"], ["before", "scc"]]
     cfr_configs = []
-    conf = {"cfr_iterations": 1, "cfr_head_properties":False, "cfr_head_var_properties":False, "cfr_call_properties":False,
-            "cfr_call_var_properties":False, "cfr_user_properties":False, "cfr_cone_properties":False,
-            "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
-            "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":1}
+    conf = {"cfr_iterations": 1, "cfr_head_properties": False, "cfr_head_var_properties": False, "cfr_call_properties": False,
+            "cfr_call_var_properties": False, "cfr_user_properties": False, "cfr_cone_properties": False,
+            "cfr_invariants": "none", "cfr_invariants_threshold": False,
+            "cfr_strategy_before": False, "cfr_strategy_scc": False, "cfr_strategy_after": False, "cfr_max_tries": 1}
     if 0 in cfr_ite or "none" in cfr_strat or (False in cfr_h and False in cfr_c and False in cfr_h_v and False in cfr_c_v and False in cfr_co):
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
-        if it ==0:
+        if it == 0:
             continue
         conf["cfr_iterations"] = it
         for p1 in cfr_h:
@@ -279,7 +285,7 @@ if __name__ == "__main__":
                                 conf["cfr_invariants"] = i
                                 cfr_configs.append(dict(conf))
     rniv = True
-    dt = ["iffail"]
+    dt = ["never", "always"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
@@ -288,26 +294,26 @@ if __name__ == "__main__":
         mout = int(ar["memoryout"])
     else:
         mout = None
-    algs = [] #[[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
-    #algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
+    algs = []
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": True})])
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": False})])
     algs.append([termination.algorithm.lrf.PR()])
     for i in range(1, 3):
         algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
                                                         "version": 1})])
-
     numm = len(files)
     info = {}
     ite = 0
     for f in files:
         ite += 1
-        print("({}/{}) {}".format(ite,numm,f))
+        print("({}/{}) {}".format(ite, numm, f))
         status = False
         info = get_info(cachedir, f, ar["prefix"])
         todel = []
         for a in info["analysis"]:
             todel.append(a)
-        #for a in todel:
-        #    info["analysis"].remove(a)
+        # for a in todel:
+        #     info["analysis"].remove(a)
         for cfr_conf in cfr_configs:
             for i in inv:
                 if status:
@@ -331,7 +337,6 @@ if __name__ == "__main__":
                                 "termination": a,
                                 "invariants": i,
                                 "different_template": d,
-                                "simplify_constraints": True,
                                 "cfr_head_properties": cfr_conf["cfr_head_properties"],
                                 "cfr_head_var_properties": cfr_conf["cfr_head_var_properties"],
                                 "cfr_call_properties": cfr_conf["cfr_call_properties"],
@@ -340,12 +345,11 @@ if __name__ == "__main__":
                                 "cfr_cone_properties": cfr_conf["cfr_cone_properties"],
                                 "cfr_iterations": cfr_conf["cfr_iterations"],
                                 "cfr_invariants": cfr_conf["cfr_invariants"],
-                                "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
-                                "cfr_strategy_before" : cfr_conf["cfr_strategy_before"],
-                                "cfr_strategy_after" : cfr_conf["cfr_strategy_after"],
-                                "cfr_strategy_scc" : cfr_conf["cfr_strategy_scc"],
-                                "cfr_max_tries" : cfr_conf["cfr_max_tries"],
+                                "cfr_strategy_before": cfr_conf["cfr_strategy_before"],
+                                "cfr_strategy_after": cfr_conf["cfr_strategy_after"],
+                                "cfr_strategy_scc": cfr_conf["cfr_strategy_scc"],
+                                "cfr_max_tries": cfr_conf["cfr_max_tries"],
                                 "invariants_threshold": False,
                                 "files": [f],
                                 "lib": l,
@@ -360,34 +364,22 @@ if __name__ == "__main__":
                                 "conditional_termination": False,
                                 "show_with_invariants": False,
                                 "print_graphs": False
-                                #"recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+                                # "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
                             }
                             skip = False
                             if ar["only_errors"]:
                                 skip = True
-                                if is_error(config,info):
+                                if is_error(config, info):
                                     skip = False
                             if skip:
                                 print("skip with : " + config2Tag(config))
                                 continue
                             print("Trying with : " + config2Tag(config))
                             response = sandbox(irankfinder.launch_file, args=(config, f, None),
-                                                time_segs=tout, memory_mb=mout)
+                                               time_segs=tout, memory_mb=mout)
                             response["date"] = datetime.datetime.today()
                             response["config"] = config
                             info["analysis"].append(response)
                             if response["status"].is_terminate():
                                 status = ar["stop_if_terminate"]
         save_info(info, cachedir, f, ar["prefix"])
-
-
-
-
-
-
-
-
-
-
-
-

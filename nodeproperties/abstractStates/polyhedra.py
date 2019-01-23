@@ -1,34 +1,32 @@
 from . import AbstractState
 from lpi import C_Polyhedron
-from ppl import Constraint_System
-from ppl import Linear_Expression
-from ppl import Variable
-from ppl import Variables_Set
+from lpi import Expression
 
 __all__ = ["PolyhedraAbstractState"]
 
-class PolyhedraAbstractState(AbstractState):
 
-    _state = None
+class PolyhedraAbstractState(AbstractState):
 
     def __init__(self, arg1, bottom=False):
         if isinstance(arg1, C_Polyhedron):
-            dim = arg1.get_dimension()
+            vars_ = arg1.get_variables()
             cs = arg1.get_constraints()
-        elif isinstance(arg1, Constraint_System):
-            dim = arg1.space_dimension()
-            cs = arg1
+        elif isinstance(arg1, list):
+            vars_ = arg1
+            cs = []
         else:
-            try:
-                dim = int(arg1)
-                cs = Constraint_System()
-            except ValueError:
-                raise TypeError("First argument must be int or lpi.C_Polyhedron")
-        self._state = C_Polyhedron(cs, dim=dim)
+            raise TypeError("First argument must be list of variables or lpi.C_Polyhedron")
+        self._state = C_Polyhedron(constraints=cs, variables=vars_)
         if bottom:
-            false = Linear_Expression(0) == Linear_Expression(1)
+            false = Expression(0) == Expression(1)
             self._state.add_constraint(false)
         self._state.minimized_constraints()
+
+    def copy(self, copy=True):
+        if copy:
+            return PolyhedraAbstractState(self._state)
+        else:
+            return self
 
     def lub(self, s2, copy=False):
         self._assert_same_type(s2)
@@ -41,7 +39,7 @@ class PolyhedraAbstractState(AbstractState):
         s1 = self.copy(copy)
         s1._state.widening_assign(s2._state)
         return s1
-    
+
     def extrapolation_assign(self, s2, threshold, copy=False):
         self._assert_same_type(s2)
         s1 = self.copy(copy)
@@ -50,35 +48,30 @@ class PolyhedraAbstractState(AbstractState):
 
     def apply_tr(self, tr, copy=False):
         s1 = self.copy(copy)
-        poly_tr = tr["tr_polyhedron"]
+        poly_tr = tr["polyhedron"]
         m = poly_tr.get_dimension()
+        vars_ = poly_tr.get_variables()
         n = s1._state.get_dimension()
-        s1._state.add_dimensions(m - n)
-        s1._state.intersection_assign(poly_tr)
-        var_set = Variables_Set()
-        for i in range(0, n):  # Vars from 0 to n-1 inclusive
-            var_set.insert(Variable(i))
-        # (local variables)
-        for i in range(2 * n, m):  # Vars from 2*n to m-1 inclusive
-            var_set.insert(Variable(i))
-        s1._state.remove_dimensions(var_set)
+        p = s1._state.copy()
+        p.add_dimensions(m - n, vars_[n:])
+        p.add_constraints(poly_tr.get_constraints())
+        p = p.project(vars_[n:2 * n])
+        s1._state = C_Polyhedron(constraints=p.get_constraints(vars_[:n]), variables=vars_[:n])
         return s1
 
     def apply_backward_tr(self, tr, copy=False):
         s1 = self.copy(copy)
-        poly_tr = tr["tr_polyhedron"]
+        poly_tr = tr["polyhedron"]
         m = poly_tr.get_dimension()
         n = s1._state.get_dimension()
-        # move x to x'
-        for i in range(0, n):
-            s1._state.expand_space_dimension(Variable(i), 1)
-            s1._state.unconstraint(Variable(i))
-        s1._state.add_dimensions(m - 2*n)
-        s1._state.intersection_assign(poly_tr)
-        var_set = Variables_Set()
-        for i in range(n, m):  # Vars from n to m-1 inclusive
-            var_set.insert(Variable(i))
-        s1._state.remove_dimensions(var_set)
+        vars_ = poly_tr.get_variables()
+        p = s1._state.copy()
+        p.add_dimensions(m - n, vars_[n:])
+        # swap x and x'
+        vs = vars_[n:2 * n] + vars_[:n] + vars_[2 * n:]
+        p.add_constraints(poly_tr.get_constraints(vs))
+        p = p.project(vars_[n:2 * n])
+        s1._state = C_Polyhedron(constraints=p.get_constraints(vars_[:n]), variables=vars_[:n])
         return s1
 
     def get_constraints(self):
@@ -88,6 +81,5 @@ class PolyhedraAbstractState(AbstractState):
         self._assert_same_type(s2)
         return self._state <= s2._state
 
-    def toString(self, vars_name=None, eq_symb="==", geq_symb=">="):
-        return self._state.toString(vars_name=vars_name, eq_symb=eq_symb, geq_symb=geq_symb)
-
+    def toString(self, eq_symb="==", geq_symb=">="):
+        return self._state.toString(eq_symb=eq_symb, geq_symb=geq_symb)
