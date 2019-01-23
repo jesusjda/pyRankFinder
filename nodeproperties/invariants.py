@@ -76,7 +76,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, c
         OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
         OM.printif(1, "\n".join(["-> " + str(n) + " = " +
-                                 str(invariants[n])
+                                 str(invariants[n].get_constraints())
                                  for n in sorted(invariants)]))
         OM.printseparator(1)
         use_invariants(cfg, abstract_domain)
