@@ -137,11 +137,15 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
 
 def dottoSvg(dotfile, svgfile):
     from subprocess import check_call
-    check_call(['dot', '-Tsvg', dotfile, '-o', svgfile])
-    check_call(['sed', '-i', '-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
+    from subprocess import CalledProcessError
     svgstr = ""
-    with open(svgfile, "r") as f:
-        svgstr += f.read()
+    try:
+        check_call(['dot', '-Tsvg', dotfile, '-o', svgfile])
+        check_call(['sed', '-i', '-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
+        with open(svgfile, "r") as f:
+            svgstr += f.read()
+    except CalledProcessError:
+        pass
     return svgstr
 
 
