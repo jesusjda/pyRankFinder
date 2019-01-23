@@ -31,6 +31,8 @@ def setArgumentParser():
                            help="Prefix of the files path")
     argParser.add_argument("-oe", "--only-errors", required=False, action='store_true',
                            help="Analyse only the results with errors.")
+    argParser.add_argument("-ca", "--check-assertions", required=False, action='store_true',
+                           help="Check Assertions without analyse.")
     argParser.add_argument("-sit", "--stop-if-terminate", required=False, action='store_true',
                            help="Analyse with each configuration until one terminates.")
     return argParser
@@ -42,36 +44,50 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
 
     def worker(task, r_dict, *args, **kwargs):
         try:
-            r_dict["output"] = task(*args, **kwargs)
-            r_dict["status"] = "ok"
+            import io
+            from contextlib import redirect_stdout
+
+            f = io.StringIO()
+            with redirect_stdout(f):
+                r_dict["result"] = task(*args, **kwargs)
+                r_dict["status"] = "ok"
         except MemoryError as e:
-            r_dict["status"] = TerminationResult.MEMORYLIMIT
+            r_dict["result"] = TerminationResult.MEMORYLIMIT
             r_dict["output"] = "ML"
         except Exception as e:
-            r_dict["status"] = TerminationResult.ERROR
+            r_dict["result"] = TerminationResult.ERROR
             r_dict["output"] = "Error " + type(e).__name__
             raise Exception() from e
+        finally:
+            r_dict["output"] = f.getvalue()
 
     def returnHandler(exitcode, r_dict, usage=None, usage_old=[0, 0, 0]):
-        ret ={}
+        ret = {}
         try:
             if exitcode == -24:
                 ret["status"] = TerminationResult.TIMELIMIT
-                ret["output"] = "TL"
+                ret["result"] = "TL"
+                ret["output"] = r_dict["output"]
             elif exitcode < 0:
                 ret["status"] = TerminationResult.ERROR
-                ret["output"] = "ERR"
+                ret["result"] = "ERR"
+                ret["output"] = r_dict["output"]
             elif not("status" in r_dict):
                 ret["status"] = TerminationResult.TIMELIMIT
-            elif r_dict["status"] == "ok":
-                ret["status"] = r_dict["output"].get_status()
                 ret["output"] = r_dict["output"]
+                ret["result"] = r_dict["result"]
+            elif r_dict["status"] == "ok":
+                ret["status"] = r_dict["result"].get_status()
+                ret["output"] = r_dict["output"]
+                ret["result"] = r_dict["result"]
             else:
                 ret["status"] = r_dict["status"]
                 ret["output"] = r_dict["output"]
+                ret["result"] = r_dict["result"]
         except Exception as e:
             ret["status"] = TerminationResult.ERROR
             ret["output"] = "ERROR while processing output " + type(e).__name__
+            ret["result"] = "ERROR while processing output " + type(e).__name__
         finally:
             if usage:
                 ret["cputime"] = usage[0] + usage[1] - usage_old[0] - usage_old[1]
@@ -176,6 +192,7 @@ def save_info(info, cache, file, prefix):
             a["status"] = str(a["status"])
             a["date"] = str(a["date"].isoformat())
             a["output"] = str(a["output"])
+            a["result"] = str(a["result"])
     pprint(tojson)
     print("saving")
     with open(o, "w") as f:
@@ -239,26 +256,26 @@ if __name__ == "__main__":
     sccd = 5
     dotF = ar["dotDestination"]
     verb = ar["verbosity"]
-    cfr_h = [False, True]
-    cfr_h_v = [False, True]
-    cfr_c = [False, True]
-    cfr_c_v = [False, True]
-    cfr_co = [False, True]
-    cfr_ite= [1]
-    lib = ["z3"]
-    inv = ["polyhedra"]
-    cfr_invs = ["polyhedra"]
+    cfr_h = [True]
+    cfr_h_v = [True]
+    cfr_c = [True]
+    cfr_c_v = [True]
+    cfr_co = [False]  # , True]
+    cfr_ite = [1, 2]
+    lib = ["z3", "ppl"]
+    inv = ["polyhedra", "interval", "none"]
+    cfr_invs = ["polyhedra", "interval", "none"]
     # ["scc", "after"] is not allowed
-    cfr_strat = ["none", ["before"], ["scc"], ["after"], ["before", "after"], ["before", "scc"]] 
+    cfr_strat = [["before"], ["scc"], ["after"]]  # , ["before", "after"], ["before", "scc"]]
     cfr_configs = []
     conf = {"cfr_iterations": 1, "cfr_head_properties":False, "cfr_head_var_properties":False, "cfr_call_properties":False,
             "cfr_call_var_properties":False, "cfr_user_properties":False, "cfr_cone_properties":False,
             "cfr_invariants":"none", "cfr_invariants_threshold": False, "cfr_simplify_constraints": True,
-            "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":1}
+            "cfr_strategy_before":False,"cfr_strategy_scc":False,"cfr_strategy_after":False, "cfr_max_tries":2}
     if 0 in cfr_ite or "none" in cfr_strat or (False in cfr_h and False in cfr_c and False in cfr_h_v and False in cfr_c_v and False in cfr_co):
         cfr_configs.append(dict(conf))
     for it in cfr_ite:
-        if it ==0:
+        if it == 0:
             continue
         conf["cfr_iterations"] = it
         for p1 in cfr_h:
@@ -279,7 +296,7 @@ if __name__ == "__main__":
                                 conf["cfr_invariants"] = i
                                 cfr_configs.append(dict(conf))
     rniv = True
-    dt = ["iffail"]
+    dt = ["never", "always"]
     if "timeout" in ar and ar["timeout"]:
         tout = int(ar["timeout"])
     else:
@@ -288,19 +305,19 @@ if __name__ == "__main__":
         mout = int(ar["memoryout"])
     else:
         mout = None
-    algs = [] #[[termination.algorithm.qnlrf.QNLRF({"max_depth": 2, "min_depth": 1,"version": 1})]]
-    #algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal":True})])
+    algs = []
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": True})])
+    algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": False})])
     algs.append([termination.algorithm.lrf.PR()])
     for i in range(1, 3):
         algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
                                                         "version": 1})])
-
     numm = len(files)
     info = {}
     ite = 0
     for f in files:
         ite += 1
-        print("({}/{}) {}".format(ite,numm,f))
+        print("({}/{}) {}".format(ite, numm, f))
         status = False
         info = get_info(cachedir, f, ar["prefix"])
         todel = []
@@ -342,10 +359,10 @@ if __name__ == "__main__":
                                 "cfr_invariants": cfr_conf["cfr_invariants"],
                                 "cfr_simplify_constraints": cfr_conf["cfr_simplify_constraints"],
                                 "cfr_invariants_threshold": cfr_conf["cfr_invariants_threshold"],
-                                "cfr_strategy_before" : cfr_conf["cfr_strategy_before"],
-                                "cfr_strategy_after" : cfr_conf["cfr_strategy_after"],
-                                "cfr_strategy_scc" : cfr_conf["cfr_strategy_scc"],
-                                "cfr_max_tries" : cfr_conf["cfr_max_tries"],
+                                "cfr_strategy_before": cfr_conf["cfr_strategy_before"],
+                                "cfr_strategy_after": cfr_conf["cfr_strategy_after"],
+                                "cfr_strategy_scc": cfr_conf["cfr_strategy_scc"],
+                                "cfr_max_tries": cfr_conf["cfr_max_tries"],
                                 "invariants_threshold": False,
                                 "files": [f],
                                 "lib": l,
@@ -359,35 +376,24 @@ if __name__ == "__main__":
                                 "stop_if_fail": False,
                                 "conditional_termination": False,
                                 "show_with_invariants": False,
-                                "print_graphs": False
-                                #"recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+                                "print_graphs": False,
+                                "check_assertions": ar["check_assertions"]
+                                # "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
                             }
                             skip = False
                             if ar["only_errors"]:
                                 skip = True
-                                if is_error(config,info):
+                                if is_error(config, info):
                                     skip = False
                             if skip:
                                 print("skip with : " + config2Tag(config))
                                 continue
                             print("Trying with : " + config2Tag(config))
                             response = sandbox(irankfinder.launch_file, args=(config, f, None),
-                                                time_segs=tout, memory_mb=mout)
+                                               time_segs=tout, memory_mb=mout)
                             response["date"] = datetime.datetime.today()
                             response["config"] = config
                             info["analysis"].append(response)
                             if response["status"].is_terminate():
                                 status = ar["stop_if_terminate"]
         save_info(info, cachedir, f, ar["prefix"])
-
-
-
-
-
-
-
-
-
-
-
-
