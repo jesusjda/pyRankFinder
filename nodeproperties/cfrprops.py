@@ -80,7 +80,7 @@ def project_props(cfg, only_nodes=None, do_head_props=False, do_head_var_props=F
     return au_props
 
 
-def user_properties(cfg, nodes_to_refine):
+def user_properties(cfg, nodes_to_refine=None):
     node_data = cfg.get_nodes(data=True)
 
     usr_props = {}
@@ -94,7 +94,7 @@ def user_properties(cfg, nodes_to_refine):
     return usr_props
 
 
-def cone_properties(cfg, nodes_to_refine):
+def cone_properties(cfg, nodes_to_refine=None):
     from ppl import Variable
     from lpi import Expression
     from termination import farkas
