@@ -34,6 +34,11 @@ def positive(value):
         raise argparse.ArgumentTypeError("Minimum value is 0")
     return ivalue
 
+def threshold_type(value):
+    from nodeproperties.thresholds import threshold_options
+    if value in threshold_options():
+        return value
+    raise argparse.ArgumentTypeError("{} is not a valid threshold mode.".format(value))
 
 def termination_alg(value):
     if value == "none":
@@ -70,7 +75,7 @@ def setArgumentParser():
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
-    # Program Parameters
+    # Output Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
     argParser.add_argument("-V", "--version", required=False,
@@ -131,9 +136,8 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
                            default="none", help="CFR with Invariants.")
-    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
-                           default=False, action='store_true',
-                           help="Use user thresholds for CFR invariants.")
+    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False, default=[], nargs="+",
+                           type=threshold_type, help="Use user thresholds for CFR invariants.")
     argParser.add_argument("-rec-set", "--recurrent-set", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
@@ -150,8 +154,8 @@ def setArgumentParser():
                            help="Do conditional temination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
-    argParser.add_argument("-inv-thre", "--invariants-threshold", required=False,
-                           action='store_true', help="Use user thresholds.")
+    argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
+                           type=threshold_type, help="Use thresholds.")
     argParser.add_argument("-sif", "--stop-if-fail", required=False,
                            default=False, action='store_true',
                            help="If an SCC fails the analysis will stop.")
@@ -219,7 +223,7 @@ def launch_file(config, f, out):
     if config["user_reachability"]:
         cfg.build_polyhedrons()
         compute_reachability(cfg, abstract_domain=config["reachability"], use=config["user_reachability"], user_props=True,
-                             use_threshold=config["invariants_threshold"])
+                             threshold_modes=config["invariants_threshold"])
 
     # Compute Termination
     termination_result = analyse(config, cfg)
@@ -240,7 +244,6 @@ def remove_no_important_variables(cfg, doit=False):
 
 
 def analyse(config, cfg):
-    OM.printseparator(1)
     r = termination.analyse(config, cfg)
     if r.get_status().is_terminate():
         return r
@@ -287,9 +290,9 @@ def show_result(result, cfg):
     OM.printseparator(1)
 
 
-def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False, user_props=False, init_nodes=[]):
+def compute_reachability(cfg, abstract_domain="polyhedra", use=True, threshold_modes=[], user_props=False, init_nodes=[]):
     cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold, user_props=user_props, init_nodes=init_nodes)
+    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, threshold_modes=threshold_modes, user_props=user_props, init_nodes=init_nodes)
     OM.printseparator(0)
     OM.printf("REACHABILITY ({})".format(abstract_domain))
     OM.printf("\n".join(["-> " + str(n) + " = " +

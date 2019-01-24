@@ -7,17 +7,17 @@ def cfrprops_options():
             "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties"]
 
 
-def compute_cfrprops(cfg, only_nodes=None, props=[], invariant_type="none"):
-    if len(props) == 0:
+def compute_cfrprops(cfg, only_nodes=None, modes=[], invariant_type="none"):
+    if len(modes) == 0:
         return {}
     if only_nodes is not None and len(only_nodes) == 0:
         return {}
-    do_head_props = "cfr_head_properties" in props
-    do_head_var_props = "cfr_head_var_properties" in props
-    do_call_props = "cfr_call_properties" in props
-    do_call_var_props = "cfr_call_var_properties" in props
-    do_user_props = "cfr_user_properties" in props
-    do_cone_props = "cfr_cone_properties" in props
+    do_head_props = "cfr_head_properties" in modes
+    do_head_var_props = "cfr_head_var_properties" in modes
+    do_call_props = "cfr_call_properties" in modes
+    do_call_var_props = "cfr_call_var_properties" in modes
+    do_user_props = "cfr_user_properties" in modes
+    do_cone_props = "cfr_cone_properties" in modes
     for t in cfg.get_edges():
         cfr_poly = t["polyhedron"].copy()
         if invariant_type != "none":
@@ -45,7 +45,7 @@ def compute_cfrprops(cfg, only_nodes=None, props=[], invariant_type="none"):
     return final_props
 
 
-def project_props(cfg, only_nodes, do_head_props, do_head_var_props, do_call_props, do_call_var_props):
+def project_props(cfg, only_nodes=None, do_head_props=False, do_head_var_props=False, do_call_props=False, do_call_var_props=False):
     global_vars = cfg.get_info("global_vars")
     N = int(len(global_vars) / 2)
     vs = global_vars[:N]

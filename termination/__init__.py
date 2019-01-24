@@ -74,7 +74,7 @@ def analyse(config, cfg):
     from .algorithm.utils import compute_way_nodes
     from nodeproperties.assertions import check_assertions
     compute_invariants(cfg, abstract_domain=config["invariants"],
-                       use_threshold=config["invariants_threshold"],
+                       threshold_modes=config["invariants_threshold"],
                        check=config["check_assertions"],
                        add_to_polyhedron=True)
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
@@ -82,7 +82,7 @@ def analyse(config, cfg):
         if cfr_before and cfr_it == 0:
             cfg = control_flow_refinement(cfg, cfr)
             compute_invariants(cfg, abstract_domain=config["invariants"],
-                               use_threshold=config["invariants_threshold"],
+                               threshold_modes=config["invariants_threshold"],
                                check=config["check_assertions"],
                                add_to_polyhedron=True)
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])

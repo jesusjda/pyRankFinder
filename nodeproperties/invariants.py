@@ -1,6 +1,6 @@
 
 __all__ = ["user_invariants", "compute_invariants"]
-from .thresholds import user_thresholds
+from .thresholds import compute_thresholds
 from .assertions import check_assertions
 from .abstractStates import state
 
@@ -23,11 +23,11 @@ def user_invariants(cfg):
     raise NotImplementedError("User invariants is not implemented yet.")
 
 
-def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, check=False, use_threshold=False, add_to_polyhedron=False):
+def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, check=False, threshold_modes=False, add_to_polyhedron=False):
     cfg.build_polyhedrons()
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
-    threshold = user_thresholds(cfg, use_threshold)
+    threshold = compute_thresholds(cfg, modes=threshold_modes)
     nodes = {}
     global_vars = cfg.get_info("global_vars")
     Nvars = int(len(global_vars) / 2)
@@ -62,7 +62,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, c
                     nodes[node]["accesses"] += 1
                     if nodes[node]["accesses"] >= widening_frecuency:
                         OM.printif(4, "WIDENING", node)
-                        if use_threshold:
+                        if len(threshold[node]) > 0:
                             nodes[node]["state"].widening(original_states[node], threshold=threshold[node])
                         else:
                             nodes[node]["state"].widening(original_states[node])
@@ -71,7 +71,6 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, c
                     queue.append(node)
         invariants = {node: C_Polyhedron(nodes[node]["state"].get_constraints(), vars_) for node in sorted(nodes)}
     cfg.set_nodes_info(invariants, "invariant_" + str(abstract_domain))
-    check_assertions(cfg, abstract_domain, do=check)
     if add_to_polyhedron:
         OM.printseparator(1)
         OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
@@ -80,4 +79,5 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, c
                                  for n in sorted(invariants)]))
         OM.printseparator(1)
         use_invariants(cfg, abstract_domain)
+    check_assertions(cfg, abstract_domain, do=check)
     return invariants

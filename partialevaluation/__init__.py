@@ -24,7 +24,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     sufix = ""
     for it in range(0, cfr_ite):
         if inner_invariants:
-            compute_invariants(pe_cfg, abstract_domain=cfr_inv, use_threshold=cfr_inv_thre)
+            compute_invariants(pe_cfg, abstract_domain=cfr_inv, threshold_modes=cfr_inv_thre)
         pe_cfg.remove_unsat_edges()
         showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir,
@@ -111,7 +111,7 @@ def set_props(cfg, tmpdirname, props_methods, nodes_to_refine, invariant_type):
     open(propsfile, 'a').close()
 
     from nodeproperties.cfrprops import compute_cfrprops
-    props = compute_cfrprops(cfg, nodes_to_refine, props=props_methods, invariant_type=invariant_type)
+    props = compute_cfrprops(cfg, nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
     _add_props(propsfile, props, gvars, pvars)
 
     # SAVE PROPS

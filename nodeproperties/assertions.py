@@ -34,4 +34,5 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
         OM.printf("- All the invariants ({}) hold into the asserts!".format(abstract_domain))
     else:
         OM.printf("- There where some invariants ({}) where it fails!".format(abstract_domain))
+    OM.printseparator(0)
     return correct

@@ -30,7 +30,7 @@ class IntervalAbstractState(AbstractState):
     def copy(self, copy=True):
         if copy:
             st = IntervalAbstractState([])
-            st._state = self._state[:]
+            st._state = dict(self._state)
             return st
         else:
             return self
@@ -53,7 +53,7 @@ class IntervalAbstractState(AbstractState):
         s1._state = state
         return s1
 
-    def widening(self, s2, copy=False):
+    def widening_assign(self, s2, copy=False):
         self._assert_same_type(s2)
         s1 = self.copy(copy)
         state = {}
@@ -67,6 +67,17 @@ class IntervalAbstractState(AbstractState):
             c2 = a[-1].sup if a[-1].sup >= b[-1].sup else inf
             state[v] = interval([c1, c2])
         s1._state = state
+        return s1
+
+    def extrapolation_assign(self, s2, threshold, copy=False):
+        self._assert_same_type(s2)
+        s1 = self.copy(copy)
+        v1 = list(s1._state.keys())
+        v2 = list(s2._state.keys())
+        p1 = C_Polyhedron(constraints=s1.get_constraints(), variables=v1)
+        p2 = C_Polyhedron(constraints=s2.get_constraints(), variables=v2)
+        p1.extrapolation_assign(p2, threshold)
+        s1._state = IntervalAbstractState.poly2interval(p1, v1, v1)
         return s1
 
     @classmethod
