@@ -6,22 +6,6 @@ from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 import termination
-import cProfile
-# from termination.profiler import register_as
-
-
-def do_cprofile(func):
-    def profiled_func(*args, **kwargs):
-        profile = cProfile.Profile()
-        try:
-            profile.enable()
-            result = func(*args, **kwargs)
-            profile.disable()
-            return result
-        finally:
-            # profile.print_stats('time', 'name')
-            profile.print_stats('launch_file')
-    return profiled_func
 
 
 _version = "1.1"
@@ -34,11 +18,13 @@ def positive(value):
         raise argparse.ArgumentTypeError("Minimum value is 0")
     return ivalue
 
+
 def threshold_type(value):
     from nodeproperties.thresholds import threshold_options
     if value in threshold_options():
         return value
     raise argparse.ArgumentTypeError("{} is not a valid threshold mode.".format(value))
+
 
 def termination_alg(value):
     if value == "none":
@@ -292,7 +278,8 @@ def show_result(result, cfg):
 
 def compute_reachability(cfg, abstract_domain="polyhedra", use=True, threshold_modes=[], user_props=False, init_nodes=[]):
     cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, threshold_modes=threshold_modes, user_props=user_props, init_nodes=init_nodes)
+    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, threshold_modes=threshold_modes,
+                                                   user_props=user_props, init_nodes=init_nodes)
     OM.printseparator(0)
     OM.printf("REACHABILITY ({})".format(abstract_domain))
     OM.printf("\n".join(["-> " + str(n) + " = " +

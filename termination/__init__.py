@@ -102,7 +102,7 @@ def analyse(config, cfg):
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
             new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
             compute_invariants(cfg, abstract_domain=config["invariants"],
-                               use_threshold=config["invariants_threshold"],
+                               threshold_modes=config["invariants_threshold"],
                                add_to_polyhedron=True)
             OM.printif(3, "Important nodes from the cfr graph.")
             OM.printif(3, str(new_important_nodes))
@@ -116,10 +116,9 @@ def analyse(config, cfg):
         # SCC spliting and analysis
         while (not stop and CFGs):
             current_cfg, sccd, cfr_num = CFGs.pop(0)
-            for t in current_cfg.get_edges():
-                if t["polyhedron"].is_empty():
-                    OM.printif(2, "Transition (" + t["name"] + ") removed because it is empty.")
-                    current_cfg.remove_edge(t["source"], t["target"], t["name"])
+            removed = current_cfg.remove_unsat_edges()
+            if len(removed) > 0:
+                OM.printif(2, "Transition (" + str(removed) + ") were removed because it is empty.")
             if len(current_cfg.get_edges()) == 0:
                 OM.printif(2, "This cfg has not transitions.")
                 OM.printif(2, "|-- nodes: {}".format(cfg.get_nodes()))
@@ -135,10 +134,7 @@ def analyse(config, cfg):
             can_be_nonterminate = len(nt_algs) > 0
             do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
             for scc in CFGs_aux:
-                for t in scc.get_edges():
-                    if t["polyhedron"].is_empty():
-                        scc.remove_edge(t["source"], t["target"], t["name"])
-                        continue
+                current_cfg.remove_unsat_edges()
                 if len(scc.get_edges()) == 0:
                     continue
                 R = False
@@ -199,7 +195,11 @@ def analyse(config, cfg):
 def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
     cw_algs = [a for a in algs if a.use_close_walk()]
     nt_algs = [a for a in algs if not a.use_close_walk()]
-
+    if len(nt_algs) > 0:
+        for a in nt_algs:
+            response = a.run(scc)
+            if response.get_status().is_nonterminate():
+                return response
     if len(cw_algs) > 0:
         for cw in scc.get_close_walks(close_walk_depth):
             OM.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
@@ -207,11 +207,6 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
                 response = a.run(scc, cw)
                 if response.get_status().is_nonterminate():
                     return response
-    if len(nt_algs) > 0:
-        for a in nt_algs:
-            response = a.run(scc)
-            if response.get_status().is_nonterminate():
-                return response
     return False
 
 
