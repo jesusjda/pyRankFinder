@@ -1,14 +1,14 @@
 from .abstractStates import state
-from .thresholds import user_thresholds
+from .thresholds import compute_thresholds
 
 __all__ = ["compute_reachability"]
 
 
-def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3, use_threshold=False, user_props=False, init_nodes=[]):
+def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3, threshold_modes=[], user_props=False, init_nodes=[]):
     from lpi import C_Polyhedron
     graph_nodes = cfg.get_nodes(data=True)
 
-    threshold = user_thresholds(cfg, use_threshold)
+    threshold = compute_thresholds(cfg, modes=threshold_modes)
     nodes = {}
     global_vars = cfg.get_info("global_vars")
     Nvars = int(len(global_vars) / 2)
@@ -46,7 +46,7 @@ def compute_reachability(cfg, abstract_domain="polyhedra", widening_frecuency=3,
                 if not(nodes[node]["state"] <= original_states[node]):
                     nodes[node]["accesses"] += 1
                     if nodes[node]["accesses"] >= widening_frecuency:
-                        if use_threshold:
+                        if len(threshold[node]) > 0:
                             nodes[node]["state"].widening(original_states[node], threshold=threshold[node])
                         else:
                             nodes[node]["state"].widening(original_states[node])

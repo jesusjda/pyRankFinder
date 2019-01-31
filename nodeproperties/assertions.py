@@ -28,7 +28,8 @@ def check_assertions(cfg, abstract_domain="polyhedra", do=True):
             if node_correct:
                 OM.printf("- - Correct!")
             else:
-                OM.printf("- - {} invariant doesn't hold!".format(node))
+                OM.printf("- - invariant: {}\n- - asserts: {}".format(inv.get_constraints(), node_data["asserts"]))
+                OM.printf("- - DOESN'T HOLD!".format(node))
                 correct = False
     if correct:
         OM.printf("- All the invariants ({}) hold into the asserts!".format(abstract_domain))

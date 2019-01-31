@@ -58,7 +58,6 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         except Exception as e:
             r_dict["result"] = TerminationResult.ERROR
             r_dict["output"] = "Error " + type(e).__name__
-            raise Exception() from e
         finally:
             r_dict["output"] = f.getvalue()
 
@@ -67,16 +66,16 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         try:
             if exitcode == -24:
                 ret["status"] = TerminationResult.TIMELIMIT
-                ret["result"] = "TL"
-                ret["output"] = r_dict["output"]
+                ret["result"] = r_dict["result"] if "result" in r_dict else "TL"
+                ret["output"] = r_dict["output"] if "output" in r_dict else "TL"
             elif exitcode < 0:
                 ret["status"] = TerminationResult.ERROR
                 ret["result"] = "ERR"
                 ret["output"] = r_dict["output"]
             elif not("status" in r_dict):
                 ret["status"] = TerminationResult.TIMELIMIT
-                ret["output"] = r_dict["output"]
-                ret["result"] = r_dict["result"]
+                ret["output"] = r_dict["output"] if "output" in r_dict else "TL"
+                ret["result"] = r_dict["result"] if "result" in r_dict else "TL"
             elif r_dict["status"] == "ok":
                 ret["status"] = r_dict["result"].get_status()
                 ret["output"] = r_dict["output"]
@@ -369,7 +368,7 @@ if __name__ == "__main__":
         "output_formats": [],
         "show_with_invariants": False,
         "print_graphs": False
-        # "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+        # "print_scc_prolog": "/tmp/rec/"+nname[2:]+".pl"
     }
     confs = list(gen_confs(config, options, list(options.keys())))
 
