@@ -5,6 +5,7 @@ import sys
 from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
+from termination.algorithm.utils import showgraph
 import termination
 
 
@@ -227,7 +228,6 @@ def launch_file(config, f, out):
     # Show
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    from termination.algorithm.utils import showgraph
     showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"],
               writef=False, output_formats=["fc"])
     return termination_result
@@ -266,10 +266,10 @@ def check_assertions(config, cfg):
     nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
                                       threshold_modes=config["invariants_threshold"],
                                       check=True, add_to_polyhedron=False)
+    showgraph(cfg, config, sufix="", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
     if config["cfr_strategy_before"]:
         OM.printf("Refining graph...")
         from partialevaluation import control_flow_refinement
-        from termination.algorithm.utils import showgraph
         cfg = control_flow_refinement(cfg, config)
         nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
                                           threshold_modes=config["invariants_threshold"],
