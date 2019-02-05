@@ -5,6 +5,9 @@ from .result import Result
 from .result import TerminationResult
 from .algorithm.utils import showgraph
 from nodeproperties import compute_invariants
+from partialevaluation import control_flow_refinement
+from partialevaluation import prepare_scc
+from .algorithm.utils import compute_way_nodes
 
 __all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager", "Output_Manager", "Result", "TerminationResult", "analyse"]
 
@@ -37,12 +40,13 @@ def analyse(config, cfg):
     cfr_after = config["cfr_strategy_after"]
     cfr_before = config["cfr_strategy_before"]
     if cfr_scc or cfr_after or cfr_before:
-        cfr = {"cfr_iterations": config["cfr_iterations"],
-               "cfr_invariants": config["cfr_invariants"],
-               "cfr_invariants_threshold": config["cfr_invariants_threshold"],
-               "cfr_max_tries": config["cfr_max_tries"],
-               "tmpdir": config["tmpdir"]
-               }
+        cfr = {
+            "cfr_iterations": config["cfr_iterations"],
+            "cfr_invariants": config["cfr_invariants"],
+            "cfr_invariants_threshold": config["cfr_invariants_threshold"],
+            "cfr_max_tries": config["cfr_max_tries"],
+            "tmpdir": config["tmpdir"]
+        }
         from nodeproperties.cfrprops import cfrprops_options
         do_it = False
         for op in cfrprops_options():
@@ -69,13 +73,9 @@ def analyse(config, cfg):
     original_cfg = cfg
     # cfr loop
     cfr_it = -1
-    from partialevaluation import control_flow_refinement
-    from partialevaluation import prepare_scc
-    from .algorithm.utils import compute_way_nodes
-    from nodeproperties.assertions import check_assertions
+
     compute_invariants(cfg, abstract_domain=config["invariants"],
                        threshold_modes=config["invariants_threshold"],
-                       check=config["check_assertions"],
                        add_to_polyhedron=True)
     while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
         cfr_it += 1
@@ -83,7 +83,6 @@ def analyse(config, cfg):
             cfg = control_flow_refinement(cfg, cfr)
             compute_invariants(cfg, abstract_domain=config["invariants"],
                                threshold_modes=config["invariants_threshold"],
-                               check=config["check_assertions"],
                                add_to_polyhedron=True)
             showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
             CFGs = [(cfg, max_sccd, 0)]

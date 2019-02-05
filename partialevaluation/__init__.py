@@ -1,4 +1,5 @@
 import os
+import re
 from termination.output import Output_Manager as OM
 from subprocess import PIPE
 from subprocess import Popen
@@ -90,7 +91,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
         for pe_node in pe_cfg.get_nodes():
             if pe_node == init_node:
                 continue
-            orig_node = pe_node[2:-4]
+            orig_node = re.sub("\_\_\_[0-9]+$", "", pe_node[2:])
             if orig_node in original_data:
                 if p in original_data[orig_node]:
                     p_dict[pe_node] = original_data[orig_node][p]

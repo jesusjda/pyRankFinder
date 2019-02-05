@@ -5,6 +5,7 @@ import sys
 from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
+from termination.algorithm.utils import showgraph
 import termination
 
 
@@ -124,7 +125,7 @@ def setArgumentParser():
                            default="none", help="CFR with Invariants.")
     argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False, default=[], nargs="+",
                            type=threshold_type, help="Use user thresholds for CFR invariants.")
-    argParser.add_argument("-rec-set", "--recurrent-set", required=False,
+    argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
@@ -206,17 +207,27 @@ def launch_file(config, f, out):
 
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if config["user_reachability"]:
-        cfg.build_polyhedrons()
-        compute_reachability(cfg, abstract_domain=config["reachability"], use=config["user_reachability"], user_props=True,
-                             threshold_modes=config["invariants_threshold"])
+    # Rechability
+    compute_reachability(cfg, abstract_domain=config["reachability"], do=config["user_reachability"], user_props=True,
+                         threshold_modes=config["invariants_threshold"])
+    # Assertions
+    check_assertions(config, cfg)
 
     # Compute Termination
     termination_result = analyse(config, cfg)
-    show_result(termination_result, cfg)
+    # Post analyses
+    if termination_result.has("unknown_sccs"):
+        unk_sccs = termination_result.get("unknown_sccs")
+        if termination_result.has("graph"):
+            graph = termination_result.get("graph")
+        else:
+            graph = cfg
+        # from here all is experimental. This doesn't produce termination results.
+        conditional_termination(config, graph, unk_sccs)
+        print_scc_prolog(config, unk_sccs)
+    # Show
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    from termination.algorithm.utils import showgraph
     showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"],
               writef=False, output_formats=["fc"])
     return termination_result
@@ -231,37 +242,7 @@ def remove_no_important_variables(cfg, doit=False):
 
 def analyse(config, cfg):
     r = termination.analyse(config, cfg)
-    if r.get_status().is_terminate():
-        return r
-    if r.has("unknown_sccs"):
-        unk_sccs = r.get("unknown_sccs")
-        if r.has("graph"):
-            graph = r.get("graph")
-        else:
-            graph = cfg
-    else:
-        return r
-
-    # from here all is experimental. This doesn't produce termination results.
-    if config["conditional_termination"] and len(unk_sccs) > 0:
-        # analyse reachability for all the nodes where we don't prove termination
-        OM.printseparator(0)
-        OM.printf("Conditional termination (negation of the following conditions) (',' means 'and')")
-        nodes_to_analyse = []
-        for scc in unk_sccs:
-            nodes_to_analyse += scc.get_nodes()
-        if len(nodes_to_analyse) == 0:
-            OM.printf("No nodes to analyse reachability.")
-        else:
-            compute_reachability(graph, use=False, init_nodes=nodes_to_analyse)
-        OM.printseparator(0)
-    elif "recurrent_set" in config and config["recurrent_set"] and len(unk_sccs) > 0:
-        OM.printseparator(0)
-        count = 0
-        for scc in unk_sccs:
-            scc.toEspecialProlog(config["recurrent_set"], count, config["name"])
-            count += 1
-        OM.printseparator(0)
+    show_result(r, cfg)
     return r
 
 
@@ -276,7 +257,62 @@ def show_result(result, cfg):
     OM.printseparator(1)
 
 
-def compute_reachability(cfg, abstract_domain="polyhedra", use=True, threshold_modes=[], user_props=False, init_nodes=[]):
+def check_assertions(config, cfg):
+    if not config["check_assertions"]:
+        return
+    elif config["invariants"] == "none":
+        OM.printf("ERROR: Please select an abstract domain for invariants.")
+        return
+    nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
+                                      threshold_modes=config["invariants_threshold"],
+                                      check=True, add_to_polyhedron=False)
+    showgraph(cfg, config, sufix="", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+    if config["cfr_strategy_before"]:
+        OM.printf("Refining graph...")
+        from partialevaluation import control_flow_refinement
+        cfg = control_flow_refinement(cfg, config)
+        nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
+                                          threshold_modes=config["invariants_threshold"],
+                                          check=True, add_to_polyhedron=False)
+        showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+
+
+def conditional_termination(config, cfg, unk_sccs):
+    if not config["conditional_termination"]:
+        return
+    if len(unk_sccs) == 0:
+        OM.printf("No pending sccs to analyse conditional termination")
+        return
+    # analyse reachability for all the nodes where we don't prove termination
+    OM.printseparator(0)
+    OM.printf("Conditional termination (negation of the following conditions) (',' means 'and')")
+    nodes_to_analyse = []
+    for scc in unk_sccs:
+        nodes_to_analyse += scc.get_nodes()
+    if len(nodes_to_analyse) == 0:
+        OM.printf("No nodes to analyse reachability.")
+    else:
+        compute_reachability(cfg, threshold_modes=config["invariants_thresholds"], init_nodes=nodes_to_analyse)
+    OM.printseparator(0)
+
+
+def print_scc_prolog(config, unk_sccs):
+    if "print_scc_prolog" not in config or not config["print_scc_prolog"]:
+        return
+    if len(unk_sccs) == 0:
+        OM.printf("No pending sccs to print as prolog.")
+        return
+    OM.printseparator(0)
+    count = 0
+    for scc in unk_sccs:
+        scc.toEspecialProlog(config["print_scc_prolog"], count, config["name"])
+        count += 1
+    OM.printseparator(0)
+
+
+def compute_reachability(cfg, abstract_domain="polyhedra", do=True, threshold_modes=[], user_props=False, init_nodes=[]):
+    if not do:
+        return
     cfg.build_polyhedrons()
     node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, threshold_modes=threshold_modes,
                                                    user_props=user_props, init_nodes=init_nodes)
@@ -285,8 +321,7 @@ def compute_reachability(cfg, abstract_domain="polyhedra", use=True, threshold_m
     OM.printf("\n".join(["-> " + str(n) + " = " +
                          str(node_inv[n])
                          for n in sorted(node_inv)]))
-    if use:
-        OM.printseparator(0)
+    OM.printseparator(0)
 
 
 if __name__ == "__main__":

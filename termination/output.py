@@ -52,7 +52,7 @@ class Output:
         self.printif(0, *kwargs, consoleid=consoleid, consoletitle=consoletitle)
 
     def printseparator(self, verbosity=0, consoleid="default", consoletitle="Default"):
-        self.printif(verbosity, "#" * 80, consoleid=consoleid, consoletitle=consoletitle)
+        self.printif(verbosity, "\n" + "#" * 80 + "\n", consoleid=consoleid, consoletitle=consoletitle)
 
     def printif(self, verbosity, *kwargs, format="text", consoleid="default", consoletitle="Default"):
         if self.verbosity < verbosity:

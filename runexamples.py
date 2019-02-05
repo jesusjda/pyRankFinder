@@ -6,7 +6,6 @@ import sys
 import termination.algorithm
 import irankfinder
 from termination.result import TerminationResult
-from pprint import pprint
 import datetime
 
 
@@ -58,7 +57,6 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         except Exception as e:
             r_dict["result"] = TerminationResult.ERROR
             r_dict["output"] = "Error " + type(e).__name__
-            raise Exception() from e
         finally:
             r_dict["output"] = f.getvalue()
 
@@ -67,16 +65,16 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
         try:
             if exitcode == -24:
                 ret["status"] = TerminationResult.TIMELIMIT
-                ret["result"] = "TL"
-                ret["output"] = r_dict["output"]
+                ret["result"] = r_dict["result"] if "result" in r_dict else "TL"
+                ret["output"] = r_dict["output"] if "output" in r_dict else "TL"
             elif exitcode < 0:
                 ret["status"] = TerminationResult.ERROR
                 ret["result"] = "ERR"
                 ret["output"] = r_dict["output"]
             elif not("status" in r_dict):
                 ret["status"] = TerminationResult.TIMELIMIT
-                ret["output"] = r_dict["output"]
-                ret["result"] = r_dict["result"]
+                ret["output"] = r_dict["output"] if "output" in r_dict else "TL"
+                ret["result"] = r_dict["result"] if "result" in r_dict else "TL"
             elif r_dict["status"] == "ok":
                 ret["status"] = r_dict["result"].get_status()
                 ret["output"] = r_dict["output"]
@@ -128,7 +126,8 @@ def sandbox(task, args=(), kwargs={}, time_segs=60, memory_mb=None):
 
 def config2Tag(config):
     tag = ""
-    tag += str(config["termination"][0])
+    tag += str(config["termination"])
+    tag += str(config["nontermination"])
     tag += "_sccd:" + str(config["scc_depth"])
     tag += "_invariant:" + str(config["invariants"])
     tag += "_dt:" + str(config["different_template"])
@@ -211,7 +210,7 @@ def extractname(filename):
 
 
 def is_error(config, info):
-    inf = get_i(config, info)
+    inf = get_i(config, info)[0]
     if inf is None:
         return True
     return str(inf["status"]) == "Error"
@@ -224,7 +223,7 @@ def get_i(config, info):
         c = a["config"]
         good = True
         for k in config:
-            if k == "termination":
+            if k in ["termination", "nontermination"]:
                 for t1, t2 in zip(c[k], config[k]):
                     if t1 == str(t2):
                         continue
@@ -234,15 +233,8 @@ def get_i(config, info):
                 if not good:
                     break
                 continue
-            if k != "invariants" and k not in c:
+            if k not in c or c[k] == config[k]:
                 continue
-            try:
-                if c[k] == config[k]:
-                    continue
-            except Exception:
-                if k == "invariants":
-                    if c["nodeproperties"] == config[k]:
-                        continue
             good = False
             break
         if good:
@@ -250,7 +242,7 @@ def get_i(config, info):
     if len(valids) == 0:
         return None
     valids.sort(key=lambda a: a["date"], reverse=True)
-    return valids[0]
+    return valids
 
 
 def gen_confs(conf, options, keys):
@@ -316,18 +308,24 @@ if __name__ == "__main__":
                                     conf["cfr_invariants_threshold"] = t
                                     cfr_configs.append(dict(conf))
     algs = []
-    # algs.append([])
-    # algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": True})])
-    # algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": False})])
-    algs.append([termination.algorithm.lrf.PR()])
-    for i in range(1, 0):
-        algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
-                                                        "version": 1})])
     ntalgs = []
-    ntalgs.append([])
-    # ntalgs.append([termination.algorithm.ntML.ML()])
-    # ntalgs.append([termination.algorithm.nonTermination.FixPoint()])
-    # ntalgs.append([termination.algorithm.nonTermination.MonotonicRecurrentSets()])
+
+    if not ar["check_assertions"]:
+        algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": True})])
+        algs.append([termination.algorithm.qlrf.QLRF_ADFG({"nonoptimal": False})])
+        algs.append([termination.algorithm.lrf.PR()])
+        for i in range(1, 3):
+            algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
+                                                            "version": 1})])
+
+        ntalgs.append([termination.algorithm.ntML.ML()])
+        ntalgs.append([termination.algorithm.nonTermination.FixPoint()])
+        ntalgs.append([termination.algorithm.nonTermination.MonotonicRecurrentSets()])
+
+    if len(algs) == 0:
+        algs.append([])
+    if len(ntalgs) == 0:
+        ntalgs.append([])
 
     options = {
         "lib": ["z3"],
@@ -359,7 +357,7 @@ if __name__ == "__main__":
         # "files": [f],
         "tmpdir": None,
         # "name": extractname(f),
-        "check_assertions": True,
+        "check_assertions": ar["check_assertions"],
         "stop_if_fail": False,
         "remove_no_important_variables": True,
         "conditional_termination": False,
@@ -369,7 +367,7 @@ if __name__ == "__main__":
         "output_formats": [],
         "show_with_invariants": False,
         "print_graphs": False
-        # "recurrent_set": "/tmp/rec/"+nname[2:]+".pl"
+        # "print_scc_prolog": "/tmp/rec/"+nname[2:]+".pl"
     }
     confs = list(gen_confs(config, options, list(options.keys())))
 

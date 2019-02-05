@@ -17,7 +17,6 @@ def compute_thresholds(cfg, modes=[]):
     if "all_in" in modes:
         th = [t for n in thresholds for t in thresholds[n]]
         thresholds = {n: th for n in thresholds}
-    print(thresholds)
     return thresholds
 
 
