@@ -25,7 +25,7 @@ class FixPoint(Algorithm):
         looking for a fixpoint in a close walk:
         [n0] -(x, xP)-> [n1] -(xP, x2)-> [n2] -(x2, x)-> [n0]
         """
-        from lpi import smtlib
+        from lpi import Solver
         OM.printif(1, "--> with " + self.NAME)
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
@@ -45,11 +45,12 @@ class FixPoint(Algorithm):
                   if c.is_linear()]
             cons += cs
             tr_idx += Nvars
-        poly = C_Polyhedron(constraints=cons, variables=taken_vars)
-        point, __ = smtlib.get_point(poly)
+        s = Solver()
+        s.add(cons)
+        point, __ = s.get_point(taken_vars)
         response = Result()
         if point is not None:
-            fixpointvalue = {v: point.get_coeff(v) for v in vs}
+            fixpointvalue = {v: point[v] for v in vs}
             OM.printif(1, "FixPoint Found")
             response.set_response(status=TerminationResult.NONTERMINATE,
                                   info="FixPoint Found",

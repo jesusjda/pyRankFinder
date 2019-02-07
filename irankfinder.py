@@ -263,6 +263,7 @@ def check_assertions(config, cfg):
     elif config["invariants"] == "none":
         OM.printf("ERROR: Please select an abstract domain for invariants.")
         return
+    OM.printf("Computing and checking invariants...")
     nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
                                       threshold_modes=config["invariants_threshold"],
                                       check=True, add_to_polyhedron=False)
@@ -271,6 +272,7 @@ def check_assertions(config, cfg):
         OM.printf("Refining graph...")
         from partialevaluation import control_flow_refinement
         cfg = control_flow_refinement(cfg, config)
+        OM.printf("Computing and checking invariants...")
         nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
                                           threshold_modes=config["invariants_threshold"],
                                           check=True, add_to_polyhedron=False)

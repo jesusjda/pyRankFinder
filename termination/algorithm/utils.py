@@ -4,9 +4,9 @@ def get_rf(coeff_variables, variables, point):
     the result point has as coord(0) the indep term
     """
     from lpi import Expression
-    exp = Expression(point[0].get_coeff(coeff_variables[0].get_variables()))
+    exp = Expression(point[0][coeff_variables[0].get_variables()[0]])
     for i in range(1, len(coeff_variables)):
-        ci = point[0].get_coeff(coeff_variables[i].get_variables())
+        ci = point[0][coeff_variables[i].get_variables()[0]]
         exp += ci * Expression(variables[i - 1])
     return exp
 

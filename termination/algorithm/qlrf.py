@@ -83,8 +83,10 @@ class QLRF_ADFG(Algorithm):
 
         if self.props["nonoptimal"]:
             farkas_constraints += [exp >= 1]
-            farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
-            point = farkas_poly.get_point()
+            from lpi import Solver
+            s = Solver()
+            s.add(farkas_constraints)
+            point = s.get_point(taken_vars)
             if point[0] is None:
                 response.set_response(status=TerminationResult.UNKNOWN,
                                       info="No point found for non-optimal adfg.")
@@ -97,8 +99,12 @@ class QLRF_ADFG(Algorithm):
                                       info="Unbound polyhedron")
                 return response
             point = result["generator"]
-
-        if point[0].degree() == 0 and point[0].get_coeff() == 0:
+        iszero = True
+        for k in point[0]:
+            if point[0][k] != 0:
+                iszero = False
+                break
+        if iszero:
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="F === 0 " + str(point))
             return response
@@ -107,7 +113,7 @@ class QLRF_ADFG(Algorithm):
             rfs[node] = get_rf(rfvars[node], gvs, point)
 
             no_ranked = [tr for tr in transitions
-                         if(point[0].get_coeff(deltas[tr["name"]]) == 0)]
+                         if(point[0][deltas[tr["name"]]] == 0)]
 
         response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
@@ -188,6 +194,8 @@ class QLRF_BG(Algorithm):
         else:
             f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
             taken_vars += f
+            freeConsts.append(f[0])
+            rf_vars += f[1:]
             exp_f = [Expression(v) for v in f]
             for n in cfg.get_nodes():
                 rfvars[n] = exp_f
