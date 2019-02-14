@@ -1,4 +1,3 @@
-from lpi import C_Polyhedron
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
@@ -65,13 +64,11 @@ class PR(Algorithm):
                                              [[Expression(v) for v in lambdas],
                                               [Expression(v) for v in lambdas2]],
                                              rf_s, rf_t)
-        farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
-
-        if use_z3:
-            from lpi import smtlib
-            point = smtlib.get_point(farkas_poly)
-        else:
-            point = farkas_poly.get_point()
+        # 2 - Get Point
+        from lpi import Solver
+        s = Solver()
+        s.add(farkas_constraints)
+        point = s.get_point(taken_vars)
 
         if point[0] is None:
             response.set_response(status=TerminationResult.UNKNOWN,

@@ -128,14 +128,12 @@ class QNLRF(Algorithm):
                                                             [Expression(l) for l in lambdas],
                                                             rf_s2[di], rf_t2[di], 0)
 
-                # 2 - Polyhedron
-                farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
+                # 2 - Get Point
+                from lpi import Solver
+                s = Solver()
+                s.add(farkas_constraints)
+                point = s.get_point(taken_vars)
 
-                if use_z3:
-                    from lpi import smtlib
-                    point = smtlib.get_point(farkas_poly)
-                else:
-                    point = farkas_poly.get_point()
                 if point[0] is None:
                     continue  # not found, try with next d
 
