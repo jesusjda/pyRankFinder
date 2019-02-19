@@ -11,6 +11,13 @@ _version = "1.2"
 _name = "CFRefinement"
 
 
+def threshold_type(value):
+    from nodeproperties.thresholds import threshold_options
+    if value in threshold_options():
+        return value
+    raise argparse.ArgumentTypeError("{} is not a valid threshold mode.".format(value))
+
+
 def setArgumentParser():
     desc = _name + ": Control Flow refinement."
     absdomains = ["none", "interval", "polyhedra"]
@@ -44,18 +51,18 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
                            help="")
+    argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+                           help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=1)
 
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
                            default="none", help="CFR with Invariants.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
-    argParser.add_argument("-ithre", "--invariants-threshold", required=False,
-                           action='store_true', help="Use user thresholds.")
-    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
-                           default=False, action='store_true',
-                           help="Use user thresholds for CFR invariants.")
+    argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
+                           type=threshold_type, help="Use thresholds.")
+
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")

@@ -94,8 +94,6 @@ def setArgumentParser():
     argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
-    argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
-                           default="z3", help="select lib")
     argParser.add_argument("-ca", "--check-assertions", action='store_true',
                            help="Check Invariants with the assertions defined")
     # CFR Parameters
@@ -121,10 +119,10 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
                            help="")
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
-                           default="none", help="CFR with Invariants.")
-    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False, default=[], nargs="+",
-                           type=threshold_type, help="Use user thresholds for CFR invariants.")
+    argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
+                           help="CFR with Invariants.")
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
@@ -138,7 +136,7 @@ def setArgumentParser():
                            help=termination_alg_desc())
     argParser.add_argument("-ct", "--conditional-termination", required=False,
                            default=False, action='store_true',
-                           help="Do conditional temination over the nodes where we cannot proof termination.")
+                           help="Do conditional termination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
@@ -198,7 +196,7 @@ def launch_file(config, f, out):
                 f.write(e)
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
-            raise Exception() from e
+            # raise Exception() from e
         return
     config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
