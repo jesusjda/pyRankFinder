@@ -12,7 +12,8 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     from nodeproperties import compute_invariants
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
-    # cfr_it_st = config["cfr_iteration_strategy"]
+    OM.printseparator(1)
+    OM.printif(1, "CFR({})".format(cfr_ite))
     from nodeproperties.cfrprops import cfrprops_options
     props_methods = []
     for op in cfrprops_options():
@@ -20,6 +21,13 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
             props_methods.append(op)
 
     tmpdir = config["tmpdir"]
+
+    def summary(token, g):
+        nodes = len(g.get_nodes())
+        trs = len(g.get_edges())
+        sccs = len([1 for scc in g.get_strongly_connected_component() if len(scc.get_edges()) > 0])
+        return "{}:\n- nodes: {}\n- trs: {}\n- sccs: {} (with 1 or more trs)".format(token, nodes, trs, sccs)
+    OM.lazy_printif(1, lambda: summary("Original", cfg))
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
@@ -30,8 +38,10 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
         pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir,
                                  invariant_type=cfr_inv, nodes_to_refine=only_nodes)
         sufix = "_cfr" + str(it + 1)
+        OM.lazy_printif(1, lambda: summary("CFG({})".format(it + 1), pe_cfg))
         if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
             sufix += "_with_inv_" + str(cfr_inv)
+    OM.printseparator(1)
     showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
     return pe_cfg
 

@@ -48,7 +48,6 @@ def analyse(config, cfg):
         for op in cfrprops_options():
             cfr[op] = config[op] if op in config else False
             do_it = do_it or cfr[op]
-        print(cfr)
         if not do_it:
             cfr["cfr_iterations"] = 0
             cfr["cfr_max_tries"] = 0
