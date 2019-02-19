@@ -3,7 +3,7 @@ class Algorithm(object):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False):
         raise NotImplementedError()
 
     @classmethod
