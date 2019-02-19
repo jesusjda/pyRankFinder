@@ -23,7 +23,7 @@ def user_invariants(cfg):
     raise NotImplementedError("User invariants is not implemented yet.")
 
 
-def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, check=False, threshold_modes=False, add_to_polyhedron=False):
+def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, threshold_modes=False, check=False, add_to_polyhedron=False):
     cfg.build_polyhedrons()
     graph_nodes = cfg.get_nodes()
     init_node = cfg.get_info("init_node")
@@ -73,10 +73,9 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, c
     cfg.set_nodes_info(invariants, "invariant_" + str(abstract_domain))
     if check or add_to_polyhedron:
         OM.printseparator(1)
-        OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
-        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
-                                 str(invariants[n].get_constraints())
-                                 for n in sorted(invariants)]))
+        OM.lazy_printif(1, lambda: "INVARIANTS ({})".format(abstract_domain),
+                        lambda: "\n".join(["-> " + str(n) + " = " + str(invariants[n].get_constraints())
+                                           for n in sorted(invariants)]))
         OM.printseparator(1)
     if add_to_polyhedron:
         use_invariants(cfg, abstract_domain)
