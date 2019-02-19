@@ -73,7 +73,7 @@ def compute_invariants(cfg, abstract_domain="polyhedra", widening_frecuency=3, t
     cfg.set_nodes_info(invariants, "invariant_" + str(abstract_domain))
     if check or add_to_polyhedron:
         OM.printseparator(1)
-        OM.lazy_printif(1, lambda: "INVARIANTS ({})".format(abstract_domain),
+        OM.lazy_printif(1, lambda: "INVARIANTS ({})\n".format(abstract_domain),
                         lambda: "\n".join(["-> " + str(n) + " = " + str(invariants[n].get_constraints())
                                            for n in sorted(invariants)]))
         OM.printseparator(1)
