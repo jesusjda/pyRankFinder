@@ -7,12 +7,11 @@ from subprocess import Popen
 __all__ = ['partialevaluate', 'control_flow_refinement', 'prepare_scc']
 
 
-def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=None, inner_invariants=True):
+def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=None):
     from termination.algorithm.utils import showgraph
     from nodeproperties import compute_invariants
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
-    cfr_inv_thre = config["cfr_invariants_threshold"]
     # cfr_it_st = config["cfr_iteration_strategy"]
     from nodeproperties.cfrprops import cfrprops_options
     props_methods = []
@@ -24,8 +23,8 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
-        if inner_invariants:
-            compute_invariants(pe_cfg, abstract_domain=cfr_inv, threshold_modes=cfr_inv_thre)
+        if cfr_inv:
+            compute_invariants(pe_cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"])
         pe_cfg.remove_unsat_edges()
         showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir,
@@ -62,7 +61,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
             OM.printif(3, fin.read())
 
     # PROPERTIES
-    propsfile = set_props(cfg, tmpdirname, props_methods=props_methods,
+    propsfile = set_props(cfg, tmpdirname, props_methods=props_methods, pl_file=tmpplfile, entry=initNode,
                           nodes_to_refine=nodes_to_refine, invariant_type=invariant_type)
 
     # PE
@@ -80,7 +79,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
     rmded = pe_cfg.remove_unsat_edges()
     if len(rmded) > 0:
         OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
-    OM.printif(4, fcpeprogram.decode("utf-8"))
+    OM.lazy_printif(4, lambda: fcpeprogram.decode("utf-8"))
     properties_to_copy = ["asserts", "cfr_properties"]
     original_data = {n: v for n, v in cfg.get_nodes(data=True)}
     for p in properties_to_copy:
@@ -101,7 +100,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
     return pe_cfg
 
 
-def set_props(cfg, tmpdirname, props_methods, nodes_to_refine, invariant_type):
+def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, invariant_type):
     gvars = cfg.get_info("global_vars")
     gvars = gvars[:int(len(gvars) / 2)]
     pvars = _plVars(len(gvars))
@@ -110,13 +109,16 @@ def set_props(cfg, tmpdirname, props_methods, nodes_to_refine, invariant_type):
     if not os.path.exists(basedir):
         os.makedirs(basedir)
     open(propsfile, 'a').close()
-
     from nodeproperties.cfrprops import compute_cfrprops
     props = compute_cfrprops(cfg, nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
+    if "cfr_john_properties" in props_methods:
+        jh_p = johns_props1(cfg, pl_file, entry, propsfile)
     _add_props(propsfile, props, gvars, pvars)
 
     # SAVE PROPS
     OM.printif(2, "CFR with props: {}".format(props))
+    if "cfr_john_properties" in props_methods:
+        OM.printif(2, "CFR john props: {}".format(jh_p))
     return propsfile
 
 
@@ -154,24 +156,28 @@ def prepare_scc(cfg, scc, invariant_type):
         init_node = "scc_init_" + str(it)
     from lpi import C_Polyhedron
     inv_name = "invariant_" + str(invariant_type)
-    gvs = cfg.get_info("global_vars")
-    Nvars = len(gvs)
-    t_names = [e["name"] for e in scc_edges]
+    # t_names = [e["name"] for e in scc_edges]
+    all_names = [e["name"] for e in cfg.get_edges()]
     it = 0
     from copy import deepcopy
-    for entry in nodes:
-        for t in cfg.get_edges(target=entry):
+    entries = scc.get_info("entry_nodes")
+    for entry in entries:
+        num_t = 0
+        for t in []:  # cfg.get_edges(target=entry):
             name = t["name"]
-            if name in t_names:
+            old_src = t["source"]
+            if old_src in nodes:
                 continue
+            num_t += 1
             src = t["source"]
             new_t = deepcopy(t)
             new_t["source"] = init_node
             name = "tr" + str(it)
             it += 1
-            while name in t_names:
+            while name in all_names:
                 name = "tr" + str(it)
                 it += 1
+            all_names += [name]
             new_t["name"] = name
             tr_poly = t["polyhedron"].copy()
             try:
@@ -181,10 +187,41 @@ def prepare_scc(cfg, scc, invariant_type):
             tr_poly.add_constraints(inv)
             new_t["polyhedron"] = tr_poly
             scc_copy.add_edge(**new_t)
-    scc_copy.set_nodes_info({init_node: C_Polyhedron(variables=gvs[:int(Nvars / 2)])}, inv_name)
+        if num_t == 0:
+            name = "tr" + str(it)
+            it += 1
+            while name in all_names:
+                name = "tr" + str(it)
+                it += 1
+            all_names += [name]
+            new_t = {"source": init_node, "target": entry, "name": name}
+            try:
+                inv = cfg.nodes[entry][inv_name].get_constraints()
+            except Exception:
+                inv = []
+            new_t["local_vars"] = []
+            new_t["constraints"] = inv
+            new_t["polyhedron"] = C_Polyhedron(inv, variables=cfg.get_info("global_vars"))
+            scc_copy.add_edge(**new_t)
     scc_copy.set_info("init_node", init_node)
     scc_copy.set_info("entry_nodes", [init_node])
     return scc_copy
+
+
+def johns_props1(cfg, tmpplfile, entry, propsfile):
+    gvars = cfg.get_info("global_vars")
+    gvars = gvars[:int(len(gvars) / 2)]
+    pvars = _plVars(len(gvars))
+    propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'props1.sh')
+    pipe = Popen([propspath, tmpplfile, '-e', entry, '-r', propsfile],
+                 stdout=PIPE, stderr=PIPE)
+    ___, err = pipe.communicate()
+    if err is not None and err:
+            raise Exception(err)
+    propsfile = propsfile.decode("utf-8")
+    au_props = _parse_props(propsfile, gvars, pvars)
+    cfg.set_nodes_info(au_props, "cfr_auto_properties")
+    return au_props
 
 
 #####################################
