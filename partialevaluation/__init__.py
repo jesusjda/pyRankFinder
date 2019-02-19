@@ -213,12 +213,11 @@ def johns_props1(cfg, tmpplfile, entry, propsfile):
     gvars = gvars[:int(len(gvars) / 2)]
     pvars = _plVars(len(gvars))
     propspath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'props1.sh')
-    pipe = Popen([propspath, tmpplfile, '-e', entry, '-r', propsfile],
+    pipe = Popen([propspath, tmpplfile, entry, '-r', propsfile],
                  stdout=PIPE, stderr=PIPE)
     ___, err = pipe.communicate()
     if err is not None and err:
             raise Exception(err)
-    propsfile = propsfile.decode("utf-8")
     au_props = _parse_props(propsfile, gvars, pvars)
     cfg.set_nodes_info(au_props, "cfr_auto_properties")
     return au_props
@@ -257,9 +256,13 @@ def _parse_props(filename, gvars, pvars):
         node_name = line[2:endname]
         begincons = line.find("[", endname)
         endcons = line.find("].", begincons)
+        if begincons + 1 == endcons:
+            continue
         strs_cons = line[begincons + 1:endcons].split(",")
         from genericparser import parse_constraint
-        cons = [parse_constraint(_translate(c, correspondance)) for c in strs_cons]
+        cons = [parse_constraint(_translate(c, correspondance)) for c in strs_cons if c != ""]
+        if len(cons) == 0:
+            continue
         if node_name not in props:
             props[node_name] = []
         props[node_name].append(cons)
