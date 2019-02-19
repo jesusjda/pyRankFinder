@@ -24,11 +24,6 @@ def analyse(config, cfg):
     if len(t_algs) == 0 and len(nt_algs) == 0:
         fast_answer_result.set_response(info="No algorithms selected", graph=cfg)
         return fast_answer_result
-    if "lib" in config:
-        for alg in t_algs:
-            alg.set_prop("lib", config["lib"])
-        for alg in nt_algs:
-            alg.set_prop("lib", config["lib"])
     if config["different_template"] == "always":
         dt_modes = [True]
     elif config["different_template"] == "iffail":
@@ -43,7 +38,8 @@ def analyse(config, cfg):
         cfr = {
             "cfr_iterations": config["cfr_iterations"],
             "cfr_invariants": config["cfr_invariants"],
-            "cfr_invariants_threshold": config["cfr_invariants_threshold"],
+            "invariants": config["invariants"],
+            "invariants_threshold": config["invariants_threshold"],
             "cfr_max_tries": config["cfr_max_tries"],
             "tmpdir": config["tmpdir"]
         }
@@ -52,6 +48,7 @@ def analyse(config, cfg):
         for op in cfrprops_options():
             cfr[op] = config[op] if op in config else False
             do_it = do_it or cfr[op]
+        print(cfr)
         if not do_it:
             cfr["cfr_iterations"] = 0
             cfr["cfr_max_tries"] = 0
@@ -71,48 +68,23 @@ def analyse(config, cfg):
     nonterminating_sccs = []
     stop_all = False
     original_cfg = cfg
-    # cfr loop
-    cfr_it = -1
 
     compute_invariants(cfg, abstract_domain=config["invariants"],
                        threshold_modes=config["invariants_threshold"],
                        add_to_polyhedron=True)
-    while (not stop_all and cfr_it < cfr["cfr_max_tries"]):
+    if cfr_before:
+        cfg = control_flow_refinement(cfg, cfr)
+        compute_invariants(cfg, abstract_domain=config["invariants"],
+                           threshold_modes=config["invariants_threshold"],
+                           add_to_polyhedron=True)
+        showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+    # cfr loop
+    cfr_it = -1
+    CFGs = [(cfg, max_sccd, 0)]
+    while (not stop_all):
         cfr_it += 1
-        if cfr_before and cfr_it == 0:
-            cfg = control_flow_refinement(cfg, cfr)
-            compute_invariants(cfg, abstract_domain=config["invariants"],
-                               threshold_modes=config["invariants_threshold"],
-                               add_to_polyhedron=True)
-            showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
-            CFGs = [(cfg, max_sccd, 0)]
-        elif cfr_after and cfr_it != 0:
-            if len(maybe_sccs) == 0:
-                stop_all = True
-                continue
-            important_nodes = [n for scc in maybe_sccs for n in scc.get_nodes()]
-            maybe_sccs = []
-            OM.printif(2, "Nodes to refine")
-            OM.printif(2, str(important_nodes))
-            way_nodes = compute_way_nodes(cfg, important_nodes)
-            OM.printif(3, "Nodes on the way")
-            OM.printif(3, str(way_nodes))
-            cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
-            cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
-            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
-            compute_invariants(cfg, abstract_domain=config["invariants"],
-                               threshold_modes=config["invariants_threshold"],
-                               add_to_polyhedron=True)
-            OM.printif(3, "Important nodes from the cfr graph.")
-            OM.printif(3, str(new_important_nodes))
-            cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in new_important_nodes])
-            showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
-                      writef=False, output_formats=["fc", "svg"])
-            CFGs = [(scc, max_sccd, 0) for scc in cfg.get_scc() if len(scc.get_edges()) > 0]
-        else:
-            CFGs = [(cfg, max_sccd, 0)]
         stop = False
-        # SCC spliting and analysis
+        # SCC splitting and analysis
         while (not stop and CFGs):
             current_cfg, sccd, cfr_num = CFGs.pop(0)
             removed = current_cfg.remove_unsat_edges()
@@ -124,7 +96,7 @@ def analyse(config, cfg):
                 continue
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0:
-                cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, "polyhedra"), cfr, inner_invariants=False)
+                cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, "polyhedra"), cfr)
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1
             CFGs_aux.sort()
@@ -171,7 +143,28 @@ def analyse(config, cfg):
                         CFGs = [(cfg.edge_data_subgraph(pending_trs),
                                  sccd, cfr_num)] + CFGs
                     continue
-        if len(maybe_sccs) == 0 or not cfr_after:
+        # Cfr after
+        if len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
+            important_nodes = [n for scc in maybe_sccs for n in scc.get_nodes()]
+            maybe_sccs = []
+            OM.printif(2, "Nodes to refine")
+            OM.printif(2, str(important_nodes))
+            way_nodes = compute_way_nodes(cfg, important_nodes)
+            OM.printif(3, "Nodes on the way")
+            OM.printif(3, str(way_nodes))
+            cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
+            cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
+            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
+            compute_invariants(cfg, abstract_domain=config["invariants"],
+                               threshold_modes=config["invariants_threshold"],
+                               add_to_polyhedron=True)
+            OM.printif(3, "Important nodes from the cfr graph.")
+            OM.printif(3, str(new_important_nodes))
+            cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in new_important_nodes])
+            showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
+                      writef=False, output_formats=["fc", "svg"])
+            CFGs = [(scc, max_sccd, 0) for scc in cfg.get_scc() if len(scc.get_edges()) > 0]
+        else:
             stop_all = True
 
     status = TerminationResult.UNKNOWN
@@ -235,7 +228,7 @@ def analyse_scc_termination(algs, cfg, dt_modes=[False]):
             OM.printif(1, R.get("info"))
         if R.get_status().is_terminate():
             OM.printif(2, "--> Found with dt={}.\n".format(dt))
-            OM.printif(1, R.toStrRankingFunctions(cfg.get_info("global_vars")))
+            OM.lazy_printif(1, lambda: R.toStrRankingFunctions(cfg.get_info("global_vars")))
             return R
     return False
 
