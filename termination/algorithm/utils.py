@@ -11,15 +11,6 @@ def get_rf(coeff_variables, variables, point):
     return exp
 
 
-def get_use_z3(algorithm, use_z3=None):
-    if use_z3 is None:
-        if "lib" in algorithm:
-            return algorithm["lib"] == "z3"
-        return False
-    else:
-        return use_z3
-
-
 def generate_names(vs, others, init_sufix=""):
     names = []
     variables = vs + others
