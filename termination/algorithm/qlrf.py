@@ -6,7 +6,6 @@ from termination.result import TerminationResult
 from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
-from .utils import get_use_z3
 from .utils import get_free_name
 
 
@@ -18,12 +17,11 @@ class QLRF_ADFG(Algorithm):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False):
         response = Result()
         transitions = cfg.get_edges()
         gvs = cfg.get_info("global_vars")
         Nvars = int(len(gvs) / 2)
-        use_z3 = get_use_z3(self.props, use_z3)
         # farkas Variables
         rfvars = {}
         # farkas constraints
@@ -156,13 +154,11 @@ class QLRF_BG(Algorithm):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False):
         response = Result()
         transitions = cfg.get_edges()
         gvs = cfg.get_info("global_vars")
         Nvars = int(len(gvs) / 2)
-        use_z3 = get_use_z3(self.props, use_z3)
-
         # farkas Variables
         rfvars = {}
         # farkas constraints

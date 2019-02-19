@@ -6,7 +6,6 @@ from termination.result import TerminationResult
 from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
-from .utils import get_use_z3
 from .utils import get_free_name
 
 
@@ -25,12 +24,11 @@ class QNLRF(Algorithm):
             desc += ": " + str(cls.DESC)
         return desc
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False):
         response = Result()
         all_transitions = cfg.get_edges()
         gvs = cfg.get_info("global_vars")
         Nvars = int(len(gvs) / 2)
-        use_z3 = get_use_z3(self.props, use_z3)
         max_d = self.props["max_depth"] + 1
         min_d = self.props["min_depth"]
         version = self.props["version"]
