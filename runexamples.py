@@ -272,15 +272,13 @@ if __name__ == "__main__":
     cfr_c_v = [True]
     cfr_co = [False]  # , True]
     cfr_ite = [0, 1, 2]
-
-    cfr_invs = ["polyhedra"]
-    cfr_thre = [["none"], ["project_head"], ["project_head", "all_in"]]
+    cfr_invs = [False, True]
     # ["scc", "after"] is not allowed
     cfr_strat = ["none", ["before"]]   # , ["scc"], ["after"]]  # , ["before", "after"], ["before", "scc"]]
     cfr_configs = []
     conf = {"cfr_iterations": 1, "cfr_head_properties": False, "cfr_head_var_properties": False, "cfr_call_properties": False,
             "cfr_call_var_properties": False, "cfr_user_properties": False, "cfr_cone_properties": False,
-            "cfr_invariants": "none", "cfr_invariants_threshold": ["none"],
+            "cfr_invariants": False,
             "cfr_strategy_before": False, "cfr_strategy_scc": False, "cfr_strategy_after": False, "cfr_max_tries": 1}
     if 0 in cfr_ite or "none" in cfr_strat or (False in cfr_h and False in cfr_c and False in cfr_h_v and False in cfr_c_v and False in cfr_co):
         cfr_configs.append(dict(conf))
@@ -304,9 +302,7 @@ if __name__ == "__main__":
                             conf["cfr_strategy_after"] = "after" in strat
                             for i in cfr_invs:
                                 conf["cfr_invariants"] = i
-                                for t in cfr_thre:
-                                    conf["cfr_invariants_threshold"] = t
-                                    cfr_configs.append(dict(conf))
+                                cfr_configs.append(dict(conf))
     algs = []
     ntalgs = []
 
@@ -318,7 +314,7 @@ if __name__ == "__main__":
             algs.append([termination.algorithm.qnlrf.QNLRF({"max_depth": i, "min_depth": i,
                                                             "version": 1})])
 
-        ntalgs.append([termination.algorithm.ntML.ML()])
+        # ntalgs.append([termination.algorithm.ntML.ML()])
         ntalgs.append([termination.algorithm.nonTermination.FixPoint()])
         ntalgs.append([termination.algorithm.nonTermination.MonotonicRecurrentSets()])
 
@@ -328,7 +324,6 @@ if __name__ == "__main__":
         ntalgs.append([])
 
     options = {
-        "lib": ["z3"],
         "scc_depth": [5],
         "different_template": ["never"],
         "invariants": ["polyhedra"],
