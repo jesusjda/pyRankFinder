@@ -4,7 +4,8 @@ from lpi import C_Polyhedron
 
 def cfrprops_options():
     return ["cfr_user_properties", "cfr_cone_properties", "cfr_head_properties",
-            "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties"]
+            "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties",
+            "cfr_john_properties"]
 
 
 def compute_cfrprops(cfg, only_nodes=None, modes=[], invariant_type="none"):
