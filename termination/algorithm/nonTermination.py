@@ -139,8 +139,8 @@ class MonotonicRecurrentSets(Algorithm):
             cicle_poly = C_Polyhedron(constraints=cicle_constraints, variables=f + lambdas)
             generators = cicle_poly.get_generators()
             tr_poly_p = tr_poly.copy()
-            generators = [g for g in generators if g.is_ray()]
-            OM.printif(3, generators)
+            generators = [g for g in generators if not g.is_point()]
+            OM.printif(3, "Generators of farkas polyhedron", generators)
 
             for g in generators:
                 exp = Expression(0)
@@ -148,8 +148,10 @@ class MonotonicRecurrentSets(Algorithm):
                     coef = int(g.coefficient(Variable(i + 1)))
                     if coef != 0:
                         exp += coef * Expression(vs[i]) - coef * Expression(pvs[i])
-
-                tr_poly_p.add_constraint(exp <= 0)
+                if g.is_ray():
+                    tr_poly_p.add_constraint(exp <= 0)
+                elif g.is_line():
+                    tr_poly_p.add_constraint(exp == 0)
 
             if tr_poly_p.contains(tr_poly):
                 OM.printif(1, "Recurrent Set Found:\n" +
