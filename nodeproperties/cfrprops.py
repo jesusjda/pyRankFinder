@@ -75,9 +75,10 @@ def project_props(cfg, only_nodes=None, do_head_props=False, do_head_var_props=F
         props = []
         for p in polys:
             cs = p.get_constraints()
-            props += [c for c in cs if c not in props]
+            if len(cs) > 0:
+                props.append(cs)
         if len(props) > 0:
-            au_props[node] = [[p] for p in props]
+            au_props[node] = props
     return au_props
 
 
