@@ -140,8 +140,8 @@ def cone_properties(cfg, nodes_to_refine=None):
 
             if len(t_props) > 0:
                 # n_props += lattice(t_props)
-                n_props += [[p] for p in t_props]
-                # n_props.append(t_props)
+                # n_props += [[p] for p in t_props]
+                n_props.append(t_props)
 
         if len(n_props) > 0:
             OM.printif(2, "Node \"{}\", Adding props {}".format(node, str(n_props)))
