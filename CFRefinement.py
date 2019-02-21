@@ -93,7 +93,8 @@ def launch_file(config, f):
         if config["invariants"] != "none":
             config["show_with_invariants"] = True
             compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                               use_threshold=config["invariants_threshold"])
+                               threshold_modes=config["invariants_threshold"],
+                               add_to_polyhedron=True)
             if config["cfr_iterations"] > 0:
                 sufix = "_cfr" + str(config["cfr_iterations"])
             sufix += "_with_inv" + str(config["invariants"])

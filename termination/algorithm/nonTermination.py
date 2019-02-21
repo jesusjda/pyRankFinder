@@ -103,7 +103,6 @@ class MonotonicRecurrentSets(Algorithm):
         vs = global_vars[:Nvars]
         pvs = global_vars[Nvars:]
 
-        cicle_constraints = []
         all_vars = [] + vs
         all_vars += get_free_name(global_vars, name="X", num=Nvars * (len(close_walk) - 1))
         all_vars += pvs
@@ -133,11 +132,11 @@ class MonotonicRecurrentSets(Algorithm):
             taken_vars += f
             lambdas = get_free_name(taken_vars, name="l", num=Mcons)
             taken_vars += lambdas
-            cicle_constraints = farkas.f(tr_poly,
-                                         [Expression(v) for v in lambdas],
-                                         [Expression(v) for v in f], 0)
-            cicle_poly = C_Polyhedron(constraints=cicle_constraints, variables=f + lambdas)
-            generators = cicle_poly.get_generators()
+            cyclic_constraints = farkas.f(tr_poly,
+                                          [Expression(v) for v in lambdas],
+                                          [Expression(v) for v in f], 0)
+            cyclic_poly = C_Polyhedron(constraints=cyclic_constraints, variables=f + lambdas)
+            generators = cyclic_poly.get_generators()
             tr_poly_p = tr_poly.copy()
             generators = [g for g in generators if not g.is_point()]
             OM.printif(3, "Generators of farkas polyhedron", generators)

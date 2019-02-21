@@ -65,7 +65,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
         init_node = cfg.get_info("entry_nodes")[0]
     else:
         init_node = cfg.get_info("init_node")
-    initNode = "n_{}{}".format(init_node, vs)
+    initNode = "n_{}{}".format(saveName(init_node), vs)
     if OM.verbosity > 2:
         with open(tmpplfile, 'r') as fin:
             OM.printif(3, fin.read())
@@ -142,6 +142,10 @@ def _plVars(N):
     return plvars
 
 
+def saveName(word):
+    return re.sub('[\'\?\!\^.]', '_P', word)
+
+
 def _add_props(filename, props, gvars, pvars):
     vars_str = ",".join(pvars)
     renamedvars = lambda v: pvars[gvars.index(v)]
@@ -150,7 +154,7 @@ def _add_props(filename, props, gvars, pvars):
             for cons in props[node]:
                 cons_str = ", ".join([c.toString(renamedvars, int, eq_symb="=", leq_symb="=<")
                                       for c in cons])
-                line = "n_{}({}) :- [{}].\n".format(node, vars_str, cons_str)
+                line = "n_{}({}) :- [{}].\n".format(saveName(node), vars_str, cons_str)
                 f.write(line)
         f.write('\n')
 
@@ -282,7 +286,7 @@ def _parse_props(filename, gvars, pvars):
 def remove_nodes_props(filename, nodes):
     from shutil import move
     destfile = filename + ".tmp"
-    ops = tuple([("n_{}(".format(n)) for n in nodes])
+    ops = tuple([("n_{}(".format(saveName(n))) for n in nodes])
     with open(filename, "r") as fin, open(destfile, "w") as fout:
         for line in fin:
             if not line.startswith(ops):
