@@ -5,7 +5,7 @@ from lpi import C_Polyhedron
 def cfrprops_options():
     return ["cfr_user_properties", "cfr_cone_properties", "cfr_head_properties",
             "cfr_call_properties", "cfr_head_var_properties", "cfr_call_var_properties",
-            "cfr_john_properties"]
+            "cfr_john_properties", "cfr_split_properties"]
 
 
 def compute_cfrprops(cfg, only_nodes=None, modes=[], invariant_type="none"):
@@ -19,6 +19,7 @@ def compute_cfrprops(cfg, only_nodes=None, modes=[], invariant_type="none"):
     do_call_var_props = "cfr_call_var_properties" in modes
     do_user_props = "cfr_user_properties" in modes
     do_cone_props = "cfr_cone_properties" in modes
+    split = "cfr_split_properties" in modes
     for t in cfg.get_edges():
         cfr_poly = t["polyhedron"].copy()
         if invariant_type != "none":
@@ -43,6 +44,12 @@ def compute_cfrprops(cfg, only_nodes=None, modes=[], invariant_type="none"):
         cfg.set_nodes_info(au_props, "cfr_project_properties")
     # SAVE PROPS
     final_props = merge_dicts([au_props, c_props, usr_props])
+    if split:
+        for n in final_props:
+            props = []
+            for ps in final_props[n]:
+                props += [[p] for p in ps if [p] not in props]
+            final_props[n] = props
     return final_props
 
 
@@ -140,8 +147,6 @@ def cone_properties(cfg, nodes_to_refine=None):
                     t_props.append(exp >= Expression(0))
 
             if len(t_props) > 0:
-                # n_props += lattice(t_props)
-                # n_props += [[p] for p in t_props]
                 n_props.append(t_props)
 
         if len(n_props) > 0:

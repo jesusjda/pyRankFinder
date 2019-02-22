@@ -121,6 +121,8 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
                            help="")
+    argParser.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
+                           help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
                            help="CFR with Invariants.")
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,

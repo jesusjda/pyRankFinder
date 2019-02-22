@@ -30,32 +30,10 @@ def analyse(config, cfg):
         dt_modes = [False, True]
     else:
         dt_modes = [False]
-    cfr = {"cfr_iterations": 0, "cfr_max_tries": 0}
-    cfr_scc = config["cfr_strategy_scc"]
-    cfr_after = config["cfr_strategy_after"]
-    cfr_before = config["cfr_strategy_before"]
-    if cfr_scc or cfr_after or cfr_before:
-        cfr = {
-            "cfr_iterations": config["cfr_iterations"],
-            "cfr_invariants": config["cfr_invariants"],
-            "invariants": config["invariants"],
-            "invariants_threshold": config["invariants_threshold"],
-            "cfr_max_tries": config["cfr_max_tries"],
-            "tmpdir": config["tmpdir"]
-        }
-        from nodeproperties.cfrprops import cfrprops_options
-        do_it = False
-        for op in cfrprops_options():
-            cfr[op] = config[op] if op in config else False
-            do_it = do_it or cfr[op]
-        if not do_it:
-            cfr["cfr_iterations"] = 0
-            cfr["cfr_max_tries"] = 0
-            cfr_scc = False
-            cfr_after = False
-            cfr_before = False
+    cfr, cfr_before, cfr_scc, cfr_after = prepare_cfr_config(config)
     max_sccd = config["scc_depth"]
     fast_answer = config["stop_if_fail"]
+    cfg.build_polyhedrons()
     rmded = cfg.remove_unsat_edges()
     if len(rmded) > 0:
         OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
@@ -95,7 +73,7 @@ def analyse(config, cfg):
                 continue
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0:
-                cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, "polyhedra"), cfr)
+                cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, config["invariants"]), cfr)
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1
             CFGs_aux.sort()
@@ -127,6 +105,7 @@ def analyse(config, cfg):
                     can_be_terminate = not fast_answer or (do_cfr_scc and can_be_terminate)
                     if fast_answer and not can_be_terminate and not can_be_nonterminate:
                         stop = True
+                        maybe_sccs.append(scc)
                         break
                     if do_cfr_scc:
                         CFGs = [(scc, max_sccd, cfr_num + 1)] + CFGs
@@ -143,7 +122,7 @@ def analyse(config, cfg):
                                  sccd, cfr_num)] + CFGs
                     continue
         # Cfr after
-        if len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
+        if not stop_all and len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
             important_nodes = [n for scc in maybe_sccs for n in scc.get_nodes()]
             maybe_sccs = []
             OM.printif(2, "Nodes to refine")
@@ -171,7 +150,7 @@ def analyse(config, cfg):
         status = TerminationResult.NONTERMINATE
     elif len(maybe_sccs) > 0:
         status = TerminationResult.UNKNOWN
-    else:
+    elif len(terminating_sccs) > 0:
         status = TerminationResult.TERMINATE
     response = Result()
     response.set_response(status=status,
@@ -182,6 +161,33 @@ def analyse(config, cfg):
                           graph=original_cfg)
     return response
 
+
+def prepare_cfr_config(config):
+    cfr = {"cfr_iterations": 0, "cfr_max_tries": 0}
+    cfr_scc = config["cfr_strategy_scc"]
+    cfr_after = config["cfr_strategy_after"]
+    cfr_before = config["cfr_strategy_before"]
+    if cfr_scc or cfr_after or cfr_before:
+        cfr = {
+            "cfr_iterations": config["cfr_iterations"],
+            "cfr_invariants": config["cfr_invariants"],
+            "invariants": config["invariants"],
+            "invariants_threshold": config["invariants_threshold"],
+            "cfr_max_tries": config["cfr_max_tries"],
+            "tmpdir": config["tmpdir"]
+        }
+        from nodeproperties.cfrprops import cfrprops_options
+        do_it = False
+        for op in cfrprops_options():
+            cfr[op] = config[op] if op in config else False
+            do_it = do_it or cfr[op]
+        if not do_it:
+            cfr["cfr_iterations"] = 0
+            cfr["cfr_max_tries"] = 0
+            cfr_scc = False
+            cfr_after = False
+            cfr_before = False
+    return cfr, cfr_before, cfr_scc, cfr_after
 
 def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
     cw_algs = [a for a in algs if a.use_close_walk()]
@@ -203,10 +209,9 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
 
 def analyse_scc_termination(algs, cfg, dt_modes=[False]):
     trans = cfg.get_edges()
-    nodes = ', '.join(sorted(cfg.get_nodes()))
-    trs = ', '.join(sorted([t["name"] for t in trans]))
     answer = Result()
-    OM.printif(1, "SCC\n+-- Transitions: {}\n+-- Nodes: {}".format(trs, nodes))
+    OM.lazy_printif(1, lambda: "SCC\n+-- Transitions: {}\n+-- Nodes: {}".format(', '.join(sorted([t["name"] for t in trans])),
+                                                                                ', '.join(sorted(cfg.get_nodes()))))
     if not trans:
         answer.set_response(status=TerminationResult.TERMINATE,
                             info="No transitions")
@@ -224,7 +229,7 @@ def analyse_scc_termination(algs, cfg, dt_modes=[False]):
             OM.printif(1, "- Using Different Template")
         R = run_algs(algs, cfg, different_template=dt)
         if R.has("info"):
-            OM.printif(1, R.get("info"))
+            OM.lazy_printif(1, lambda: R.get("info"))
         if R.get_status().is_terminate():
             OM.printif(2, "--> Found with dt={}.\n".format(dt))
             OM.lazy_printif(1, lambda: R.toStrRankingFunctions(cfg.get_info("global_vars")))
@@ -248,7 +253,7 @@ def run_algs(algs, cfg, different_template=False):
         R = alg.run(cfg,
                     different_template=different_template)
 
-        OM.printif(3, R.debug())
+        OM.lazy_printif(3, R.debug)
         if R.get_status().is_terminate():
             if R.get("rfs"):
                 f = True

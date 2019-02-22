@@ -86,6 +86,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
     from genericparser.Parser_fc import Parser_fc
     pfc = Parser_fc()
     pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
+    pe_cfg.build_polyhedrons()
     rmded = pe_cfg.remove_unsat_edges()
     if len(rmded) > 0:
         OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))

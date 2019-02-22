@@ -53,6 +53,8 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
                            help="")
+    argParser.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
+                           help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=1)
 
