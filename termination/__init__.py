@@ -188,6 +188,7 @@ def prepare_cfr_config(config):
             cfr_before = False
     return cfr, cfr_before, cfr_scc, cfr_after
 
+
 def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
     cw_algs = [a for a in algs if a.use_close_walk()]
     nt_algs = [a for a in algs if not a.use_close_walk()]
