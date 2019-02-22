@@ -82,7 +82,6 @@ def analyse(config, cfg):
             can_be_nonterminate = len(nt_algs) > 0
             do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
             for scc in CFGs_aux:
-                current_cfg.remove_unsat_edges()
                 if len(scc.get_edges()) == 0:
                     continue
                 R = False
@@ -146,11 +145,11 @@ def analyse(config, cfg):
             stop_all = True
 
     status = TerminationResult.UNKNOWN
-    if len(nonterminating_sccs) > 0:
+    if can_be_nonterminate and len(nonterminating_sccs) > 0:
         status = TerminationResult.NONTERMINATE
     elif len(maybe_sccs) > 0:
         status = TerminationResult.UNKNOWN
-    elif len(terminating_sccs) > 0:
+    elif can_be_terminate:
         status = TerminationResult.TERMINATE
     response = Result()
     response.set_response(status=status,
