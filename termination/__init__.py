@@ -111,36 +111,46 @@ def analyse(config, cfg):
                     else:
                         maybe_sccs.append(scc)
                 else:
-                    if R.has("rfs"):
-                        merge(rfs, R.get("rfs"))
-                    pending_trs = R.get("pending_trs") if R.has("pending_trs") else []
                     R.set_response(graph=scc)
                     terminating_sccs.append(R)
-                    if pending_trs:
-                        CFGs = [(cfg.edge_data_subgraph(pending_trs),
-                                 sccd, cfr_num)] + CFGs
+                    if R.has("pending_trs"):
+                        pending_trs = R.get("pending_trs")
+                        if pending_trs:
+                            CFGs = [(cfg.edge_data_subgraph(pending_trs),
+                                     sccd, cfr_num)] + CFGs
+                    if R.has("rfs"):
+                        merge(rfs, R.get("rfs"))
                     continue
         # Cfr after
         if not stop_all and len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
             important_nodes = [n for scc in maybe_sccs for n in scc.get_nodes()]
-            maybe_sccs = []
+            OM.printif(2, "CFR after")
             OM.printif(2, "Nodes to refine")
-            OM.printif(2, str(important_nodes))
+            OM.printif(2, important_nodes)
             way_nodes = compute_way_nodes(cfg, important_nodes)
             OM.printif(3, "Nodes on the way")
-            OM.printif(3, str(way_nodes))
+            OM.printif(3, way_nodes)
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
             new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
-            compute_invariants(cfg, abstract_domain=config["invariants"],
-                               threshold_modes=config["invariants_threshold"],
+            compute_invariants(cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"],
                                add_to_polyhedron=True)
             OM.printif(3, "Important nodes from the cfr graph.")
-            OM.printif(3, str(new_important_nodes))
-            cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in new_important_nodes])
+            OM.printif(3, new_important_nodes)
             showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
                       writef=False, output_formats=["fc", "svg"])
-            CFGs = [(scc, max_sccd, 0) for scc in cfg.get_scc() if len(scc.get_edges()) > 0]
+            set_new_important_nodes = set(new_important_nodes)
+            new_sccs = []
+            for scc in cfg.get_scc():
+                if len(scc.get_edges()) == 0:
+                    continue
+                if set(scc.get_nodes()) <= set_new_important_nodes:
+                    new_sccs.append((scc, max_sccd, 0))
+            if len(new_sccs) > 0:
+                maybe_sccs = []
+                CFGs += new_sccs
+            elif fast_answer:
+                stop_all = True
         else:
             stop_all = True
 

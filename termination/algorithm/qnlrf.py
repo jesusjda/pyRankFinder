@@ -146,8 +146,7 @@ class QNLRF(Algorithm):
                 return response
 
         response.set_response(status=TerminationResult.UNKNOWN,
-                              info="Not found: max_d = " + str(max_d - 1) + " .",
-                              pending_trs=transitions)
+                              info="Not found: max_d = " + str(max_d - 1) + " .")
         return response
 
     @classmethod

@@ -69,15 +69,12 @@ class PR(Algorithm):
 
         if point[0] is None:
             response.set_response(status=TerminationResult.UNKNOWN,
-                                  info="LRF: Farkas Polyhedron is empty.",
-                                  pending_trs=transitions)
+                                  info="LRF: Farkas Polyhedron is empty.")
             return response
         for node in rfvars:
             rfs[node] = get_rf(rfvars[node], gvs, point)
 
-        response.set_response(status=TerminationResult.TERMINATE,
-                              rfs=rfs,
-                              pending_trs=[])
+        response.set_response(status=TerminationResult.TERMINATE, rfs=rfs)
         return response
 
 
