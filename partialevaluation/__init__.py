@@ -10,6 +10,9 @@ __all__ = ['partialevaluate', 'control_flow_refinement', 'prepare_scc']
 def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=None):
     from termination.algorithm.utils import showgraph
     from nodeproperties import compute_invariants
+    if len(cfg.get_info("global_vars")) == 0:
+        OM.printif(1, "CFR is not applied because there is no variables")
+        return cfg
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
     OM.printseparator(1)
