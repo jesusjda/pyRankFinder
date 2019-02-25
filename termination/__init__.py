@@ -269,10 +269,13 @@ def run_algs(algs, cfg, different_template=False):
                 f = True
                 break
     if f:
+        pending = []
+        if R.has("pending_trs"):
+            pending = R.get("pending_trs")
         response.set_response(status=TerminationResult.TERMINATE,
                               info="Found",
                               rfs=R.get("rfs"),
-                              pending_trs=R.get("pending_trs"))
+                              pending_trs=pending)
         return response
 
     response.set_response(status=TerminationResult.UNKNOWN,
