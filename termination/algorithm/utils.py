@@ -147,18 +147,9 @@ def file2string(filepath):
 
 
 def compute_way_nodes(cfg, target_nodes):
-    visited = {n: False for n in cfg.get_nodes()}
-    way_node = {n: (n in target_nodes) for n in cfg.get_nodes()}
-
-    def rec_way(src):
-        if visited[src]:
-            return
-        visited[src] = True
-        for tr in cfg.get_edges(source=src):
-            if tr["target"] == src:
-                continue
-            rec_way(tr["target"])
-            if way_node[tr["target"]]:
-                way_node[src] = True
-    rec_way(cfg.get_info("init_node"))
-    return sorted([n for n in way_node if way_node[n]])
+    way_nodes = set()
+    init = cfg.get_info("init_node")
+    for n in target_nodes:
+        ns = cfg.get_all_nodes_between(init, n)
+        way_nodes.update(ns)
+    return way_nodes

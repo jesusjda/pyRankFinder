@@ -1,32 +1,13 @@
 {
-	vars: [x, y, z],
-	initnode: init,
-	nodes: {
-	    init: { reachability: [z == 0]   },
-	    while: { reachability: [z == 0] },
-      	exit: { reachability: [z == 0], asserts: [[[x == -1]]] },
-  },
-	transitions: [
-		{
-			name: t0,
-			source: init,
-			target: while,
-			constraints: [x' = -5, y' = 2, z > 3, z' = 1]
-		},{
-			name: t1,
-			source:while,
-			target: while2,
-			constraints: [x <= 0, y >= 0, x' = x+y , y' = y , z > 0, z' = z+1]
-		},{
-			name: t12,
-			source:while2,
-			target: while,
-			constraints: [x' = x, y' = y, z' = 1]
-		},{
-			name: t2,
-			source:while,
-			target: exit,
-			constraints: [x > 0, x' = x, y' = y, z' = 1]
-		}
-	]
+  vars: [x,y],
+  pvars: [x',y'],
+  initnode: n,
+  transitions: [
+    {
+	source: n,
+	target: n,
+	name: t0,
+	constraints: [x >= 0, 2 * x + x' - 10 == 0, y' = y]
+    }
+  ]
 }

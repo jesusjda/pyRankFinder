@@ -76,12 +76,12 @@ def analyse(config, cfg):
                 cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, config["invariants"]), cfr)
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1
-            CFGs_aux.sort()
 
             can_be_terminate = len(t_algs) > 0
             can_be_nonterminate = len(nt_algs) > 0
             do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
-            for scc in CFGs_aux:
+            while CFGs_aux:
+                scc = CFGs_aux.pop(0)
                 if len(scc.get_edges()) == 0:
                     continue
                 R = False
@@ -99,12 +99,14 @@ def analyse(config, cfg):
                             if fast_answer:
                                 stop = True
                                 stop_all = True
+                                maybe_sccs += CFGs_aux
                                 break
                             continue
                     can_be_terminate = not fast_answer or (do_cfr_scc and can_be_terminate)
                     if fast_answer and not can_be_terminate and not can_be_nonterminate:
                         stop = True
                         maybe_sccs.append(scc)
+                        CFGs = [(s, sccd + 1, cfr_num) for s in CFGs_aux] + CFGs
                         break
                     if do_cfr_scc:
                         CFGs = [(scc, max_sccd, cfr_num + 1)] + CFGs
@@ -123,11 +125,15 @@ def analyse(config, cfg):
                     continue
         # Cfr after
         if not stop_all and len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
-            important_nodes = [n for scc in maybe_sccs for n in scc.get_nodes()]
+            important_nodes = []
+            heads = []
+            for scc in maybe_sccs:
+                important_nodes += scc.get_nodes()
+                heads += scc.get_info("entry_nodes")
             OM.printif(2, "CFR after")
             OM.printif(2, "Nodes to refine")
             OM.printif(2, important_nodes)
-            way_nodes = compute_way_nodes(cfg, important_nodes)
+            way_nodes = compute_way_nodes(cfg, heads)
             OM.printif(3, "Nodes on the way")
             OM.printif(3, way_nodes)
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
@@ -149,7 +155,7 @@ def analyse(config, cfg):
             if len(new_sccs) > 0:
                 maybe_sccs = []
                 CFGs += new_sccs
-            elif fast_answer:
+            elif fast_answer and not can_be_nonterminate:
                 stop_all = True
         else:
             stop_all = True
@@ -161,6 +167,7 @@ def analyse(config, cfg):
         status = TerminationResult.UNKNOWN
     elif can_be_terminate:
         status = TerminationResult.TERMINATE
+    print(status, len(terminating_sccs), len(CFGs))
     response = Result()
     response.set_response(status=status,
                           rfs=dict(rfs),
