@@ -61,6 +61,7 @@ def analyse(config, cfg):
     while (not stop_all):
         cfr_it += 1
         stop = False
+        do_cfr_after = cfr_after and cfr_it < cfr["cfr_max_tries"]
         # SCC splitting and analysis
         while (not stop and CFGs):
             current_cfg, sccd, cfr_num = CFGs.pop(0)
@@ -69,7 +70,7 @@ def analyse(config, cfg):
                 OM.printif(2, "Transition (" + str(removed) + ") were removed because it is empty.")
             if len(current_cfg.get_edges()) == 0:
                 OM.printif(2, "This cfg has not transitions.")
-                OM.printif(2, "|-- nodes: {}".format(cfg.get_nodes()))
+                OM.printif(2, "|-- nodes: {}".format(current_cfg.get_nodes()))
                 continue
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0:
@@ -100,18 +101,19 @@ def analyse(config, cfg):
                                 stop = True
                                 stop_all = True
                                 maybe_sccs += CFGs_aux
+                                maybe_sccs += [s for s, __, __ in CFGs]
                                 break
                             continue
-                    can_be_terminate = not fast_answer or (do_cfr_scc and can_be_terminate)
-                    if fast_answer and not can_be_terminate and not can_be_nonterminate:
-                        stop = True
-                        maybe_sccs.append(scc)
-                        CFGs = [(s, sccd + 1, cfr_num) for s in CFGs_aux] + CFGs
-                        break
                     if do_cfr_scc:
                         CFGs = [(scc, max_sccd, cfr_num + 1)] + CFGs
                     else:
                         maybe_sccs.append(scc)
+                        if do_cfr_after:
+                            OM.printif(1, "ONE SCC waiting for cfr after")
+                        elif fast_answer and not can_be_nonterminate:
+                            stop = True
+                            maybe_sccs += CFGs_aux
+                            break
                 else:
                     R.set_response(graph=scc)
                     terminating_sccs.append(R)
@@ -124,13 +126,13 @@ def analyse(config, cfg):
                         merge(rfs, R.get("rfs"))
                     continue
         # Cfr after
-        if not stop_all and len(maybe_sccs) > 0 and cfr_after and cfr_it < cfr["cfr_max_tries"]:
+        if not stop_all and len(maybe_sccs) > 0 and do_cfr_after:
             important_nodes = []
             heads = []
             for scc in maybe_sccs:
                 important_nodes += scc.get_nodes()
                 heads += scc.get_info("entry_nodes")
-            OM.printif(2, "CFR after")
+            OM.printif(1, "CFR after")
             OM.printif(2, "Nodes to refine")
             OM.printif(2, important_nodes)
             way_nodes = compute_way_nodes(cfg, heads)
@@ -152,11 +154,8 @@ def analyse(config, cfg):
                     continue
                 if set(scc.get_nodes()) <= set_new_important_nodes:
                     new_sccs.append((scc, max_sccd, 0))
-            if len(new_sccs) > 0:
-                maybe_sccs = []
-                CFGs += new_sccs
-            elif fast_answer and not can_be_nonterminate:
-                stop_all = True
+            maybe_sccs = []
+            CFGs = new_sccs + CFGs
         else:
             stop_all = True
 
@@ -167,7 +166,6 @@ def analyse(config, cfg):
         status = TerminationResult.UNKNOWN
     elif can_be_terminate:
         status = TerminationResult.TERMINATE
-    print(status, len(terminating_sccs), len(CFGs))
     response = Result()
     response.set_response(status=status,
                           rfs=dict(rfs),
