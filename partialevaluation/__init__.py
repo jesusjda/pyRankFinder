@@ -15,6 +15,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
         return cfg
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
+    cfr_inv_type = config["invariants"] if cfr_inv else "none"
     OM.printseparator(1)
     OM.printif(1, "CFR({})".format(cfr_ite))
     from nodeproperties.cfrprops import cfrprops_options
@@ -34,18 +35,18 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     pe_cfg = cfg
     sufix = ""
     for it in range(0, cfr_ite):
-        if cfr_inv:
+        if cfr_inv and it > 0:
             compute_invariants(pe_cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"])
         pe_cfg.remove_unsat_edges()
-        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
+        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)
         pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir,
-                                 invariant_type=cfr_inv, nodes_to_refine=only_nodes)
+                                 invariant_type=cfr_inv_type, nodes_to_refine=only_nodes)
         sufix = "_cfr" + str(it + 1)
         OM.lazy_printif(1, lambda: summary("CFG({})".format(it + 1), pe_cfg))
-        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
-            sufix += "_with_inv_" + str(cfr_inv)
+        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv:
+            sufix += "_with_inv_" + str(cfr_inv_type)
     OM.printseparator(1)
-    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
+    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)
     return pe_cfg
 
 
@@ -126,7 +127,7 @@ def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, i
     from nodeproperties.cfrprops import compute_cfrprops
     props = compute_cfrprops(cfg, nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
     if "cfr_john_properties" in props_methods:
-        jh_p = johns_props1(cfg, pl_file, entry, propsfile)
+        jh_p = johns_props1(cfg, pl_file, entry, propsfile, nodes_to_refine)
     _add_props(propsfile, props, gvars, pvars)
 
     # SAVE PROPS
@@ -226,7 +227,7 @@ def prepare_scc(cfg, scc, invariant_type):
     return scc_copy
 
 
-def johns_props1(cfg, tmpplfile, entry, propsfile):
+def johns_props1(cfg, tmpplfile, entry, propsfile, nodes_to_refine):
     gvars = cfg.get_info("global_vars")
     gvars = gvars[:int(len(gvars) / 2)]
     pvars = _plVars(len(gvars))
@@ -236,6 +237,7 @@ def johns_props1(cfg, tmpplfile, entry, propsfile):
     ___, err = pipe.communicate()
     if err is not None and err:
             raise Exception(err)
+    remove_nodes_props(propsfile, nodes_to_refine)
     au_props = _parse_props(propsfile, gvars, pvars)
     cfg.set_nodes_info(au_props, "cfr_auto_properties")
     return au_props
