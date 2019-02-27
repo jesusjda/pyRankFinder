@@ -69,7 +69,7 @@ def analyse(config, cfg):
             if len(removed) > 0:
                 OM.printif(2, "Transition (" + str(removed) + ") were removed because it is empty.")
             if len(current_cfg.get_edges()) == 0:
-                OM.printif(2, "This cfg has not transitions.")
+                OM.printif(2, "This graph has not transitions.")
                 OM.printif(2, "|-- nodes: {}".format(current_cfg.get_nodes()))
                 continue
             cfg_cfr = current_cfg
@@ -102,7 +102,7 @@ def analyse(config, cfg):
                                 stop_all = True
                                 maybe_sccs += CFGs_aux
                                 maybe_sccs += [s for s, __, __ in CFGs]
-                                break
+                                break  # NO!
                             continue
                     if do_cfr_scc:
                         CFGs = [(scc, max_sccd, cfr_num + 1)] + CFGs
@@ -113,7 +113,7 @@ def analyse(config, cfg):
                         elif fast_answer and not can_be_nonterminate:
                             stop = True
                             maybe_sccs += CFGs_aux
-                            break
+                            break  # MAYBE!
                 else:
                     R.set_response(graph=scc)
                     terminating_sccs.append(R)
@@ -133,20 +133,20 @@ def analyse(config, cfg):
                 important_nodes += scc.get_nodes()
                 heads += scc.get_info("entry_nodes")
             OM.printif(1, "CFR after")
-            OM.printif(2, "Nodes to refine")
-            OM.printif(2, important_nodes)
+            OM.printif(2, "Nodes to refine:", important_nodes)
             way_nodes = compute_way_nodes(cfg, heads)
-            OM.printif(3, "Nodes on the way")
-            OM.printif(3, way_nodes)
+            OM.printif(3, "Nodes on the way:", way_nodes)
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
             new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
             compute_invariants(cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"],
                                add_to_polyhedron=True)
-            OM.printif(3, "Important nodes from the cfr graph.")
-            OM.printif(3, new_important_nodes)
+            OM.printif(3, "Important nodes from the cfr graph:", new_important_nodes)
             showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
                       writef=False, output_formats=["fc", "svg"])
+            if len(new_important_nodes) == 0:
+                stop_all = True
+                break  # MAYBE!
             set_new_important_nodes = set(new_important_nodes)
             new_sccs = []
             for scc in cfg.get_scc():
