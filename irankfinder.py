@@ -84,7 +84,7 @@ def setArgumentParser():
     argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-sccd", "--scc-depth", type=positive, default=1,
+    argParser.add_argument("-sccd", "--scc-depth", type=positive, default=5,
                            help="Strategy based on SCC to go through the CFG.")
     argParser.add_argument("-usr-reach", "--user-reachability", required=False,
                            default=False, action='store_true',
