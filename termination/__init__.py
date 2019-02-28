@@ -72,15 +72,18 @@ def analyse(config, cfg):
                 OM.printif(2, "This graph has not transitions.")
                 OM.printif(2, "|-- nodes: {}".format(current_cfg.get_nodes()))
                 continue
+            # init flags
+            do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
+            can_be_terminate = len(t_algs) > 0
+            can_be_nonterminate = len(nt_algs) > 0
+
             cfg_cfr = current_cfg
-            if cfr_scc and cfr_num > 0:
+            if cfr_scc and cfr_num > 0 and cfr_num <= cfr["cfr_max_tries"]:
                 cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, config["invariants"]), cfr)
+                cfr_num += 1
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1
 
-            can_be_terminate = len(t_algs) > 0
-            can_be_nonterminate = len(nt_algs) > 0
-            do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
             while CFGs_aux:
                 scc = CFGs_aux.pop(0)
                 if len(scc.get_edges()) == 0:
@@ -100,19 +103,18 @@ def analyse(config, cfg):
                             if fast_answer:
                                 stop = True
                                 stop_all = True
-                                maybe_sccs += CFGs_aux
-                                maybe_sccs += [s for s, __, __ in CFGs]
                                 break  # NO!
                             continue
                     if do_cfr_scc:
-                        CFGs = [(scc, max_sccd, cfr_num + 1)] + CFGs
+                        if cfr_num == 0:
+                            cfr_num = 1
+                        CFGs = [(scc, max_sccd, cfr_num)] + CFGs
                     else:
                         maybe_sccs.append(scc)
                         if do_cfr_after:
                             OM.printif(1, "ONE SCC waiting for cfr after")
                         elif fast_answer and not can_be_nonterminate:
                             stop = True
-                            maybe_sccs += CFGs_aux
                             break  # MAYBE!
                 else:
                     R.set_response(graph=scc)
@@ -120,11 +122,15 @@ def analyse(config, cfg):
                     if R.has("pending_trs"):
                         pending_trs = R.get("pending_trs")
                         if pending_trs:
-                            CFGs = [(cfg.edge_data_subgraph(pending_trs),
+                            CFGs = [(scc.edge_data_subgraph(pending_trs),
                                      sccd, cfr_num)] + CFGs
                     if R.has("rfs"):
                         merge(rfs, R.get("rfs"))
                     continue
+            if stop:
+                maybe_sccs += CFGs_aux
+        if stop_all:
+            maybe_sccs += [s for s, __, __ in CFGs]
         # Cfr after
         if not stop_all and len(maybe_sccs) > 0 and do_cfr_after:
             important_nodes = []
@@ -147,13 +153,12 @@ def analyse(config, cfg):
             if len(new_important_nodes) == 0:
                 stop_all = True
                 break  # MAYBE!
-            set_new_important_nodes = set(new_important_nodes)
             new_sccs = []
             for scc in cfg.get_scc():
-                if len(scc.get_edges()) == 0:
-                    continue
-                if set(scc.get_nodes()) <= set_new_important_nodes:
-                    new_sccs.append((scc, max_sccd, 0))
+                for n in scc.get_nodes():
+                    if n in new_important_nodes:
+                        new_sccs.append((scc, max_sccd, 0))
+                        break
             maybe_sccs = []
             CFGs = new_sccs + CFGs
         else:
