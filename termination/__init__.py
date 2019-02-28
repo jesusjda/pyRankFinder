@@ -153,12 +153,10 @@ def analyse(config, cfg):
             if len(new_important_nodes) == 0:
                 stop_all = True
                 break  # MAYBE!
+            tmpcfg = cfg.node_data_subgraph(new_important_nodes)
             new_sccs = []
-            for scc in cfg.get_scc():
-                for n in scc.get_nodes():
-                    if n in new_important_nodes:
-                        new_sccs.append((scc, max_sccd, 0))
-                        break
+            for scc in tmpcfg.get_scc():
+                new_sccs.append((scc, max_sccd, 0))
             maybe_sccs = []
             CFGs = new_sccs + CFGs
         else:
