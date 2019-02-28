@@ -35,9 +35,8 @@ class QNLRF(Algorithm):
 
         for tr_idx in range(len(all_transitions)):
             main_tr = all_transitions[tr_idx]
-            transitions = [all_transitions[j]
-                           for j in range(len(all_transitions))
-                           if j != tr_idx]
+            transitions = all_transitions[:tr_idx] + all_transitions[tr_idx + 1:]
+
             OM.printif(2, "trying with : " + main_tr["name"])
             for d in range(min_d, max_d):
                 OM.printif(2, "\td = ", d)
