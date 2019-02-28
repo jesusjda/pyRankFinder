@@ -290,6 +290,8 @@ def _parse_props(filename, gvars, pvars):
 
 
 def remove_nodes_props(filename, nodes):
+    if nodes is None:
+        return
     from shutil import move
     destfile = filename + ".tmp"
     ops = tuple([("n_{}(".format(saveName(n))) for n in nodes])
