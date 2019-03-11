@@ -66,11 +66,10 @@ def analyse(config, cfg):
         while (not stop and CFGs):
             current_cfg, sccd, cfr_num = CFGs.pop(0)
             removed = current_cfg.remove_unsat_edges()
-            if len(removed) > 0:
-                OM.printif(2, "Transition (" + str(removed) + ") were removed because it is empty.")
+            OM.lazy_printif(2, lambda: "" if len(removed) == 0 else "Transition ({}) were removed because it is empty.".format(removed))
             if len(current_cfg.get_edges()) == 0:
-                OM.printif(2, "This graph has not transitions.")
-                OM.printif(2, "|-- nodes: {}".format(current_cfg.get_nodes()))
+                OM.lazy_printif(2, lambda: "This graph has not transitions.")
+                OM.lazy_printif(2, lambda: "|-- nodes: {}".format(current_cfg.get_nodes()))
                 continue
             # init flags
             do_cfr_scc = cfr_scc and cfr_num < cfr["cfr_max_tries"]
