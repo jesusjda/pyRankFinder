@@ -125,6 +125,10 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
                            help="CFR with Invariants.")
+    argParser.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
+                           default="none", choices=["john", "cyclecutnodes", "none", "user"], help=".")
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
@@ -141,6 +145,10 @@ def setArgumentParser():
                            help="Do conditional termination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
+    argParser.add_argument("-inv-wide-nodes", "--invariant-widening-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-inv-wide-nodes-mode", "--invariant-widening-nodes-mode", required=False,
+                           default="none", choices=["cyclecutnodes", "none", "user"], help=".")
     argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
                            type=threshold_type, help="Use thresholds.")
     argParser.add_argument("-sif", "--stop-if-fail", required=False,
