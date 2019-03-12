@@ -128,7 +128,7 @@ def setArgumentParser():
     argParser.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
                            default=[], help=".")
     argParser.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
-                           default="none", choices=["john", "cyclecutnodes", "none", "user"], help=".")
+                           default="all", choices=["john", "cyclecutnodes", "all", "user"], help=".")
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
@@ -148,7 +148,7 @@ def setArgumentParser():
     argParser.add_argument("-inv-wide-nodes", "--invariant-widening-nodes", required=False, nargs="*",
                            default=[], help=".")
     argParser.add_argument("-inv-wide-nodes-mode", "--invariant-widening-nodes-mode", required=False,
-                           default="none", choices=["cyclecutnodes", "none", "user"], help=".")
+                           default="all", choices=["cyclecutnodes", "all", "user"], help=".")
     argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
                            type=threshold_type, help="Use thresholds.")
     argParser.add_argument("-sif", "--stop-if-fail", required=False,
@@ -208,6 +208,7 @@ def launch_file(config, f, out):
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
             # raise Exception() from e
         return
+    nodeproperties.invariant.set_configuration(config)
     config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
@@ -272,18 +273,14 @@ def check_assertions(config, cfg):
         OM.printf("ERROR: Please select an abstract domain for invariants.")
         return
     OM.printf("Computing and checking invariants...")
-    nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
-                                      threshold_modes=config["invariants_threshold"],
-                                      check=True, add_to_polyhedron=False)
+    nodeproperties.invariant.compute_invariants(cfg, check=True, add_to_polyhedron=False)
     showgraph(cfg, config, sufix="", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
     if config["cfr_strategy_before"]:
         OM.printf("Refining graph...")
         from partialevaluation import control_flow_refinement
         cfg = control_flow_refinement(cfg, config)
         OM.printf("Computing and checking invariants...")
-        nodeproperties.compute_invariants(cfg, abstract_domain=config["invariants"],
-                                          threshold_modes=config["invariants_threshold"],
-                                          check=True, add_to_polyhedron=False)
+        nodeproperties.invariant.compute_invariants(cfg, check=True, add_to_polyhedron=False)
         showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
 
 

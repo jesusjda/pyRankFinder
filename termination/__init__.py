@@ -4,7 +4,7 @@ from .output import Output_Manager
 from .result import Result
 from .result import TerminationResult
 from .algorithm.utils import showgraph
-from nodeproperties import compute_invariants
+from nodeproperties import invariant
 from partialevaluation import control_flow_refinement
 from partialevaluation import prepare_scc
 from .algorithm.utils import compute_way_nodes
@@ -46,14 +46,10 @@ def analyse(config, cfg):
     stop_all = False
     original_cfg = cfg
 
-    compute_invariants(cfg, abstract_domain=config["invariants"],
-                       threshold_modes=config["invariants_threshold"],
-                       add_to_polyhedron=True)
+    invariant.compute_invariants(cfg, add_to_polyhedron=True)
     if cfr_before:
         cfg = control_flow_refinement(cfg, cfr)
-        compute_invariants(cfg, abstract_domain=config["invariants"],
-                           threshold_modes=config["invariants_threshold"],
-                           add_to_polyhedron=True)
+        invariant.compute_invariants(cfg, add_to_polyhedron=True)
         showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
     # cfr loop
     cfr_it = -1
@@ -144,8 +140,7 @@ def analyse(config, cfg):
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
             new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
-            compute_invariants(cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"],
-                               add_to_polyhedron=True)
+            invariant.compute_invariants(cfg, add_to_polyhedron=True)
             OM.printif(3, "Important nodes from the cfr graph:", new_important_nodes)
             showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
                       writef=False, output_formats=["fc", "svg"])
@@ -187,6 +182,8 @@ def prepare_cfr_config(config):
         cfr = {
             "cfr_iterations": config["cfr_iterations"],
             "cfr_invariants": config["cfr_invariants"],
+            "cfr_nodes_mode": config["cfr_nodes_mode"],
+            "cfr_nodes": config["cfr_nodes"],
             "invariants": config["invariants"],
             "invariants_threshold": config["invariants_threshold"],
             "cfr_max_tries": config["cfr_max_tries"],

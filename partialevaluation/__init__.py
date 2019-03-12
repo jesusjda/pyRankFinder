@@ -9,13 +9,15 @@ __all__ = ['partialevaluate', 'control_flow_refinement', 'prepare_scc']
 
 def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes=None):
     from termination.algorithm.utils import showgraph
-    from nodeproperties import compute_invariants
+    from nodeproperties import invariant
     if len(cfg.get_info("global_vars")) == 0:
         OM.printif(1, "CFR is not applied because there is no variables")
         return cfg
     cfr_ite = config["cfr_iterations"]
     cfr_inv = config["cfr_invariants"]
     cfr_inv_type = config["invariants"] if cfr_inv else "none"
+    cfr_nodes_mode = config["cfr_nodes_mode"]
+    cfr_nodes = config["cfr_nodes"]
     OM.printseparator(1)
     OM.printif(1, "CFR({})".format(cfr_ite))
     from nodeproperties.cfrprops import cfrprops_options
@@ -25,6 +27,21 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
             props_methods.append(op)
 
     tmpdir = config["tmpdir"]
+
+    def get_nodes_to_refine(cfg, mode, cfr_nodes, o_nodes):
+        only_john, nodes_to_refine = False, only_nodes
+        if mode == "john":
+            only_john = True
+        elif mode != "all":
+            if mode == "cyclecutnodes":
+                cfr_nodes = cfg.cycle_cut_nodes()
+            if o_nodes is None:
+                nodes_to_refine = cfr_nodes
+            else:
+                nodes_to_refine = [n for n in o_nodes if n in cfr_nodes]
+        if nodes_to_refine is not None:
+            nodes_to_refine = cfg.get_corresponding_nodes_list(nodes_to_refine)
+        return only_john, nodes_to_refine
 
     def summary(token, g):
         nodes = len(g.get_nodes())
@@ -36,11 +53,12 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     sufix = ""
     for it in range(0, cfr_ite):
         if cfr_inv and it > 0:
-            compute_invariants(pe_cfg, abstract_domain=config["invariants"], threshold_modes=config["invariants_threshold"])
+            invariant.compute_invariants(pe_cfg)
         pe_cfg.remove_unsat_edges()
+        only_john, nodes_to_refine = get_nodes_to_refine(pe_cfg, cfr_nodes_mode, cfr_nodes, only_nodes)
         showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)
-        pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir,
-                                 invariant_type=cfr_inv_type, nodes_to_refine=only_nodes)
+        pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir, invariant_type=cfr_inv_type,
+                                 only_john=only_john, nodes_to_refine=nodes_to_refine)
         sufix = "_cfr" + str(it + 1)
         OM.lazy_printif(1, lambda: summary("CFG({})".format(it + 1), pe_cfg))
         if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv:
@@ -50,7 +68,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     return pe_cfg
 
 
-def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nodes_to_refine=None):
+def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, only_john=False, nodes_to_refine=None):
     if tmpdir is None or tmpdir == "":
         import tempfile
         tmpdirname = tempfile.mkdtemp()
@@ -76,7 +94,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
 
     # PROPERTIES
     propsfile = set_props(cfg, tmpdirname, props_methods=props_methods, pl_file=tmpplfile, entry=initNode,
-                          nodes_to_refine=nodes_to_refine, invariant_type=invariant_type)
+                          nodes_to_refine=nodes_to_refine, invariant_type=invariant_type, only_john=only_john)
 
     # PE
     pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'pe.sh')
@@ -115,7 +133,7 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, nod
     return pe_cfg
 
 
-def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, invariant_type):
+def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, invariant_type, only_john):
     gvars = cfg.get_info("global_vars")
     gvars = gvars[:int(len(gvars) / 2)]
     pvars = _plVars(len(gvars))
@@ -125,9 +143,14 @@ def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, i
         os.makedirs(basedir)
     open(propsfile, 'a').close()
     from nodeproperties.cfrprops import compute_cfrprops
-    props = compute_cfrprops(cfg, nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
+    in_nodes_to_refine = nodes_to_refine
     if "cfr_john_properties" in props_methods:
         jh_p = johns_props1(cfg, pl_file, entry, propsfile, nodes_to_refine)
+        if only_john:
+            in_nodes_to_refine = [n for n in jh_p if len(jh_p[n]) > 0]
+            OM.printif(1, "johns nodes: ", in_nodes_to_refine)
+    props = compute_cfrprops(cfg, in_nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
+
     _add_props(propsfile, props, gvars, pvars)
 
     # SAVE PROPS
@@ -237,7 +260,9 @@ def johns_props1(cfg, tmpplfile, entry, propsfile, nodes_to_refine):
     ___, err = pipe.communicate()
     if err is not None and err:
             raise Exception(err)
-    remove_nodes_props(propsfile, nodes_to_refine)
+    if nodes_to_refine is not None:
+        nodes_to_remove = [n for n in cfg.get_nodes() if n not in nodes_to_refine]
+        remove_nodes_props(propsfile, nodes_to_remove)
     au_props = _parse_props(propsfile, gvars, pvars)
     cfg.set_nodes_info(au_props, "cfr_auto_properties")
     return au_props
@@ -290,8 +315,6 @@ def _parse_props(filename, gvars, pvars):
 
 
 def remove_nodes_props(filename, nodes):
-    if nodes is None:
-        return
     from shutil import move
     destfile = filename + ".tmp"
     ops = tuple([("n_{}(".format(saveName(n))) for n in nodes])
