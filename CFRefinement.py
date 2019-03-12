@@ -4,7 +4,7 @@ import argparse
 import genericparser
 from termination import Output_Manager as OM
 from partialevaluation import control_flow_refinement
-from nodeproperties import compute_invariants
+from nodeproperties import invariant
 from termination.algorithm.utils import showgraph
 
 _version = "1.2"
@@ -60,11 +60,18 @@ def setArgumentParser():
 
     argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
                            default="none", help="CFR with Invariants.")
+    argParser.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
+                           default="all", choices=["john", "cyclecutnodes", "all", "user"], help=".")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
     argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
                            type=threshold_type, help="Use thresholds.")
-
+    argParser.add_argument("-inv-wide-nodes", "--invariant-widening-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-inv-wide-nodes-mode", "--invariant-widening-nodes-mode", required=False,
+                           default="all", choices=["cyclecutnodes", "all", "user"], help=".")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
@@ -88,15 +95,14 @@ def launch(config):
 def launch_file(config, f):
     writef = config["output_destination"] is not None
     console = not writef or config["ei_out"]
+    invariant.set_configuration(config)
     try:
         config["name"] = extractname(f)
         pe_cfg = control_flow_refinement(genericparser.parse(f), config,
                                          console=console, writef=writef)
         if config["invariants"] != "none":
             config["show_with_invariants"] = True
-            compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                               threshold_modes=config["invariants_threshold"],
-                               add_to_polyhedron=True)
+            invariant.compute_invariants(pe_cfg, add_to_polyhedron=True)
             if config["cfr_iterations"] > 0:
                 sufix = "_cfr" + str(config["cfr_iterations"])
             sufix += "_with_inv" + str(config["invariants"])
