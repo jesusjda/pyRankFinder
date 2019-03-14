@@ -98,7 +98,9 @@ def launch_file(config, f):
     invariant.set_configuration(config)
     try:
         config["name"] = extractname(f)
-        pe_cfg = control_flow_refinement(genericparser.parse(f), config,
+        cfg = genericparser.parse(f)
+        invariant.compute_invariants(cfg, add_to_polyhedron=True)
+        pe_cfg = control_flow_refinement(cfg, config,
                                          console=console, writef=writef)
         if config["invariants"] != "none":
             config["show_with_invariants"] = True
