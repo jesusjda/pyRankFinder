@@ -74,7 +74,9 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
         tmpdirname = tempfile.mkdtemp()
     else:
         tmpdirname = tmpdir
-    tmpplfile = os.path.join(tmpdirname, "source.pl")
+    import random
+    tmpplfile = os.path.join(tmpdirname, "source_%06x.pl" % random.randrange(16**6))
+    OM.printif(3, "system prolog file ", tmpplfile)
     cfg.toProlog(path=tmpplfile, invariant_type=invariant_type)
     N = int(len(cfg.get_info("global_vars")) / 2)
     vs = ""
