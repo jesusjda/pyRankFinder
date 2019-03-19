@@ -96,6 +96,8 @@ def setArgumentParser():
                            help="Remove No Important variables before do anything else.")
     argParser.add_argument("-ca", "--check-assertions", action='store_true',
                            help="Check Invariants with the assertions defined")
+    argParser.add_argument("-rfs-as-cfr-props", "--rfs-as-cfr-props", action='store_true',
+                           help="Print a graph with rfs as user props.")
     # CFR Parameters
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
@@ -252,7 +254,30 @@ def remove_no_important_variables(cfg, doit=False):
 def analyse(config, cfg):
     r = termination.analyse(config, cfg)
     show_result(r, cfg)
+    rfs_as_cfr_props(config, cfg, r)
     return r
+
+
+def rfs_as_cfr_props(config, cfg, result):
+    if "rfs_as_cfr_props" not in config or not config["rfs_as_cfr_props"]:
+        return
+    if not result.has("rfs") or len(result.get("rfs").keys()) == 0:
+        OM.printf("ERROR: no rfs to use as cfr props")
+        return
+    from lpi.expressions import Expression
+    rfs = result.get("rfs")
+
+    def toconstraint(cs):
+        if isinstance(cs, Expression):
+            return [[cs >= 0], [cs < 0]]
+        sol = []
+        for c in cs:
+            sol += toconstraint(c)
+        return sol
+    props = {n: toconstraint(rfs[n]) for n in rfs}
+    cfg.set_nodes_info(props, "cfr_rfs_properties")
+    showgraph(cfg, config, sufix="_rfs_as_cfr", invariant_type=config["invariants"], console=config["print_graphs"],
+              writef=True, output_formats=["fc"])
 
 
 def show_result(result, cfg):
