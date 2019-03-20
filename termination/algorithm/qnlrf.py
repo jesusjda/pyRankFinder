@@ -1,4 +1,3 @@
-from lpi import C_Polyhedron
 from termination import farkas
 from termination.output import Output_Manager as OM
 from termination.result import Result
