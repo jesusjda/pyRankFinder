@@ -21,10 +21,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     OM.printseparator(1)
     OM.printif(1, "CFR({})".format(cfr_ite))
     from nodeproperties.cfrprops import cfrprops_options
-    props_methods = []
-    for op in cfrprops_options():
-        if op in config and config[op]:
-            props_methods.append(op)
+    props_methods = [op for op in cfrprops_options() if config.get(op, False)]
 
     tmpdir = config["tmpdir"]
 
@@ -61,7 +58,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
                                  only_john=only_john, nodes_to_refine=nodes_to_refine)
         sufix = "_cfr" + str(it + 1)
         OM.lazy_printif(1, lambda: summary("CFG({})".format(it + 1), pe_cfg))
-        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv:
+        if config.get("show_with_invariants", False) and cfr_inv:
             sufix += "_with_inv_" + str(cfr_inv_type)
     OM.printseparator(1)
     showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)

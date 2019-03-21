@@ -61,7 +61,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
     destname = config["output_destination"] if config["output_destination"] is not None else ""
     completename = os.path.join(destname, name)
     tmpdir = config["tmpdir"]
-    show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
+    show_with_inv = config.get("show_with_invariants", False)
     # os.makedirs(os.path.dirname(completename), exist_ok=True)
     if output_formats is None:
         output_formats = config["output_formats"]

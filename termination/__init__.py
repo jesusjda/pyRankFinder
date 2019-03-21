@@ -19,8 +19,8 @@ def analyse(config, cfg):
     fast_answer_result = Result()
     fast_answer_result.set_response(status=TerminationResult.UNKNOWN)
     # configuration
-    t_algs = config["termination"] if "termination" in config else []
-    nt_algs = config["nontermination"] if "nontermination" in config else []
+    t_algs = config.get("termination", [])
+    nt_algs = config.get("nontermination", [])
     if len(t_algs) == 0 and len(nt_algs) == 0:
         fast_answer_result.set_response(info="No algorithms selected", graph=cfg)
         return fast_answer_result
@@ -192,7 +192,7 @@ def prepare_cfr_config(config):
         from nodeproperties.cfrprops import cfrprops_options
         do_it = False
         for op in cfrprops_options():
-            cfr[op] = config[op] if op in config else False
+            cfr[op] = config.get(op, False)
             do_it = do_it or cfr[op]
         if not do_it:
             cfr["cfr_iterations"] = 0
