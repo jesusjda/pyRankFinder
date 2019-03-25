@@ -54,7 +54,7 @@ class PR(Algorithm):
             return response
         rfs = {}
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], gvs, point)
+            rfs[node] = get_rf(rfvars[node][0], gvs, point)
 
         response.set_response(status=TerminationResult.TERMINATE, rfs=rfs)
         return response

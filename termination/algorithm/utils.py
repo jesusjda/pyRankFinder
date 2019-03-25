@@ -22,7 +22,7 @@ def create_rfs(nodes, num_variables=0, num_functions=1, different_template=False
         for i in range(M_funcs):
             name = "b_" + str(i) + "_"
             new_f = get_free_name(taken_vars, name=name, num=1)
-            F.append(f[i][1:] + [Expression(new_f[0])])
+            F.append([Expression(new_f[0])] + f[i][1:])
             taken_vars += new_f
         return F
 
