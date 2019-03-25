@@ -26,7 +26,10 @@ def create_rfs(nodes, num_variables=0, num_functions=1, different_template=False
             taken_vars += new_f
         return F
 
-    f_method = lambda _a, _b, _c, f: f
+    def f_no_dt(_N_vars, _M_funcs, _taken_vars, f):
+        return f
+
+    f_method = f_no_dt
     if different_template:
         if dt_scheme == "default":
             f_method = f_dt_default
@@ -34,8 +37,8 @@ def create_rfs(nodes, num_variables=0, num_functions=1, different_template=False
             f_method = f_dt_inh
 
     taken_vars = []
-    fv = create(f_dt_default, num_variables, num_functions, [], [])
-    rfs = {n: create(f_method, num_variables, num_functions, taken_vars, fv) for n in nodes}
+    fv = f_dt_default(num_variables, num_functions, taken_vars, [])
+    rfs = {n: f_method(num_variables, num_functions, taken_vars, fv) for n in nodes}
     return rfs, taken_vars
 
 
