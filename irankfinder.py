@@ -261,6 +261,8 @@ def rfs_as_cfr_props(config, cfg, result):
     if not config.get("rfs_as_cfr_props", False):
         return
     if not result.has("rfs") or len(result.get("rfs").keys()) == 0:
+        showgraph(cfg, config, sufix="_rfs_as_cfr", invariant_type=config["invariants"], console=config["print_graphs"],
+                  writef=True, output_formats=["fc"])
         OM.printf("ERROR: no rfs to use as cfr props")
         return
     from lpi.expressions import Expression
