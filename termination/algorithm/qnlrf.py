@@ -6,6 +6,7 @@ from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
 from .utils import get_free_name
+from .utils import create_rfs
 
 
 class QNLRF(Algorithm):
@@ -23,9 +24,10 @@ class QNLRF(Algorithm):
             desc += ": " + str(cls.DESC)
         return desc
 
-    def run(self, cfg, different_template=False):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         response = Result()
         all_transitions = cfg.get_edges()
+        nodes = cfg.get_nodes()
         gvs = cfg.get_info("global_vars")
         Nvars = int(len(gvs) / 2)
         max_d = self.props["max_depth"] + 1
@@ -51,35 +53,8 @@ class QNLRF(Algorithm):
 
                 # 1 - init variables
                 # 1.1 - store rfs variables
+                rfvars, taken_vars = create_rfs(nodes, Nvars, d, different_template=different_template, dt_scheme=dt_scheme)
                 from lpi import Expression
-                if different_template:
-                    for tr in all_transitions:
-                        if tr["source"] not in rfvars:
-                            f = []
-                            for di in range(d):
-                                name = "a_" + str(di) + "_"
-                                fi = get_free_name(taken_vars, name=name, num=Nvars + 1)
-                                f.append(fi)
-                                taken_vars += fi
-                            rfvars[tr["source"]] = [[Expression(v) for v in fi] for fi in f]
-                        if tr["target"] not in rfvars:
-                            f = []
-                            for di in range(d):
-                                name = "a_" + str(di) + "_"
-                                fi = get_free_name(taken_vars, name=name, num=Nvars + 1)
-                                f.append(fi)
-                                taken_vars += fi
-                            rfvars[tr["target"]] = [[Expression(v) for v in fi] for fi in f]
-                else:
-                    f = []
-                    for di in range(d):
-                        name = "a_" + str(di) + "_"
-                        fi = get_free_name(taken_vars, name=name, num=Nvars + 1)
-                        f.append(fi)
-                        taken_vars += fi
-                    exp_f = [[Expression(v) for v in fi] for fi in f]
-                    for n in cfg.get_nodes():
-                        rfvars[n] = exp_f
 
                 # 1.2 - calculate farkas constraints
                 rf_s = rfvars[main_tr["source"]]
@@ -131,7 +106,7 @@ class QNLRF(Algorithm):
                 point = s.get_point(taken_vars)
 
                 if point[0] is None:
-                    continue  # not found, try with next d
+                    continue  # not found, try with next d or t
 
                 for node in rfvars:
                     rfs[node] = [get_rf(rfvars[node][di], gvs, point)

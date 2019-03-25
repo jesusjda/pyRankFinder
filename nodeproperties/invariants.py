@@ -3,6 +3,7 @@ __all__ = ["invariant"]
 from .thresholds import compute_thresholds
 from .assertions import check_assertions
 from .abstractStates import state
+from genericparser import constants as gconsts
 
 
 class Invariants:
@@ -40,10 +41,10 @@ class Invariants:
                 inv = cfg.nodes[e["source"]][inv_name].get_constraints()
             except Exception:
                 inv = []
-            tr_poly = e["polyhedron"].copy()
+            tr_poly = e[gconsts.transition.polyhedron].copy()
             tr_poly.add_constraints(inv)
             cfg.set_edge_info(source=e["source"], target=e["target"], name=e["name"],
-                              key="polyhedron", value=tr_poly)
+                              key=gconsts.transition.polyhedron, value=tr_poly)
 
     def user_invariants(self, cfg):
         raise NotImplementedError("User invariants is not implemented yet.")
@@ -65,7 +66,7 @@ class Invariants:
         threshold_modes = self.conf["threshold_modes"]
         widening_frequency = self.conf["widening_frequency"]
         graph_nodes = cfg.get_nodes()
-        global_vars = cfg.get_info("global_vars")
+        global_vars = cfg.get_info(gconsts.variables)
         Nvars = int(len(global_vars) / 2)
         vars_ = global_vars[:Nvars]
         from lpi import C_Polyhedron
@@ -76,7 +77,7 @@ class Invariants:
             if not do_wide_always:
                 OM.printif(1, "List of nodes where to apply widening (with frequency {}): {}".format(widening_frequency, widening_nodes))
             cfg.build_polyhedrons()
-            init_node = cfg.get_info("init_node")
+            init_node = cfg.get_info(gconsts.initnode)
             threshold = compute_thresholds(cfg, modes=threshold_modes)
             nodes = {}
             nodes = {node: {"state": state(vars_, bottom=True, abstract_domain=abstract_domain), "accesses": 0}
@@ -94,7 +95,7 @@ class Invariants:
                         if not(t["target"] in original_states):
                             original_states[t["target"]] = dest_s["state"]
                         s1 = s.apply_tr(t, copy=True)
-                        OM.printif(4, "apply {}".format(t["name"]), t["polyhedron"], s1)
+                        OM.printif(4, "apply {}".format(t["name"]), t[gconsts.transition.polyhedron], s1)
                         s2 = dest_s["state"].lub(s1, copy=True)
                         OM.printif(4, "lub", s2)
                         dest_s["state"] = s2

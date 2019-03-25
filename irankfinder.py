@@ -6,7 +6,6 @@ from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
 from termination.algorithm.utils import showgraph
-import termination
 
 
 _version = "1.1"
@@ -58,6 +57,7 @@ def nontermination_alg_desc():
 def setArgumentParser():
     desc = _name + ": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
+    dt_scheme_options = ["default", "inhomogeneous"]
     absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
         description=desc,
@@ -83,6 +83,9 @@ def setArgumentParser():
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
+                           help="Use different templates on each node")
+    argParser.add_argument("-dt-scheme", "--different-template-scheme", required=False,
+                           choices=dt_scheme_options, default=dt_scheme_options[0],
                            help="Use different templates on each node")
     argParser.add_argument("-sccd", "--scc-depth", type=positive, default=5,
                            help="Strategy based on SCC to go through the CFG.")
@@ -168,10 +171,7 @@ def extractname(filename):
 
 def launch(config):
     files = config["files"]
-    if "outs" in config:
-        outs = config["outs"]
-    else:
-        outs = []
+    outs = config.get("outs", [])
     for i in range(len(files)):
         if(len(files) > 1):
             OM.printf(files[i])
@@ -211,11 +211,9 @@ def launch_file(config, f, out):
             # raise Exception() from e
         return
     nodeproperties.invariant.set_configuration(config)
-    config["check_assertions"] = config["check_assertions"] if "check_assertions" in config else False
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
     OM.show_output()
-
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
     # Rechability
@@ -252,6 +250,7 @@ def remove_no_important_variables(cfg, doit=False):
 
 
 def analyse(config, cfg):
+    import termination
     r = termination.analyse(config, cfg)
     show_result(r, cfg)
     rfs_as_cfr_props(config, cfg, r)
@@ -259,7 +258,7 @@ def analyse(config, cfg):
 
 
 def rfs_as_cfr_props(config, cfg, result):
-    if "rfs_as_cfr_props" not in config or not config["rfs_as_cfr_props"]:
+    if not config.get("rfs_as_cfr_props", False):
         return
     if not result.has("rfs") or len(result.get("rfs").keys()) == 0:
         OM.printf("ERROR: no rfs to use as cfr props")
@@ -292,7 +291,7 @@ def show_result(result, cfg):
 
 
 def check_assertions(config, cfg):
-    if not config["check_assertions"]:
+    if not config.get("check_assertions", False):
         return
     elif config["invariants"] == "none":
         OM.printf("ERROR: Please select an abstract domain for invariants.")
@@ -310,7 +309,7 @@ def check_assertions(config, cfg):
 
 
 def conditional_termination(config, cfg, unk_sccs):
-    if not config["conditional_termination"]:
+    if not config.get("conditional_termination", False):
         return
     if len(unk_sccs) == 0:
         OM.printf("No pending sccs to analyse conditional termination")
@@ -329,7 +328,7 @@ def conditional_termination(config, cfg, unk_sccs):
 
 
 def print_scc_prolog(config, unk_sccs):
-    if "print_scc_prolog" not in config or not config["print_scc_prolog"]:
+    if not config.get("print_scc_prolog", False):
         return
     if len(unk_sccs) == 0:
         OM.printf("No pending sccs to print as prolog.")
@@ -366,9 +365,9 @@ if __name__ == "__main__":
             print(_name + " version: " + _version)
             exit(0)
         config = vars(args)
-        if "termination" in config and config["termination"] is not None:
+        if config.get("termination", None) is not None:
             config["termination"] = [alg for alg in config["termination"] if alg is not None]
-        if "nontermination" in config and config["nontermination"] is not None:
+        if config.get("nontermination", None) is not None:
             config["nontermination"] = [alg for alg in config["nontermination"] if alg is not None]
         if config["cfr_strategy_scc"] and config["cfr_strategy_after"]:
             raise argparse.ArgumentTypeError("CFR strategies `scc` and `after` can not be applied together.")

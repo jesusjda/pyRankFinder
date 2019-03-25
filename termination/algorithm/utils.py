@@ -1,3 +1,44 @@
+def create_rfs(nodes, num_variables=0, num_functions=1, different_template=False, dt_scheme="default"):
+    if len(nodes) == 0:
+        return {}, []
+
+    from lpi import Expression
+
+    def create(method, N_vars, M_funcs, taken_vars, f):
+        return method(N_vars, M_funcs, taken_vars, f)
+
+    def f_dt_default(N_vars, M_funcs, taken_vars, _f):
+        F = []
+        for i in range(M_funcs):
+            name = "a_" + str(i) + "_"
+            new_f = get_free_name(taken_vars, name=name, num=N_vars + 1)
+            F.append(new_f)
+            taken_vars += new_f
+        fv = [[Expression(v) for v in fi] for fi in F]
+        return fv
+
+    def f_dt_inh(_N_vars, M_funcs, taken_vars, f):
+        F = []
+        for i in range(M_funcs):
+            name = "b_" + str(i) + "_"
+            new_f = get_free_name(taken_vars, name=name, num=1)
+            F.append(f[i][1:] + [Expression(new_f[0])])
+            taken_vars += new_f
+        return F
+
+    f_method = lambda _a, _b, _c, f: f
+    if different_template:
+        if dt_scheme == "default":
+            f_method = f_dt_default
+        elif dt_scheme == "inhomogeneous":
+            f_method = f_dt_inh
+
+    taken_vars = []
+    fv = create(f_dt_default, num_variables, num_functions, [], [])
+    rfs = {n: create(f_method, num_variables, num_functions, taken_vars, fv) for n in nodes}
+    return rfs, taken_vars
+
+
 def get_rf(coeff_variables, variables, point):
     """
     Assume variables[0] is the independent term
@@ -28,12 +69,11 @@ def generate_prime_names(vs, others):
 
 def get_free_name(others, name="x", num=1):
     names = []
-    variables = others
     i = 0
     for __ in range(num):
         v = name + str(i)
         i += 1
-        while v in variables or v in names:
+        while v in others or v in names:
             v = name + str(i)
             i += 1
         names.append(v)

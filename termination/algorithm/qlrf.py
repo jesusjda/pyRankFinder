@@ -7,6 +7,7 @@ from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
 from .utils import get_free_name
+from .utils import create_rfs
 
 
 class QLRF_ADFG(Algorithm):
@@ -17,39 +18,19 @@ class QLRF_ADFG(Algorithm):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, different_template=False):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         response = Result()
         transitions = cfg.get_edges()
+        nodes = cfg.get_nodes()
         gvs = cfg.get_info("global_vars")
         Nvars = int(len(gvs) / 2)
-        # farkas Variables
-        rfvars = {}
         # farkas constraints
         farkas_constraints = []
         # return objects
-        rfs = {}  # rfs coefficients (result)
         no_ranked = []  # transitions sets no ranked by rfs
-        # other stuff
-        taken_vars = []
         # 1.1 - store rfs variables
+        rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
         from lpi import Expression
-        if different_template:
-            for tr in transitions:
-                # taken_vars += tr["local_vars"]
-                if not(tr["source"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    taken_vars += f
-                    rfvars[tr["source"]] = [Expression(v) for v in f]
-                if not(tr["target"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    taken_vars += f
-                    rfvars[tr["target"]] = [Expression(v) for v in f]
-        else:
-            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-            taken_vars += f
-            exp_f = [Expression(v) for v in f]
-            for n in cfg.get_nodes():
-                rfvars[n] = exp_f
 
         # 1.2 - store delta variables
         ds = get_free_name(taken_vars, name="d", num=len(transitions))
@@ -57,8 +38,8 @@ class QLRF_ADFG(Algorithm):
         deltas = {transitions[i]["name"]: ds[i] for i in range(len(transitions))}
 
         for tr in transitions:
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
             poly = tr["polyhedron"]
 
             Mcons = len(poly.get_constraints())
@@ -107,8 +88,9 @@ class QLRF_ADFG(Algorithm):
                                   info="F === 0 " + str(point))
             return response
 
+        rfs = {}
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], gvs, point)
+            rfs[node] = get_rf(rfvars[node][0], gvs, point)
 
             no_ranked = [tr for tr in transitions
                          if(point[0][deltas[tr["name"]]] == 0)]
@@ -154,13 +136,12 @@ class QLRF_BG(Algorithm):
     def __init__(self, properties={}):
         self.props = properties
 
-    def run(self, cfg, different_template=False):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         response = Result()
         transitions = cfg.get_edges()
         gvs = cfg.get_info("global_vars")
+        nodes = cfg.get_nodes()
         Nvars = int(len(gvs) / 2)
-        # farkas Variables
-        rfvars = {}
         # farkas constraints
         farkas_constraints = []
         # return objects
@@ -168,37 +149,19 @@ class QLRF_BG(Algorithm):
         no_ranked = []  # transitions sets no ranked by rfs
         freeConsts = []
         rf_vars = []
-        # other stuff
-        taken_vars = []
         # 1.1 - store rfs variables
-        from lpi import Expression
+        rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
         if different_template:
-            for tr in transitions:
-                # taken_vars += tr["local_vars"]
-                if not(tr["source"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    freeConsts.append(f[0])
-                    rf_vars += f[1:]
-                    taken_vars += f
-                    rfvars[tr["source"]] = [Expression(v) for v in f]
-                if not(tr["target"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    freeConsts.append(f[0])
-                    rf_vars += f[1:]
-                    taken_vars += f
-                    rfvars[tr["target"]] = [Expression(v) for v in f]
-        else:
-            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-            taken_vars += f
-            freeConsts.append(f[0])
-            rf_vars += f[1:]
-            exp_f = [Expression(v) for v in f]
-            for n in cfg.get_nodes():
-                rfvars[n] = exp_f
+            accum = 1
+            for _n in nodes:
+                freeConsts.append(taken_vars[accum - 1])
+                rf_vars += taken_vars[accum: accum + Nvars]
+                accum += Nvars + 1
+        from lpi import Expression
 
         for tr in transitions:
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
             poly = tr["polyhedron"]
             Mcons = len(poly.get_constraints())
             # f_s >= 0
@@ -220,8 +183,9 @@ class QLRF_BG(Algorithm):
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="No relative interior point")
             return response
+
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], gvs, point)
+            rfs[node] = get_rf(rfvars[node][0], gvs, point)
 
         # check if rfs are non-trivial
         nonTrivial = False

@@ -5,6 +5,7 @@ from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
 from .utils import get_free_name
+from .utils import create_rfs
 
 
 class PR(Algorithm):
@@ -12,42 +13,22 @@ class PR(Algorithm):
     NAME = "lrf_pr"
     DESC = "Podelski-Rybalchenko Algorithm for Linear Ranking Functions"
 
-    def run(self, cfg, different_template=False):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         transitions = cfg.get_edges()
         gvs = cfg.get_info("global_vars")
+        nodes = cfg.get_nodes()
         Nvars = int(len(gvs) / 2)
         response = Result()
-        # farkas Variables
-        rfvars = {}
         # farkas constraints
         farkas_constraints = []
-        # rfs coefficients (result)
-        rfs = {}
-        # other stuff
-        taken_vars = []
+
         # 1.1 - store rfs variables
+        rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
         from lpi import Expression
-        if different_template:
-            for tr in transitions:
-                # taken_vars += tr["local_vars"]
-                if not(tr["source"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    taken_vars += f
-                    rfvars[tr["source"]] = [Expression(v) for v in f]
-                if not(tr["target"] in rfvars):
-                    f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-                    taken_vars += f
-                    rfvars[tr["target"]] = [Expression(v) for v in f]
-        else:
-            f = get_free_name(taken_vars, name="a_", num=Nvars + 1)
-            taken_vars += f
-            exp_f = [Expression(v) for v in f]
-            for n in cfg.get_nodes():
-                rfvars[n] = exp_f
 
         for tr in transitions:
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
             poly = tr["polyhedron"]
             Mcons = len(poly.get_constraints())
 
@@ -71,6 +52,7 @@ class PR(Algorithm):
             response.set_response(status=TerminationResult.UNKNOWN,
                                   info="LRF: Farkas Polyhedron is empty.")
             return response
+        rfs = {}
         for node in rfvars:
             rfs[node] = get_rf(rfvars[node], gvs, point)
 
