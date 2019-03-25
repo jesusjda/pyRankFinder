@@ -87,7 +87,7 @@ def analyse(config, cfg):
                 R_nt = False
                 # analyse termination
                 if can_be_terminate:
-                    R = analyse_scc_termination(t_algs, scc, dt_modes=dt_modes)
+                    R = analyse_scc_termination(t_algs, scc, dt_modes=dt_modes, dt_scheme=config["different_template_scheme"])
                 if not R or not R.get_status().is_terminate():
                     # analyse NON-termination
                     if can_be_nonterminate:
@@ -221,7 +221,7 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=5):
     return False
 
 
-def analyse_scc_termination(algs, cfg, dt_modes=[False]):
+def analyse_scc_termination(algs, cfg, dt_modes=[False], dt_scheme="default"):
     trans = cfg.get_edges()
     answer = Result()
     OM.lazy_printif(1, lambda: "SCC\n+-- Transitions: {}\n+-- Nodes: {}".format(', '.join(sorted([t["name"] for t in trans])),
@@ -241,7 +241,7 @@ def analyse_scc_termination(algs, cfg, dt_modes=[False]):
     for dt in dt_modes:
         if dt:
             OM.printif(1, "- Using Different Template")
-        R = run_algs(algs, cfg, different_template=dt)
+        R = run_algs(algs, cfg, different_template=dt, dt_scheme=dt_scheme)
         if R.has("info"):
             OM.lazy_printif(1, lambda: R.get("info"))
         if R.get_status().is_terminate():
@@ -251,7 +251,7 @@ def analyse_scc_termination(algs, cfg, dt_modes=[False]):
     return False
 
 
-def run_algs(algs, cfg, different_template=False):
+def run_algs(algs, cfg, different_template=False, dt_scheme="default"):
     response = Result()
     R = None
     f = False
@@ -265,7 +265,8 @@ def run_algs(algs, cfg, different_template=False):
         OM.printif(1, "--> with: " + str(alg))
 
         R = alg.run(cfg,
-                    different_template=different_template)
+                    different_template=different_template,
+                    dt_scheme=dt_scheme)
 
         OM.lazy_printif(3, R.debug)
         if R.get_status().is_terminate():
