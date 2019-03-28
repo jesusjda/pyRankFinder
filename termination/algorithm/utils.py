@@ -4,9 +4,6 @@ def create_rfs(nodes, num_variables=0, num_functions=1, different_template=False
 
     from lpi import Expression
 
-    def create(method, N_vars, M_funcs, taken_vars, f):
-        return method(N_vars, M_funcs, taken_vars, f)
-
     def f_dt_default(N_vars, M_funcs, taken_vars, _f):
         F = []
         for i in range(M_funcs):
