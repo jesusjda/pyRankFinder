@@ -71,7 +71,7 @@ class Result:
                 res += self._rfs2str(rfs[i], vars_name)
             res += "]"
         else:
-            for node in rfs:
+            for node in sorted(rfs.keys()):
                 res += node + ": " + self._rflist2str(rfs[node], vars_name)
                 res += "\n"
         return res
