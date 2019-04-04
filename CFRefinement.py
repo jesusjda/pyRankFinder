@@ -96,9 +96,11 @@ def launch_file(config, f):
     writef = config["output_destination"] is not None
     console = not writef or config["ei_out"]
     invariant.set_configuration(config)
+    sufix = ""
     try:
         config["name"] = extractname(f)
         cfg = genericparser.parse(f)
+        cfg.build_polyhedrons()
         invariant.compute_invariants(cfg, add_to_polyhedron=True)
         pe_cfg = control_flow_refinement(cfg, config,
                                          console=console, writef=writef)
@@ -106,7 +108,7 @@ def launch_file(config, f):
             config["show_with_invariants"] = True
             invariant.compute_invariants(pe_cfg, add_to_polyhedron=True)
             if config["cfr_iterations"] > 0:
-                sufix = "_cfr" + str(config["cfr_iterations"])
+                sufix += "_cfr" + str(config["cfr_iterations"])
             sufix += "_with_inv" + str(config["invariants"])
             showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef)
     except Exception as e:
