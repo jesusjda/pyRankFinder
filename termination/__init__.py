@@ -74,7 +74,10 @@ def analyse(config, cfg):
 
             cfg_cfr = current_cfg
             if cfr_scc and cfr_num > 0 and cfr_num <= cfr["cfr_max_tries"]:
-                cfg_cfr = control_flow_refinement(prepare_scc(cfg, current_cfg, config["invariants"]), cfr)
+                to_cfr = prepare_scc(cfg, current_cfg, config["invariants"])
+                showgraph(to_cfr, config, sufix="_scc_to_be_cfr", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+                cfg_cfr = control_flow_refinement(to_cfr, cfr)
+                showgraph(cfg_cfr, config, sufix="_scc_cfr", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
                 cfr_num += 1
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
             sccd -= 1

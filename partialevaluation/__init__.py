@@ -243,6 +243,7 @@ def prepare_scc(cfg, scc, invariant_type):
             new_t["local_vars"] = []
             new_t["constraints"] = inv
             new_t["polyhedron"] = C_Polyhedron(inv, variables=cfg.get_info("global_vars"))
+            new_t["linear"] = True
             scc_copy.add_edge(**new_t)
     scc_copy.set_info("init_node", init_node)
     scc_copy.set_info("entry_nodes", [init_node])
