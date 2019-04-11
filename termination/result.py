@@ -149,7 +149,7 @@ class Result:
             res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
                 ",".join([t["name"] for t in ts]), ",".join(ns))
             if sol.has("close_walk"):
-                res_str += "Closed walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
+                res_str += "Closed walk: " + len(sol.get("close_walk")) + " -> " + ", ".join([t["name"]for t in sol.get("close_walk")])
             if sol.has("info"):
                 res_str += "\n- " + sol.get("info") + "\n"
             if sol.has("fixpoint"):
