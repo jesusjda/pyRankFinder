@@ -50,6 +50,7 @@ def analyse(config, cfg):
     if cfr_before:
         cfg = control_flow_refinement(cfg, cfr)
         invariant.compute_invariants(cfg, add_to_polyhedron=True)
+        cfg.remove_unsat_edges()
         showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
     # cfr loop
     cfr_it = -1
@@ -142,8 +143,10 @@ def analyse(config, cfg):
             OM.printif(3, "Nodes on the way:", way_nodes)
             cfg.remove_nodes_from([n for n in cfg.get_nodes() if n not in way_nodes])
             cfg = control_flow_refinement(cfg, cfr, only_nodes=important_nodes)
-            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if "n_" + n1 == n[:len(n1) + 2]]
+            prefix = "n_" * cfr["cfr_iterations"]
+            new_important_nodes = [n for n in cfg.get_nodes() for n1 in important_nodes if prefix + n1 == n[:len(n1) + len(prefix)]]
             invariant.compute_invariants(cfg, add_to_polyhedron=True)
+            cfg.remove_unsat_edges()
             OM.printif(3, "Important nodes from the cfr graph:", new_important_nodes)
             showgraph(cfg, config, sufix="cfr_after_" + str(cfr_it), console=config["print_graphs"],
                       writef=False, output_formats=["fc", "svg"])
