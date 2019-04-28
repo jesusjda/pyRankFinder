@@ -78,6 +78,8 @@ def analyse(config, cfg):
                 to_cfr = prepare_scc(cfg, current_cfg, config["invariants"])
                 showgraph(to_cfr, config, sufix="_scc_to_be_cfr", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
                 cfg_cfr = control_flow_refinement(to_cfr, cfr)
+                invariant.compute_invariants(cfg_cfr, add_to_polyhedron=True)
+                cfg_cfr.remove_unsat_edges()
                 showgraph(cfg_cfr, config, sufix="_scc_cfr", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
                 cfr_num += 1
             CFGs_aux = cfg_cfr.get_scc() if sccd > 0 else [cfg_cfr]
