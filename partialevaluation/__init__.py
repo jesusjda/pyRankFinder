@@ -3,6 +3,7 @@ import re
 from termination.output import Output_Manager as OM
 from subprocess import PIPE
 from subprocess import Popen
+from lpi import Expression
 
 __all__ = ['partialevaluate', 'control_flow_refinement', 'prepare_scc']
 
@@ -202,6 +203,9 @@ def prepare_scc(cfg, scc, invariant_type):
     it = 0
     from copy import deepcopy
     entries = scc.get_info("entry_nodes")
+    gvars = scc.get_info("global_vars")
+    N = int(len(gvars)/2)
+    identity = [Expression(gvars[i+N])==Expression(gvars[i]) for i in range(N)]
     for entry in entries:
         num_t = 0
         for t in []:  # cfg.get_edges(target=entry):
@@ -241,8 +245,8 @@ def prepare_scc(cfg, scc, invariant_type):
             except Exception:
                 inv = []
             new_t["local_vars"] = []
-            new_t["constraints"] = inv
-            new_t["polyhedron"] = C_Polyhedron(inv, variables=cfg.get_info("global_vars"))
+            new_t["constraints"] = inv+identity
+            new_t["polyhedron"] = C_Polyhedron(new_t["constraints"], variables=gvars[:])
             new_t["linear"] = True
             scc_copy.add_edge(**new_t)
     scc_copy.set_info("init_node", init_node)
