@@ -1,3 +1,4 @@
+from lpi import Expression
 try:
     from enum import Enum
 except ImportError:
@@ -6,8 +7,10 @@ except ImportError:
             if name in self:
                 return name
             raise AttributeError
-from ppl import Generator
 from .output import Output_Manager as OM
+
+__all__ = ["TerminationResult", "Result"]
+
 
 class TerminationResult(Enum):
     TERMINATE = "Terminate"
@@ -31,6 +34,7 @@ class TerminationResult(Enum):
 
     def __repr__(self):
         return self.__str__()
+
 
 class Result:
 
@@ -67,14 +71,14 @@ class Result:
                 res += self._rfs2str(rfs[i], vars_name)
             res += "]"
         else:
-            for node in rfs:
+            for node in sorted(rfs.keys()):
                 res += node + ": " + self._rflist2str(rfs[node], vars_name)
                 res += "\n"
         return res
 
     def _rflist2str(self, rfs, vars_name=None):
         res = ""
-        if isinstance(rfs, Generator):
+        if isinstance(rfs, Expression):
             res += OM.tostr(rfs, vars_name)
         else:
             res += "< "
@@ -97,12 +101,12 @@ class Result:
             if coeffs[i] == 1:
                 sr += str(vars_name[i]) + " + "
                 continue
-            sr = (sr + "" + str(coeffs[i]) + " * " + 
+            sr = (sr + "" + str(coeffs[i]) + " * " +
                   str(vars_name[i]) + " + ")
         sr += "" + str(inh)
         return sr
 
-    def toString(self, vars_name=None, ei=False):
+    def toString(self, vars_name=None):
         res_str = "MAYBE\n"
         if self.get_status().is_terminate():
             res_str = "YES\n"
@@ -110,11 +114,12 @@ class Result:
             res_str = "NO\n"
         if self._data["status"].is_error():
             return res_str + "\nERROR: " + self._data["errormsg"]
- 
+        if "info" in self._data:
+            res_str += "\n" + str(self._data["info"])
         if "rfs" in self._data:
             res_str += self._rfs(self._data["rfs"], vars_name)
-        if "scc_sols_nt" in self._data:
-            res_str += self._scc_sols_nt(self._data["scc_sols_nt"], vars_name)
+        if "nonterminate" in self._data:
+            res_str += self._scc_nonterminate(self._data["nonterminate"], vars_name)
         if "unknown_sccs" in self._data:
             res_str += self._unknown_sccs(self._data["unknown_sccs"])
         return res_str
@@ -132,30 +137,28 @@ class Result:
             return ""
         return self._rfs2str(rfs, vars_name)
 
-    def _scc_sols_nt(self, scc_sols_nt, vars_name):
-        if len(scc_sols_nt) == 0:
+    def _scc_nonterminate(self, sols_nt, vars_name):
+        if len(sols_nt) == 0:
             return ""
         res_str = "\nNON-Termination: (Didn't check reachability)\n"
         res_str += "----------------\n"
-        for scc, sol in scc_sols_nt:
-            vs_name = scc.get_info("global_vars")
+        for sol in sols_nt:
+            scc = sol.get("graph")
             ns = scc.get_nodes()
             ts = scc.get_edges()
             res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
                 ",".join([t["name"] for t in ts]), ",".join(ns))
             if sol.has("close_walk"):
-                res_str += "Checking closed walk: " + ", ".join([t["name"]for t in sol.get("close_walk")])
+                res_str += "Closed walk: " + len(sol.get("close_walk")) + " -> " + ", ".join([t["name"]for t in sol.get("close_walk")])
             if sol.has("info"):
-                res_str += "\n- "+sol.get("info") +"\n"
-            if sol.has("model"):
-                res_str += "\n Model not shown for simplicity.\n"
+                res_str += "\n- " + sol.get("info") + "\n"
+            if sol.has("fixpoint"):
+                res_str += "-> {"
+                fx = sol.get("fixpoint")
+                res_str += ", ".join(["{}: {}".format(v, fx[v]) for v in fx])
+                res_str += "}\n"
             if sol.has("rec_set"):
-                from termination.algorithm.utils import generate_names
-                N = int(len(vs_name)/2)
-                rec_set = sol.get("rec_set")
-                dim = rec_set.get_dimension() - 2*N
-                lvs = generate_names(["local"+str(i) for i in range(dim)], vs_name)
-                res_str += OM.tostr(rec_set.get_constraints(), vs_name[:N]+lvs+vs_name[N:]) + "\n"
+                res_str += str(sol.get("rec_set"))
         return res_str
 
     def _unknown_sccs(self, unk_sccs):

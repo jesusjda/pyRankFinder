@@ -1,84 +1,62 @@
-from lpi import C_Polyhedron
-from ppl import Constraint_System
-from ppl import Variable
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
-
 from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
-from .utils import get_use_z3
-from .utils import max_dim
-from termination.output import Output_Manager as OM
+from .utils import get_free_name
+from .utils import create_rfs
+
 
 class PR(Algorithm):
     ID = "pr"
     NAME = "lrf_pr"
     DESC = "Podelski-Rybalchenko Algorithm for Linear Ranking Functions"
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         transitions = cfg.get_edges()
-
-        dim = max_dim(transitions)
-        Nvars = int(dim / 2)
+        gvs = cfg.get_info("global_vars")
+        nodes = cfg.get_nodes()
+        Nvars = int(len(gvs) / 2)
         response = Result()
-        use_z3 = get_use_z3(self.props, use_z3)
-        shifter = 0
-        if different_template:
-            shifter = Nvars + 1
-        # farkas Variables
-        rfvars = {}
         # farkas constraints
         farkas_constraints = []
-        # rfs coefficients (result)
-        rfs = {}
-        # other stuff
-        countVar = 0
-        for tr in transitions:
-            if not(tr["source"] in rfvars):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["source"]] = f
-                countVar += shifter
-            if not(tr["target"] in rfvars):
-                f = [Variable(i)
-                     for i in range(countVar, countVar + Nvars + 1)]
-                rfvars[tr["target"]] = f
-                countVar += shifter
-        if shifter == 0:
-            countVar += Nvars + 1
+
+        # 1.1 - store rfs variables
+        rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
+        from lpi import Expression
 
         for tr in transitions:
-            rf_s = rfvars[tr["source"]]
-            rf_t = rfvars[tr["target"]]
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
             poly = tr["polyhedron"]
             Mcons = len(poly.get_constraints())
 
             # f_s >= 0
             # f_s - f_t >= 1
-            lambdas = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
-            lambdas2 = [Variable(k) for k in range(countVar, countVar + Mcons)]
-            countVar += Mcons + 1
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            lambdas2 = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas2
             farkas_constraints += farkas.LRF(poly,
-                                             [lambdas, lambdas2],
+                                             [[Expression(v) for v in lambdas],
+                                              [Expression(v) for v in lambdas2]],
                                              rf_s, rf_t)
-        farkas_poly = C_Polyhedron(Constraint_System(farkas_constraints))
-        
-        point = farkas_poly.get_point(use_z3=use_z3)
-        if point is None:
+        # 2 - Get Point
+        from lpi import Solver
+        s = Solver()
+        s.add(farkas_constraints)
+        point = s.get_point(taken_vars)
+
+        if point[0] is None:
             response.set_response(status=TerminationResult.UNKNOWN,
-                                  info="LRF: Farkas Polyhedron is empty.",
-                                  pending_trs=transitions)
+                                  info="LRF: Farkas Polyhedron is empty.")
             return response
-
+        rfs = {}
         for node in rfvars:
-            rfs[node] = get_rf(rfvars[node], point)
+            rfs[node] = get_rf(rfvars[node][0], gvs, point)
 
-        response.set_response(status=TerminationResult.TERMINATE,
-                              rfs=rfs,
-                              pending_trs=[])
+        response.set_response(status=TerminationResult.TERMINATE, rfs=rfs)
         return response
 
 

@@ -1,6 +1,3 @@
-from lpi import C_Polyhedron
-from ppl import Constraint_System
-from ppl import Variable
 from termination import farkas
 from termination.output import Output_Manager as OM
 from termination.result import Result
@@ -8,8 +5,8 @@ from termination.result import TerminationResult
 from .manager import Algorithm
 from .manager import Manager
 from .utils import get_rf
-from .utils import get_use_z3
-from .utils import max_dim
+from .utils import get_free_name
+from .utils import create_rfs
 
 
 class QNLRF(Algorithm):
@@ -27,28 +24,24 @@ class QNLRF(Algorithm):
             desc += ": " + str(cls.DESC)
         return desc
 
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False, dt_scheme="default"):
         response = Result()
         all_transitions = cfg.get_edges()
-        use_z3 = get_use_z3(self.props, use_z3)
+        nodes = cfg.get_nodes()
+        gvs = cfg.get_info("global_vars")
+        Nvars = int(len(gvs) / 2)
         max_d = self.props["max_depth"] + 1
         min_d = self.props["min_depth"]
         version = self.props["version"]
-        dim = max_dim(all_transitions)
-        Nvars = int(dim / 2)
 
         for tr_idx in range(len(all_transitions)):
             main_tr = all_transitions[tr_idx]
-            transitions = [all_transitions[j]
-                           for j in range(len(all_transitions))
-                           if j != tr_idx]
+            transitions = all_transitions[:tr_idx] + all_transitions[tr_idx + 1:]
+
             OM.printif(2, "trying with : " + main_tr["name"])
             for d in range(min_d, max_d):
                 OM.printif(2, "\td = ", d)
                 # 0 - create variables
-                shifter = 0
-                if different_template:
-                    shifter = (Nvars + 1) * (d)
                 # 0.1 - farkas Variables
                 rfvars = {}
                 # 0.2 - farkas constraints
@@ -56,72 +49,67 @@ class QNLRF(Algorithm):
                 # 0.3 - return objects
                 rfs = {}  # rfs coefficients (result)
                 # 0.4 - other stuff
-                countVar = 0
+                taken_vars = []
 
                 # 1 - init variables
                 # 1.1 - store rfs variables
-                for tr in all_transitions:
-                    if not(tr["source"] in rfvars):
-                        f = [[Variable(i)
-                              for i in range(countVar + (Nvars + 1) * di,
-                                             countVar + (Nvars + 1) * (di + 1))]
-                             for di in range(d)]
-                        rfvars[tr["source"]] = f
-                        countVar += shifter
-                    if not(tr["target"] in rfvars):
-                        f = [[Variable(i)
-                              for i in range(countVar + (Nvars + 1) * di,
-                                             countVar + (Nvars + 1) * (di + 1))]
-                             for di in range(d)]
-                        rfvars[tr["target"]] = f
-                        countVar += shifter
-                if shifter == 0:
-                    countVar += (Nvars + 1) * d
+                rfvars, taken_vars = create_rfs(nodes, Nvars, d, different_template=different_template, dt_scheme=dt_scheme)
+                from lpi import Expression
+
                 # 1.2 - calculate farkas constraints
                 rf_s = rfvars[main_tr["source"]]
                 rf_t = rfvars[main_tr["target"]]
                 poly = main_tr["polyhedron"]
                 Mcons = len(poly.get_constraints())
 
-                lambdas = [[Variable(countVar + k + Mcons * di)
-                            for k in range(Mcons)]
-                           for di in range(d + 1)]
-                countVar += Mcons * (d + 1)
+                lambdas = []
+                for di in range(d + 1):
+                    name = "l_" + str(di) + "_"
+                    li = get_free_name(taken_vars, name=name, num=Mcons)
+                    lambdas.append([Expression(l) for l in li])
+                    taken_vars += li
+
                 # 1.2.3 - NLRF for tr
                 farkas_constraints += farkas.NLRF(poly, lambdas,
                                                   rf_s, rf_t)
-                # 1.2.4 - df >= 0 for each tri != tr
+                # 1.2.4 - for each tri != tr
 
                 for tr2 in transitions:
                     Mcons2 = len(tr2["polyhedron"].get_constraints())
                     rf_s2 = rfvars[tr2["source"]]
                     rf_t2 = rfvars[tr2["target"]]
                     if version == 2:
-                        lambdas = [[Variable(countVar + k + Mcons2 * di)
-                                    for k in range(Mcons2)]
-                                   for di in range(d)]
-                        countVar += Mcons2 * d
+                        # fs[0] - ft[0] >= 0
+                        # (fs[i] - ft[i]) + fs[i-1] >= 0
+                        lambdas = []
+                        for di in range(d):
+                            name = "l2_" + str(di) + "_"
+                            li = get_free_name(taken_vars, name=name, num=Mcons2)
+                            lambdas.append([Expression(l) for l in li])
+                            taken_vars += li
+
                         farkas_constraints += farkas.QNLRF(tr2["polyhedron"],
                                                            lambdas, rf_s2,
                                                            rf_t2, 0)
-                    else:
+                    else:  # fs[i] - ft[i] >= 0 for each i=0...(d-1)
                         for di in range(d):
-                            lambdas = [Variable(countVar + k)
-                                       for k in range(Mcons2)]
+                            lambdas = get_free_name(taken_vars, name="l", num=Mcons2)
+                            taken_vars += lambdas
                             farkas_constraints += farkas.df(tr2["polyhedron"],
-                                                            lambdas, rf_s2[di],
-                                                            rf_t2[di], 0)
-                            countVar += Mcons2
+                                                            [Expression(l) for l in lambdas],
+                                                            rf_s2[di], rf_t2[di], 0)
 
-                # 2 - Polyhedron
-                farkas_poly = C_Polyhedron(
-                    Constraint_System(farkas_constraints))
-                point = farkas_poly.get_point(use_z3=use_z3)
-                if point is None:
-                    continue  # not found, try with next d
+                # 2 - Get Point
+                from lpi import Solver
+                s = Solver()
+                s.add(farkas_constraints)
+                point = s.get_point(taken_vars)
+
+                if point[0] is None:
+                    continue  # not found, try with next d or t
 
                 for node in rfvars:
-                    rfs[node] = [get_rf(rfvars[node][di], point)
+                    rfs[node] = [get_rf(rfvars[node][di], gvs, point)
                                  for di in range(d)]
 
                 response.set_response(status=TerminationResult.TERMINATE,
@@ -131,8 +119,7 @@ class QNLRF(Algorithm):
                 return response
 
         response.set_response(status=TerminationResult.UNKNOWN,
-                              info="Not found: max_d = " + str(max_d - 1) + " .",
-                              pending_trs=transitions)
+                              info="Not found: max_d = " + str(max_d - 1) + " .")
         return response
 
     @classmethod

@@ -1,6 +1,5 @@
-from copy import deepcopy
-
 __all__ = ["PolyhedraAbstractState", "IntervalAbstractState", "state"]
+
 
 class AbstractState(object):
 
@@ -11,43 +10,33 @@ class AbstractState(object):
         if not(type(self) is type(s)):
             raise TypeError("Not same type of State")
 
-    def copy(self, copy=True):
-        if copy:
-            return deepcopy(self)
-        else:
-            return self
+    def copy(self, copy=True): raise NotImplementedError()
 
-    def lub(self, s2, copy=False):
-        pass
+    def lub(self, s2, copy=False): raise NotImplementedError()
 
     def widening(self, s2, threshold=None, copy=False):
         if threshold is not None:
-            print("state widening with threshold")
-            print(s2, threshold)
             self.extrapolation_assign(s2, threshold, copy)
         else:
-            #print("state widening")
             self.widening_assign(s2, copy)
 
-    def apply_tr(self, tr, copy=False):
-        pass
+    def widening_assign(self, s2, copy=False): raise NotImplementedError()
 
-    def get_constraints(self):
-        pass
+    def extrapolation_assign(self, s2, threshold, copy=False): raise NotImplementedError()
 
-    def __le__(self, s2):
-        pass
+    def apply_tr(self, tr, copy=False): raise NotImplementedError()
 
-    def __deepcopy__(self, memo):
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-        for k, v in self.__dict__.items():
-            setattr(result, k, deepcopy(v, memo))
-        return result
+    def apply_backward_tr(self, tr, copy=False): raise NotImplementedError()
+
+    def get_constraints(self): raise NotImplementedError()
+
+    def __le__(self, s2): raise NotImplementedError()
+
+    def toString(self, eq_symb="==", geq_symb=">="): raise NotImplementedError()
 
     def __repr__(self):
         return "{{{}}}".format(", ".join(self.toString()))
+
 
 from .polyhedra import PolyhedraAbstractState
 from .interval import IntervalAbstractState

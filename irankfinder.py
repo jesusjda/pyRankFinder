@@ -5,25 +5,10 @@ import sys
 from termination import Termination_Algorithm_Manager as TAM
 from termination import NonTermination_Algorithm_Manager as NTAM
 from termination import Output_Manager as OM
-import termination
-from partialevaluation import partialevaluate
-import cProfile
-# from termination.profiler import register_as
+from termination.algorithm.utils import showgraph
 
-def do_cprofile(func):
-    def profiled_func(*args, **kwargs):
-        profile = cProfile.Profile()
-        try:
-            profile.enable()
-            result = func(*args, **kwargs)
-            profile.disable()
-            return result
-        finally:
-            #profile.print_stats('time', 'name')
-            profile.print_stats('launch_file')
-    return profiled_func
 
-_version = "1.0"
+_version = "1.1"
 _name = "irankfinder"
 
 
@@ -32,6 +17,13 @@ def positive(value):
     if ivalue < 0:
         raise argparse.ArgumentTypeError("Minimum value is 0")
     return ivalue
+
+
+def threshold_type(value):
+    from nodeproperties.thresholds import threshold_options
+    if value in threshold_options():
+        return value
+    raise argparse.ArgumentTypeError("{} is not a valid threshold mode.".format(value))
 
 
 def termination_alg(value):
@@ -44,8 +36,8 @@ def termination_alg(value):
 
 
 def termination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(TAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(TAM.options(True)))
 
 
 def nontermination_alg(value):
@@ -54,22 +46,23 @@ def nontermination_alg(value):
     try:
         return NTAM.get_algorithm(value)
     except ValueError:
-        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value)) 
+        raise argparse.ArgumentTypeError("{} is not a valid termination algorithm.".format(value))
 
 
 def nontermination_alg_desc():
-    return ("Algorithms allowed:\n\t"
-            + "\n\t".join(NTAM.options(True)))
+    return ("Algorithms allowed:\n\t" +
+            "\n\t".join(NTAM.options(True)))
 
 
 def setArgumentParser():
-    desc = _name+": a Ranking Function finder on python."
+    desc = _name + ": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
+    dt_scheme_options = ["default", "inhomogeneous"]
     absdomains = ["none", "interval", "polyhedra"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
-    # Program Parameters
+    # Output Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
     argParser.add_argument("-V", "--version", required=False,
@@ -81,68 +74,88 @@ def setArgumentParser():
                            help="Formats to print the graphs.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
-    argParser.add_argument("--tmpdir", required=False, default=None,
+    argParser.add_argument("--tmpdir", required=False, default="",
                            help="Temporary directory.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
-    argParser.add_argument("--fc-out", required=False, action='store_true',
-                           help="Shows the output in fc format")
+    argParser.add_argument("--print-graphs", required=False, action='store_true',
+                           help="Shows the output in fc and svg format")
     # Algorithm Parameters
     argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
-    argParser.add_argument("-sccd", "--scc-depth", type=positive, default=1,
+    argParser.add_argument("-dt-scheme", "--different-template-scheme", required=False,
+                           choices=dt_scheme_options, default=dt_scheme_options[0],
+                           help="Use different templates on each node")
+    argParser.add_argument("-sccd", "--scc-depth", type=positive, default=5,
                            help="Strategy based on SCC to go through the CFG.")
-    argParser.add_argument("-sc", "--simplify-constraints", required=False,
-                           default=False, action='store_true',
-                           help="Simplify constraints")
     argParser.add_argument("-usr-reach", "--user-reachability", required=False,
                            default=False, action='store_true',
                            help="Compute reachability from user constraints")
     argParser.add_argument("-reach", "--reachability", required=False, choices=absdomains,
-                           default="none", help="Analyse reachability")
+                           default="polyhedra", help="Analyse reachability")
     argParser.add_argument("-rniv", "--remove-no-important-variables", required=False,
                            default=False, action='store_true',
                            help="Remove No Important variables before do anything else.")
-    argParser.add_argument("-lib", "--lib", required=False, choices=["ppl", "z3"],
-                           default="z3", help="select lib")
+    argParser.add_argument("-ca", "--check-assertions", action='store_true',
+                           help="Check Invariants with the assertions defined")
+    argParser.add_argument("-rfs-as-cfr-props", "--rfs-as-cfr-props", action='store_true',
+                           help="Print a graph with rfs as user props.")
     # CFR Parameters
-    argParser.add_argument("-cfr-au", "--cfr-automatic-properties", required=False, nargs='+',
-                           type=int, choices=range(0,5), default=[4],
-                           help="")
     argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
                            help="# times to apply cfr", default=0)
-    argParser.add_argument("-cfr-st", "--cfr-strategy", required=False,
-                           choices=["none", "before", "scc", "after", "both"], default="before",
+    argParser.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
+                           help="max tries to apply cfr on scc level", default=4)
+    argParser.add_argument("-cfr-st-before", "--cfr-strategy-before", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-st-scc", "--cfr-strategy-scc", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-st-after", "--cfr-strategy-after", action='store_true',
                            help="")
     argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
                            help="")
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", required=False, choices=absdomains,
-                           default="none", help="CFR with Invariants.")
-    argParser.add_argument("-cfr-sc", "--cfr-simplify-constraints", required=False,
-                           default=False, action='store_true',
-                           help="Simplify constraints when CFR")
-    argParser.add_argument("-cfr-inv-thre", "--cfr-invariants-threshold", required=False,
-                           default=False, action='store_true',
-                           help="Use user thresholds for CFR invariants.")
-    argParser.add_argument("-rec-set", "--recurrent-set", required=False,
+    argParser.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head", "--cfr-head-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-head-var", "--cfr-head-var-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call", "--cfr-call-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
+                           help="")
+    argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
+                           help="CFR with Invariants.")
+    argParser.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
+                           default="all", choices=["john", "cyclecutnodes", "all", "user"], help=".")
+    argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--files", nargs='+', required=True,
                            help="File to be analysed.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
-                           nargs='*', required=False,
+                           nargs='*', required=False, default=[],
                            help=nontermination_alg_desc())
-    argParser.add_argument("-t", "--termination", type=termination_alg,
+    argParser.add_argument("-t", "--termination", type=termination_alg, default=[],
                            nargs='*', required=False,
                            help=termination_alg_desc())
     argParser.add_argument("-ct", "--conditional-termination", required=False,
                            default=False, action='store_true',
-                           help="Do conditional temination over the nodes where we cannot proof termination.")
+                           help="Do conditional termination over the nodes where we cannot proof termination.")
     argParser.add_argument("-i", "--invariants", required=False, choices=absdomains,
                            default="none", help="Compute Invariants.")
-    argParser.add_argument("-ithre", "--invariants-threshold", required=False,
-                           action='store_true', help="Use user thresholds.")
+    argParser.add_argument("-inv-wide-nodes", "--invariant-widening-nodes", required=False, nargs="*",
+                           default=[], help=".")
+    argParser.add_argument("-inv-wide-nodes-mode", "--invariant-widening-nodes-mode", required=False,
+                           default="all", choices=["cyclecutnodes", "all", "user"], help=".")
+    argParser.add_argument("-inv-thre", "--invariants-threshold", required=False, default=[], nargs="+",
+                           type=threshold_type, help="Use thresholds.")
     argParser.add_argument("-sif", "--stop-if-fail", required=False,
                            default=False, action='store_true',
                            help="If an SCC fails the analysis will stop.")
@@ -155,12 +168,10 @@ def extractname(filename):
     c = os.path.splitext(f[1])
     return os.path.join(b[1], c[0])
 
+
 def launch(config):
     files = config["files"]
-    if "outs" in config:
-        outs = config["outs"]
-    else:
-        outs = []
+    outs = config.get("outs", [])
     for i in range(len(files)):
         if(len(files) > 1):
             OM.printf(files[i])
@@ -176,55 +187,6 @@ def parse_file(f):
     import genericparser
     return genericparser.parse(f)
 
-def remove_no_important_variables(cfg, doit=False):
-    if not doit:
-        return
-    def are_related_vars(vs, vas):
-        if len(vs) != 2: 
-            return False
-        N = int(len(vas)/2)
-        try:
-            pos1 = vas.index(vs[0])
-            pos2 = vas.index(vs[1])
-        except:
-            return False
-        return pos1%N == pos2%N
-        
-    gvars = cfg.get_info("global_vars")
-    N = int(len(gvars)/2)
-    nivars = list(gvars[:N])
-    for tr in cfg.get_edges():
-        for c in tr["constraints"]:
-            if c.isequality():
-                if c.get_independent_term() == 0 and are_related_vars(c.get_variables(), gvars):
-                    continue
-            for v in c.get_variables():
-                if v in tr["local_vars"]:
-                    continue
-                pos = gvars.index(v)
-                vt = gvars[pos%N]
-                if vt in nivars:
-                    nivars.remove(vt)
-
-            if len(nivars) == 0:
-                break
-        if len(nivars) == 0:
-            break
-    count = 0
-    for v in nivars:
-        pos = gvars.index(v)
-        vp = gvars[pos+N]
-        for tr in cfg.get_edges():
-            for c in list(tr["constraints"]):
-                vs = c.get_variables()
-                if v in vs or vp in vs:
-                    count += 1
-                    tr["constraints"].remove(c)
-        pos = gvars.index(v)
-        gvars.pop(pos+N)
-        gvars.pop(pos)
-        N = int(len(gvars)/2)
-    OM.printif(1, "Removed {} constraint(s) with variables: [{}]".format(count, ",".join(nivars)))
 
 def launch_file(config, f, out):
     aux_p = f.split('/')
@@ -246,270 +208,78 @@ def launch_file(config, f, out):
                 f.write(e)
         else:
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+            # raise Exception() from e
         return
+    nodeproperties.invariant.set_configuration(config)
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
     OM.show_output()
-
     config["vars_name"] = cfg.get_info("global_vars")
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
+    # Rechability
+    compute_reachability(cfg, abstract_domain=config["reachability"], do=config["user_reachability"], user_props=True,
+                         threshold_modes=config["invariants_threshold"])
+    # Assertions
+    check_assertions(config, cfg)
 
+    # Compute Termination
+    termination_result = analyse(config, cfg)
+    # Post analyses
+    if termination_result.has("unknown_sccs"):
+        unk_sccs = termination_result.get("unknown_sccs")
+        if termination_result.has("graph"):
+            graph = termination_result.get("graph")
+        else:
+            graph = cfg
+        # from here all is experimental. This doesn't produce termination results.
+        conditional_termination(config, graph, unk_sccs)
+        print_scc_prolog(config, unk_sccs)
+    # Show
     OM.show_output()
     OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if config["user_reachability"]:
-        cfg.build_polyhedrons()
-        compute_reachability(cfg, abstract_domain="polyhedra", use=config["user_reachability"], user_props=True,
-                             use_threshold=config["invariants_threshold"])
-        return None
-    # Compute Termination
-    from termination import Result
-    termination_result = Result()
-    has_to_run = lambda key: key in config and config[key]
-    if has_to_run("termination"):
-        termination_result = analyse_termination(config , cfg)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if has_to_run("nontermination"):
-        termination_result = analyse_nontermination(config, cfg, termination_result)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    if termination_result:
-        show_result(termination_result, cfg)
-        OM.show_output()
-        OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
-    ncfg = {}
-    ncfg["name"] = config["name"]
-    ncfg["output_destination"] = config["output_destination"]
-    ncfg["output_formats"] = ["fc", "svg"]
-    showgraph(cfg, ncfg, sufix="_anotated", invariant_type=config["invariants"], console=True, writef=False)
+    showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"],
+              writef=False, output_formats=["fc"])
     return termination_result
 
-def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False):
-    if not console and not writef:
+
+def remove_no_important_variables(cfg, doit=False):
+    if not doit:
         return
-    name = config["name"] +str(sufix)
-    destname = config["output_destination"]
-    if destname is None:
-        return
-    show_with_inv = config["show_with_invariants"] if "show_with_invariants" in config else False
-    os.makedirs(os.path.dirname(destname), exist_ok=True)
-    if not show_with_inv:
-        invariant_type = "none"
-    print(invariant_type)
-    from io import StringIO
-    stream = StringIO()
-    if "fc" in config["output_formats"]:
-        cfg.toFc(stream, invariant_type=invariant_type)
-        fcstr=stream.getvalue()
-        if console:
-            OM.printif(0, "Graph {}".format(name), consoleid="source", consoletitle="Fc Source")
-            OM.printif(0, fcstr, format="text", consoleid="source", consoletitle="Fc Source")
-        if writef:
-            OM.writefile(0, name+".fc", fcstr)
-        stream.close()
-        stream = StringIO()
-    if "dot" in config["output_formats"] or "svg" in config["output_formats"]:
-        cfg.toDot(stream, invariant_type=invariant_type)
-        dotstr = stream.getvalue()
-        dotfile = os.path.join(destname, name+".dot")
-        os.makedirs(os.path.dirname(dotfile), exist_ok=True)
-        
-        with open(dotfile, "w") as f:
-            f.write(dotstr)
-        stream.close()
-        stream = StringIO()
-        if "dot" in config["output_formats"] and writef:
-            if console:
-                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-                OM.printif(0, dotstr, format="text", consoleid="graphs", consoletitle="Graphs")
-            if writef:
-                OM.writefile(0, name+".dot", dotstr)
-        if "svg" in config["output_formats"]:
-            svgfile = os.path.join(destname, name+".svg")
-            svgstr = dottoSvg(dotfile, svgfile)
-            if console:
-                OM.printif(0, "Graph {}".format(name), consoleid="graphs", consoletitle="Graphs")
-                OM.printif(0, svgstr, format="svg", consoleid="graphs", consoletitle="Graphs")
-            if writef:
-                OM.writefile(0, name+".svg", svgstr)
-    if "koat" in config["output_formats"]:
-        cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
-        koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")
-        OM.printif(0, koatstr, format="text", consoleid="koat", consoletitle="koat Source")
-        OM.writefile(0, name+".koat", koatstr)
-        stream.close()
-        stream = StringIO()
-    if "pl" in config["output_formats"]:
-        cfg.toProlog(path=stream, invariant_type=invariant_type)
-        koatstr=stream.getvalue()
-        OM.printif(0, "Graph {}".format(name), consoleid="pl", consoletitle="pl Source")
-        OM.printif(0, koatstr, format="text", consoleid="pl", consoletitle="pl Source")
-        OM.writefile(0, name+".pl", koatstr)
-        stream.close()
-        stream = StringIO()
-    stream.close()
+    cons, nivars = cfg.remove_no_important_variables()
+    OM.printif(1, "Removed {} constraint(s) with variable(s): [{}]".format(cons, ",".join(nivars)))
 
-def dottoSvg(dotfile, svgfile):
-    from subprocess import check_call
-    check_call(['dot', '-Tsvg', dotfile ,'-o', svgfile])
-    check_call(['sed', '-i','-e', ':a', '-re', '/<!.*?>/d;/<\?.*?>/d;/<!/N;//ba', svgfile])
-    svgstr = ""
-    with open(svgfile, "r") as f:
-        svgstr += f.read()
-    return svgstr
 
-def file2string(filepath):
-    with open(filepath, 'r') as f:
-        data=f.read()
-    return data
-
-def control_flow_refinement(cfg, config, au_prop=4, console=False, writef=False, only_nodes=[]):
-    cfr_ite = config["cfr_iterations"]
-    cfr_inv = config["cfr_invariants"]
-    # cfr_it_st = config["cfr_iteration_strategy"]
-    cfr_usr_props = config["cfr_user_properties"]
-    cfr_inv_thre = config["cfr_invariants_threshold"]
-    tmpdir = config["tmpdir"]
-    pe_cfg = cfg
-    sufix = ""
-    for it in range(0, cfr_ite):
-        compute_invariants(pe_cfg, abstract_domain=cfr_inv, use=False, use_threshold=cfr_inv_thre)
-        pe_cfg.remove_unsat_edges()
-        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
-        pe_cfg = partialevaluate(pe_cfg, auto_props=au_prop,
-                                 user_props=cfr_usr_props, tmpdir=tmpdir,
-                                 invariant_type=cfr_inv, nodes_to_refine=only_nodes)
-        sufix="_cfr"+str(it+1)
-        if "show_with_invariants" in config and config["show_with_invariants"] and cfr_inv != "none":
-            sufix += "_with_inv_"+str(cfr_inv)
-    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv, console=console, writef=writef)
-    return pe_cfg
-
-def analyse_termination(config, cfg):
-    algs = config["termination"]
-    if "lib" in config:
-        for alg in algs:
-            alg.set_prop("lib", config["lib"])
-    if config["different_template"] == "always":
-        dt_modes = [True]
-    elif config["different_template"] == "iffail":
-        dt_modes = [False, True]
-    else:
-        dt_modes = [False]
-    skip = False
-    if "cfr_strategy" in config:
-        cfr_first = config["cfr_strategy"] in ["before", "both"]
-        cfr_last = config["cfr_strategy"] in ["after", "both"]
-    else:
-        cfr_first = True
-        cfr_last = False
-    for au_prop in config["cfr_automatic_properties"]:
-        if skip:
-            break
-        if config["cfr_iterations"] == 0:
-            skip = True
-        else:
-            OM.printif(1, "- CFR properties: {}".format(au_prop))
-        OM.printseparator(1)
-        rmded = cfg.remove_unsat_edges()
-        if len(rmded)> 0:
-            OM.printif(1, "Removed edges {} because they where unsat.".format(rmded))
-        if cfr_first:
-            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop)
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"])
-        else:
-            pe_cfg = cfg
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}".format("0", "0", "False", "none")
-        compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                           use_threshold=config["invariants_threshold"])
-        r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
-        ncfg = {}
-        ncfg["name"] = config["name"]
-        ncfg["output_destination"] = config["output_destination"]
-        ncfg["output_formats"] = ["fc", "svg"]
-        showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
-        if r.get_status().is_terminate():
-            return r
-    unk_sccs = r.get("unknown_sccs")
-    if cfr_last:
-        num_it = 0
-        while num_it < config["cfr_iterations"] and len(unk_sccs) > 0:
-            num_it += 1
-            OM.printseparator(2)
-            OM.printif(2, "CFR only the nodes where we failed (iteration:{})".format(num_it))
-            only_nodes = []
-            for scc in unk_sccs:
-                only_nodes += scc.get_nodes()
-            OM.printif(2,"Nodes to refine:", only_nodes)
-            if len(only_nodes) == 0:
-                OM.printif(1, "No nodes to refine.")
-                break
-            pe_cfg = control_flow_refinement(cfg, config, au_prop=au_prop, only_nodes=only_nodes)
-            compute_invariants(pe_cfg, abstract_domain=config["invariants"],
-                               use_threshold=config["invariants_threshold"])
-            r = termination.analyse(algs, pe_cfg, sccd=config["scc_depth"],
-                                    dt_modes=dt_modes, stop_if_fail=config["stop_if_fail"])
-            ncfg = {}
-            ncfg["name"] = config["name"]
-            ncfg["output_destination"] = config["output_destination"]
-            ncfg["output_formats"] = ["fc", "svg"]
-            sufix="  iterations:{}, auto:{}, usr:{}, inv:{}, nodes:{}".format(config["cfr_iterations"], au_prop,config["cfr_user_properties"], config["cfr_invariants"], only_nodes)
-            showgraph(pe_cfg, ncfg, sufix=sufix, console=True, writef=False)
-            unk_sccs = r.get("unknown_sccs")
-            OM.printseparator(2)
-    if config["conditional_termination"] and len(unk_sccs) > 0:
-        # analyse reachability for all the nodes where we don't prove termination
-        OM.printseparator(0)
-        OM.printf("Conditional termination (negation of the following conditions) (',' means 'and')")
-        nodes_to_analyse = []
-        for scc in unk_sccs:
-            nodes_to_analyse += scc.get_nodes()
-        if len(nodes_to_analyse) == 0:
-            OM.printf("No nodes to analyse reachability.")
-        else:
-            compute_reachability(pe_cfg,use=False, init_nodes=nodes_to_analyse)
-        OM.printseparator(0)
-    elif "recurrent_set" in config and config["recurrent_set"] and len(unk_sccs) > 0:
-        OM.printseparator(0)
-        count = 0
-        for scc in unk_sccs:
-            scc.toEspecialProlog(config["recurrent_set"], count, config["name"])
-            count += 1
-        OM.printseparator(0)
+def analyse(config, cfg):
+    import termination
+    r = termination.analyse(config, cfg)
+    show_result(r, cfg)
+    rfs_as_cfr_props(config, cfg, r)
     return r
 
 
-def analyse_nontermination(config, cfg, termination_result):
-    sols = []
-    if termination_result is not None and termination_result.has("unknown_sccs"):
-        unk_sccs = termination_result.get("unknown_sccs")
-    else:
-        unk_sccs = cfg.get_scc()
+def rfs_as_cfr_props(config, cfg, result):
+    if not config.get("rfs_as_cfr_props", False):
+        return
+    if not result.has("rfs") or len(result.get("rfs").keys()) == 0:
+        showgraph(cfg, config, sufix="_rfs_as_cfr", invariant_type=config["invariants"], console=config["print_graphs"],
+                  writef=True, output_formats=["fc"])
+        OM.printf("ERROR: no rfs to use as cfr props")
+        return
+    from lpi.expressions import Expression
+    rfs = result.get("rfs")
 
-    from termination.result import TerminationResult
-    for scc in unk_sccs[:]:
-        if len(scc.get_edges()) == 0:
-            #OM.printif(2, "CFG ranked because it is empty.")
-            continue
-        for t in scc.get_edges():
-            if t["polyhedron"].is_empty():
-                #OM.printif(2, "Transition ("+t["name"]+") removed because it is empty.")
-                scc.remove_edge(t["source"], t["target"], t["name"])
-                continue
-        trs = [t["name"] for t in scc.get_edges()]
-        ns = scc.get_nodes()
-        OM.printif(1, "Analysing NON-termination of SCC:\n\t+-- Transitions:{}\n\t+-- Nodes:{}".format(trs,ns))
-        r = termination.analyse_nontermination(config["nontermination"], scc, close_walk_depth=5, stop_if_fail=config["stop_if_fail"])
-        if r.get_status().is_nonterminate():
-            sols.append((scc,r))
-            unk_sccs.remove(scc)
-            termination_result.set_response(status=TerminationResult.NONTERMINATE)
-            if config["stop_if_fail"]:
-                break
-    termination_result.set_response(unknown_sccs=unk_sccs, scc_sols_nt=sols)
-    return termination_result
+    def toconstraint(cs):
+        if isinstance(cs, Expression):
+            return [[cs >= 0], [cs < 0]]
+        sol = []
+        for c in cs:
+            sol += toconstraint(c)
+        return sol
+    props = {n: toconstraint(rfs[n]) for n in rfs}
+    cfg.set_nodes_info(props, "cfr_rfs_properties")
+    showgraph(cfg, config, sufix="_rfs_as_cfr", invariant_type=config["invariants"], console=config["print_graphs"],
+              writef=True, output_formats=["fc"])
+
 
 def show_result(result, cfg):
     OM.printseparator(1)
@@ -522,32 +292,69 @@ def show_result(result, cfg):
     OM.printseparator(1)
 
 
-def compute_invariants(cfg, abstract_domain, use=True, use_threshold=False):
-    cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_invariants(cfg, abstract_domain, use_threshold=use_threshold)
-    if use:
-        OM.printseparator(1)
-        OM.printif(1, "INVARIANTS ({})".format(abstract_domain))
-        gvars = cfg.get_info("global_vars")
-        OM.printif(1, "\n".join(["-> " + str(n) + " = " +
-                                 str(node_inv[n].toString(gvars))
-                                 for n in sorted(node_inv)]))
-        OM.printseparator(1)
-    if use:
-        nodeproperties.use_invariants(cfg, abstract_domain)
+def check_assertions(config, cfg):
+    if not config.get("check_assertions", False):
+        return
+    elif config["invariants"] == "none":
+        OM.printf("ERROR: Please select an abstract domain for invariants.")
+        return
+    OM.printf("Computing and checking invariants...")
+    nodeproperties.invariant.compute_invariants(cfg, check=True, add_to_polyhedron=False)
+    showgraph(cfg, config, sufix="", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
+    if config["cfr_strategy_before"]:
+        OM.printf("Refining graph...")
+        from partialevaluation import control_flow_refinement
+        cfg = control_flow_refinement(cfg, config)
+        OM.printf("Computing and checking invariants...")
+        nodeproperties.invariant.compute_invariants(cfg, check=True, add_to_polyhedron=False)
+        showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])
 
-def compute_reachability(cfg, abstract_domain="polyhedra", use=True, use_threshold=False, user_props=False, init_nodes=[]):
+
+def conditional_termination(config, cfg, unk_sccs):
+    if not config.get("conditional_termination", False):
+        return
+    if len(unk_sccs) == 0:
+        OM.printf("No pending sccs to analyse conditional termination")
+        return
+    # analyse reachability for all the nodes where we don't prove termination
+    OM.printseparator(0)
+    OM.printf("Conditional termination (negation of the following conditions) (',' means 'and')")
+    nodes_to_analyse = []
+    for scc in unk_sccs:
+        nodes_to_analyse += scc.get_nodes()
+    if len(nodes_to_analyse) == 0:
+        OM.printf("No nodes to analyse reachability.")
+    else:
+        compute_reachability(cfg, threshold_modes=config["invariants_thresholds"], init_nodes=nodes_to_analyse)
+    OM.printseparator(0)
+
+
+def print_scc_prolog(config, unk_sccs):
+    if not config.get("print_scc_prolog", False):
+        return
+    if len(unk_sccs) == 0:
+        OM.printf("No pending sccs to print as prolog.")
+        return
+    OM.printseparator(0)
+    count = 0
+    for scc in unk_sccs:
+        scc.toEspecialProlog(config["print_scc_prolog"], count, config["name"])
+        count += 1
+    OM.printseparator(0)
+
+
+def compute_reachability(cfg, abstract_domain="polyhedra", do=True, threshold_modes=[], user_props=False, init_nodes=[]):
+    if not do:
+        return
     cfg.build_polyhedrons()
-    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, use_threshold=use_threshold, user_props=user_props, init_nodes=init_nodes)
-    if use:
-        OM.printseparator(0)
-        OM.printf("REACHABILITY ({})".format(abstract_domain))
-    gvars = cfg.get_info("global_vars")
+    node_inv = nodeproperties.compute_reachability(cfg, abstract_domain, threshold_modes=threshold_modes,
+                                                   user_props=user_props, init_nodes=init_nodes)
+    OM.printseparator(0)
+    OM.printf("REACHABILITY ({})".format(abstract_domain))
     OM.printf("\n".join(["-> " + str(n) + " = " +
-                         str(node_inv[n].toString(gvars))
+                         str(node_inv[n])
                          for n in sorted(node_inv)]))
-    if use:
-        OM.printseparator(0)
+    OM.printseparator(0)
 
 
 if __name__ == "__main__":
@@ -560,13 +367,12 @@ if __name__ == "__main__":
             print(_name + " version: " + _version)
             exit(0)
         config = vars(args)
-        if "termination" in config and config["termination"] is not None:
+        if config.get("termination", None) is not None:
             config["termination"] = [alg for alg in config["termination"] if alg is not None]
-        if "nontermination" in config and config["nontermination"] is not None:
+        if config.get("nontermination", None) is not None:
             config["nontermination"] = [alg for alg in config["nontermination"] if alg is not None]
-        # if(not(config["termination"]) and
-        #   not(config["nontermination"])):
-        #    argParser.error("Either --termination or --nontermination algorithms is required.")
+        if config["cfr_strategy_scc"] and config["cfr_strategy_after"]:
+            raise argparse.ArgumentTypeError("CFR strategies `scc` and `after` can not be applied together.")
         launch(config)
     finally:
         OM.show_output()

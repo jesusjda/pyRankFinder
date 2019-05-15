@@ -1,13 +1,9 @@
-from termination.profiler import register_as
-
-
 class Algorithm(object):
 
     def __init__(self, properties={}):
         self.props = properties
 
-    @register_as("runalgorithm")
-    def run(self, cfg, different_template=False, use_z3=None):
+    def run(self, cfg, different_template=False):
         raise NotImplementedError()
 
     @classmethod
@@ -17,10 +13,14 @@ class Algorithm(object):
         if data[0] == cls.ID:
             try:
                 c = cls()
-            except Exception:
-                raise 
+            except Exception as e:
+                raise Exception() from e
             return c
         return None
+
+    @classmethod
+    def use_close_walk(cls):
+        return False
 
     @classmethod
     def description(cls, long=False):
@@ -53,16 +53,15 @@ class Algorithm(object):
         if "version" in self.props and str(self.props["version"]) != 1:
             cad_name += "v" + str(self.props["version"])
         if "min_depth" in self.props:
-            cad_name += "_" + str(self.props["min_depth"])  
+            cad_name += "_" + str(self.props["min_depth"])
         if "max_depth" in self.props:
-            cad_name += "_" + str(self.props["max_depth"])  
+            cad_name += "_" + str(self.props["max_depth"])
         return cad_name
 
 
 class Manager:
-    
+
     @classmethod
-    @register_as("getalgorithm")
     def get_algorithm(cls, token):
         if isinstance(token, str):
             data = token.split("_")
