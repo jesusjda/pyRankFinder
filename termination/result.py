@@ -153,7 +153,7 @@ class Result:
             if sol.has("close_walk"):
                 res_str += "Closed walk: " + str(len(sol.get("close_walk"))) + " -> " + ", ".join([t["name"] for t in sol.get("close_walk")])
                 if sol.has("deterministic"):
-                    res_str += "deterministic: {}".format(sol.get("deterministic"))
+                    res_str += "\ndeterministic: {}".format(sol.get("deterministic"))
             if sol.has("info"):
                 res_str += "\n- " + sol.get("info") + "\n"
             if sol.has("fixpoint"):
