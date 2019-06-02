@@ -163,20 +163,32 @@ def analyse(config, cfg):
             CFGs = new_sccs + CFGs
         else:
             stop_all = True
-
+    determ = None
     status = TerminationResult.UNKNOWN
     if can_be_nonterminate and len(nonterminating_sccs) > 0:
         status = TerminationResult.NONTERMINATE
     elif len(maybe_sccs) > 0:
+        determ = True
+        for scc in maybe_sccs:
+            for t in scc.get_edges():
+                print(t["name"])
+                determ = scc.is_deterministic(t["name"])
+                if not determ:
+                    break
+            if not determ:
+                break
         status = TerminationResult.UNKNOWN
     elif can_be_terminate:
         status = TerminationResult.TERMINATE
     response = Result()
+
+
     response.set_response(status=status,
                           rfs=dict(rfs),
                           terminate=terminating_sccs[:],
                           nonterminate=nonterminating_sccs[:],
                           unknown_sccs=maybe_sccs[:],
+                          deterministic=determ,
                           graph=original_cfg)
     return response
 
@@ -225,6 +237,12 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=20):
             for a in cw_algs:
                 response = a.run(scc, cw)
                 if response.get_status().is_nonterminate():
+                    determ = True
+                    for t in cw:
+                        determ = scc.is_deterministic(t["name"])
+                        if not determ:
+                            break
+                    response.set_response(deterministic=determ)
                     return response
     return False
 
