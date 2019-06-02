@@ -171,7 +171,6 @@ def analyse(config, cfg):
         determ = True
         for scc in maybe_sccs:
             for t in scc.get_edges():
-                print(t["name"])
                 determ = scc.is_deterministic(t["name"])
                 if not determ:
                     break
