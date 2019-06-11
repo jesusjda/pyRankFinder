@@ -193,3 +193,42 @@ def compute_way_nodes(cfg, target_nodes):
         ns = cfg.get_all_nodes_between(init, n)
         way_nodes.update(ns)
     return way_nodes
+
+
+def is_notdeterministic(cons, gvars):
+    N = int(len(gvars) / 2)
+    _vars, _pvars = gvars[:N], gvars[N:]
+    pending = _pvars[:]
+    for c in cons:
+        pv = False
+        vs = c.get_variables()
+        for v in vs:
+            if v in _pvars:
+                if v in pending:
+                    pending.remove(v)
+                if pv:
+                    return True
+                pv = True
+                cf = c.get_coefficient(v)
+                if cf != 1 and cf != -1:
+                    return True
+            elif v not in _vars:
+                return True
+    if len(pending) > 0:
+        return True
+    return False
+
+
+def check_determinism(trs, gvars):
+    from genericparser import constants
+
+    def is_deterministic(tr):
+        const_det = constants.transition.isdeterministic
+        if const_det not in tr or tr[const_det] is None:
+            tr[const_det] = not is_notdeterministic(tr[constants.transition.constraints], gvars)
+        return tr[const_det]
+
+    determ = True
+    for tr in trs:
+        determ = determ and is_deterministic(tr)
+    return determ
