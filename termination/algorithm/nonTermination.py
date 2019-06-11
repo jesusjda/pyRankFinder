@@ -20,7 +20,7 @@ class FixPoint(Algorithm):
     def use_close_walk(cls):
         return True
 
-    def run(self, cfg, close_walk=[]):
+    def run(self, cfg, close_walk=[], domain="Z"):
         """
         looking for a fixpoint in a close walk:
         [n0] -(x, xP)-> [n1] -(xP, x2)-> [n2] -(x2, x)-> [n0]
@@ -45,7 +45,10 @@ class FixPoint(Algorithm):
                   if c.is_linear()]
             cons += cs
             tr_idx += Nvars
-        s = Solver()
+        if domain == "Z":
+            s = Solver(variable_type="int", coefficient_type="int")
+        else:
+            s = Solver()
         s.add(cons)
         point, __ = s.get_point(taken_vars)
         response = Result()
@@ -90,7 +93,7 @@ class MonotonicRecurrentSets(Algorithm):
             return cls(properties)
         return None
 
-    def run(self, cfg, close_walk=[]):
+    def run(self, cfg, close_walk=[], domain="Z"):
         """
         looking for a Monotonic Recurrent Set in a close walk:
         [n0] -(x0, x1)-> [n1] -(x1, x2)-> [n2] -(x2, xP)-> [n0]
@@ -186,3 +189,64 @@ class NonTermination(Manager):
                 continue
             return alg
         raise ValueError("Not Valid token")
+
+
+def reachability(cfg, goal, goal_nodes, source=None, domain="Q"):
+    if source is None:
+        from genericparser import constants
+        source = cfg.get_info(constants.initnode)
+    from lpi import Solver
+    from genericparser import constants as gconsts
+    for cons, path in bfs_paths(cfg, source, goal_nodes, goal):
+        if domain == "Z":
+            s = Solver(variable_type="int", coefficient_type="int")
+        else:
+            s = Solver()
+        s.add(cons)
+        OM.printif(3, s)
+        if s.is_sat():
+            OM.printif(1, "reachable with path", path)
+            OM.printif(1, s.get_point(cfg.get_info(gconsts.variables)))
+            return True
+        else:
+            OM.printif(1, "NO reachable with path", path)
+    return False
+
+
+def bfs_paths(cfg, source, target, goal):
+    from genericparser import constants as gconsts
+    targets = [target] if not isinstance(target, list) else target
+    gvars = cfg.get_info(gconsts.variables)
+    N = int(len(gvars) / 2)
+    _vars = gvars[:N]
+    _pvars = gvars[N:]
+
+    def gen_names(vs, it):
+        return vs[:] if it == 0 else [v + "#" + str(it) for v in vs]
+
+    def gen_local(vs, it):
+        return gen_names(vs, "L" + str(it))
+
+    def add_tr(cons, tr, it):
+        tr_vars = gen_names(_vars, it - 1) + gen_names(_vars, it) + gen_local(tr[gconsts.transition.localvariables], it)
+        cons = cons + [c for c in tr[gconsts.transition.polyhedron].get_constraints(tr_vars)
+                       if c.is_linear()]
+        return cons
+
+    trs = {t["name"]: t for t in cfg.get_edges()}
+    trs["#dummy"] = {"target": source}
+    queue = [([], ["#dummy"])]
+
+    while queue:
+        (cons, path) = queue.pop(0)
+        last = path[-1]
+        for tr in cfg.get_edges(source=trs[last]["target"]):
+            if path.count(tr["name"]) >= 2:
+                continue
+            new_cons = add_tr(cons, tr, len(path))
+            if tr["target"] in targets:
+                tr_vars = gen_names(_vars, len(path)) + _pvars + gen_local(goal.get_variables()[2 * N:], len(path))
+                new_cons = new_cons + goal.get_constraints(tr_vars)
+                yield (new_cons, path[1:] + [tr["name"]])
+            else:
+                queue.append((new_cons, path + [tr["name"]]))

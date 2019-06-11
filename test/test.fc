@@ -2,17 +2,28 @@
   vars: [x,y],
   pvars: [x',y'],
   initnode: n0,
+  domain: Q,
   transitions: [
     {
-	source: n1,
-	target: n1,
-	name: t1,
-	constraints: [x >= 0, x' = 10 +  y, y' = y]
-    },{
 	source: n0,
 	target: n1,
 	name: t0,
-	constraints: [x' = x, y' = y]
-    }
+	constraints: [y>=1, x' = 10, y' = y]
+    },{
+	source: n1,
+	target: n1,
+	name: t1,
+	constraints: [y >= 0, x' = x, y' = y - 2]
+    },{
+	source: n1,
+	target: n2,
+	name: t2,
+	constraints: [y <=0,  x' = x, y' = y]
+    },{
+	source: n2,
+	target: n2,
+	name: t3,
+	constraints: [x >= 0, x' = x + y, y' = y]
+    },
   ]
 }
