@@ -58,7 +58,8 @@ class FixPoint(Algorithm):
             response.set_response(status=TerminationResult.NONTERMINATE,
                                   info="FixPoint Found",
                                   close_walk=close_walk,
-                                  fixpoint=fixpointvalue)
+                                  fixpoint=fixpointvalue,
+                                  nt_argument=C_Polyhedron(constraints=cons, variables=taken_vars))
         else:
             OM.printif(1, "No fixpoint found.")
             response.set_response(status=TerminationResult.UNKNOWN,
@@ -161,7 +162,8 @@ class MonotonicRecurrentSets(Algorithm):
                 response.set_response(status=TerminationResult.NONTERMINATE,
                                       info="Recurrent Set Found:",
                                       close_walk=close_walk,
-                                      rec_set=tr_poly)
+                                      rec_set=tr_poly,
+                                      nt_argument=tr_poly)
                 return response
             tr_poly = tr_poly_p
             depth += 1

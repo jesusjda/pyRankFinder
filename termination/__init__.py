@@ -249,10 +249,8 @@ def analyse_reachability(cfg, cw, response, domain):
     if not response.get_status().is_nonterminate():
         return response
     ntargument = None
-    if response.has("rec_set"):
-        ntargument = response.get("rec_set")
-    elif response.has("fixpoint"):
-        ntargument = response.get("fixpoint")
+    if response.has("nt_argument"):
+        ntargument = response.get("nt_argument")
     else:
         raise Exception("no nt argument...")
     from termination.algorithm.nonTermination import reachability
