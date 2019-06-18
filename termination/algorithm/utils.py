@@ -206,6 +206,8 @@ def is_notdeterministic_1(cons, gvars, usedvs):
             if not usedvs.get(v, True):
                 continue
             if v in _pvars:
+                if not c.is_equality():
+                    return True
                 if v in pending:
                     pending.remove(v)
                 if pv:
@@ -230,6 +232,8 @@ def is_notdeterministic_0(cons, gvars):
         vs = c.get_variables()
         for v in vs:
             if v in _pvars:
+                if not c.is_equality():
+                    return True
                 if v in pending:
                     pending.remove(v)
                 if pv:
@@ -260,7 +264,7 @@ def used_vars(trs, gvars):
             vs = c.get_variables()
             if len(vs) == 0:
                 continue
-            elif len(vs) == 2:
+            elif c.is_equality() and len(vs) == 2:
                 if vs[0] in gvars and vs[1] in gvars:
                     i1 = gvars.index(vs[0])
                     i2 = gvars.index(vs[1])
