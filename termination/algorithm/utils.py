@@ -163,6 +163,16 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             OM.writefile(0, completename + ".pl", koatstr)
         stream.close()
         stream = StringIO()
+    if "smt2" in output_formats:
+        cfg.toSMT2(path=stream, invariant_type=invariant_type)
+        koatstr = stream.getvalue()
+        if console:
+            OM.printif(0, "Graph {}".format(name), consoleid="smt2", consoletitle="smt2 Source")
+            OM.printif(0, koatstr, format="text", consoleid="smt2", consoletitle="smt2 Source")
+        if writef:
+            OM.writefile(0, completename + ".smt2", koatstr)
+        stream.close()
+        stream = StringIO()
     stream.close()
 
 

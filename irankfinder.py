@@ -95,6 +95,7 @@ def setArgumentParser():
     domains = ["Z", "Q", "user"]
     dt_scheme_options = ["default", "inhomogeneous"]
     absdomains = ["none", "interval", "polyhedra"]
+    output_formats = ["fc", "dot", "svg", "koat", "pl", "smt2"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -107,7 +108,7 @@ def setArgumentParser():
     argParser.add_argument("-od", "--output-destination", required=False,
                            help="Folder to save output files.")
     argParser.add_argument("-of", "--output-formats", required=False, nargs='+',
-                           choices=["fc", "dot", "koat", "pl", "svg"], default=["fc", "dot", "svg"],
+                           choices=output_formats, default=output_formats[:3],
                            help="Formats to print the graphs.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
