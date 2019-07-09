@@ -8,6 +8,7 @@ from nodeproperties import invariant
 from partialevaluation import control_flow_refinement
 from partialevaluation import prepare_scc
 from .algorithm.utils import compute_way_nodes
+from termination.algorithm.utils import check_determinism
 
 __all__ = ["NonTermination_Algorithm_Manager", "Termination_Algorithm_Manager", "Output_Manager", "Result", "TerminationResult", "analyse"]
 
@@ -97,7 +98,7 @@ def analyse(config, cfg):
                 if not R or not R.get_status().is_terminate():
                     # analyse NON-termination
                     if can_be_nonterminate:
-                        R_nt = analyse_scc_nontermination(nt_algs, scc)
+                        R_nt = analyse_scc_nontermination(nt_algs, cfg, scc, domain=config["domain"], do_reachability=config["nt_reachability"])
                         if R_nt and R_nt.get_status().is_nonterminate():
                             R_nt.set_response(graph=scc)
                             nonterminating_sccs.append(R_nt)
@@ -163,20 +164,27 @@ def analyse(config, cfg):
             CFGs = new_sccs + CFGs
         else:
             stop_all = True
-
+    determ = None
     status = TerminationResult.UNKNOWN
     if can_be_nonterminate and len(nonterminating_sccs) > 0:
         status = TerminationResult.NONTERMINATE
     elif len(maybe_sccs) > 0:
+        determ = True
+        for scc in maybe_sccs:
+            determ = check_determinism(scc.get_edges(), scc.get_info("global_vars"))
+            if not determ:
+                break
         status = TerminationResult.UNKNOWN
     elif can_be_terminate:
         status = TerminationResult.TERMINATE
     response = Result()
+
     response.set_response(status=status,
                           rfs=dict(rfs),
                           terminate=terminating_sccs[:],
                           nonterminate=nonterminating_sccs[:],
                           unknown_sccs=maybe_sccs[:],
+                          deterministic=determ,
                           graph=original_cfg)
     return response
 
@@ -211,7 +219,7 @@ def prepare_cfr_config(config):
     return cfr, cfr_before, cfr_scc, cfr_after
 
 
-def analyse_scc_nontermination(algs, scc, close_walk_depth=20):
+def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", do_reachability=False):
     cw_algs = [a for a in algs if a.use_close_walk()]
     nt_algs = [a for a in algs if not a.use_close_walk()]
     if len(nt_algs) > 0:
@@ -220,13 +228,41 @@ def analyse_scc_nontermination(algs, scc, close_walk_depth=20):
             if response.get_status().is_nonterminate():
                 return response
     if len(cw_algs) > 0:
-        for cw in scc.get_close_walks(close_walk_depth):
+        for cw in scc.get_close_walks(close_walk_depth, 1, linear=True):
             OM.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
+            determ = check_determinism(cw, scc.get_info("global_vars"))
+            if not determ and domain == "Z":
+                OM.printif(1, "\t- Skiping because is not DET and domain is Z.")
+                continue
             for a in cw_algs:
-                response = a.run(scc, cw)
+                response = a.run(scc, cw, domain)
+                response.set_response(reachability=False)
+                if do_reachability:
+                    response = analyse_reachability(cfg, cw, response, domain)
                 if response.get_status().is_nonterminate():
+                    response.set_response(deterministic=determ)
                     return response
     return False
+
+
+def analyse_reachability(cfg, cw, response, domain):
+    if not response.get_status().is_nonterminate():
+        return response
+    ntargument = None
+    if response.has("nt_argument"):
+        ntargument = response.get("nt_argument")
+    else:
+        raise Exception("no nt argument...")
+    from termination.algorithm.nonTermination import reachability
+    from genericparser import constants as gconsts
+    targets = list(set([tr["source"] for tr in cw]))
+
+    if reachability(cfg, ntargument, targets, domain=domain):
+        response.set_response(reachability=True)
+        return response
+    response.set_response(status=TerminationResult.UNKNOWN,
+                          info="NTargument not reachable")
+    return response
 
 
 def analyse_scc_termination(algs, cfg, dt_modes=[False], dt_scheme="default"):

@@ -122,6 +122,8 @@ class Result:
             res_str += self._scc_nonterminate(self._data["nonterminate"], vars_name)
         if "unknown_sccs" in self._data:
             res_str += self._unknown_sccs(self._data["unknown_sccs"])
+            if "deterministic" in self._data and self._data["deterministic"] is not None:
+                res_str += "deterministic: {}".format(self._data["deterministic"])
         return res_str
 
     def _rfs(self, rfs, vars_name=None):
@@ -140,7 +142,7 @@ class Result:
     def _scc_nonterminate(self, sols_nt, vars_name):
         if len(sols_nt) == 0:
             return ""
-        res_str = "\nNON-Termination: (Didn't check reachability)\n"
+        res_str = "\nNON-Termination:\n"
         res_str += "----------------\n"
         for sol in sols_nt:
             scc = sol.get("graph")
@@ -149,7 +151,13 @@ class Result:
             res_str += "SCC:\n+--transitions: {}\n+--nodes: {}\n".format(
                 ",".join([t["name"] for t in ts]), ",".join(ns))
             if sol.has("close_walk"):
-                res_str += "Closed walk: " + len(sol.get("close_walk")) + " -> " + ", ".join([t["name"]for t in sol.get("close_walk")])
+                res_str += "Closed walk: " + str(len(sol.get("close_walk"))) + " -> " + ", ".join([t["name"] for t in sol.get("close_walk")])
+                if sol.has("deterministic"):
+                    res_str += "\ndeterministic: {}".format(sol.get("deterministic"))
+                if sol.has("reachability") and sol.get("reachability"):
+                    res_str += "\nReachability checked!"
+                else:
+                    res_str += "\nDidn't check reachability"
             if sol.has("info"):
                 res_str += "\n- " + sol.get("info") + "\n"
             if sol.has("fixpoint"):

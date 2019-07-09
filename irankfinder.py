@@ -54,14 +54,52 @@ def nontermination_alg_desc():
             "\n\t".join(NTAM.options(True)))
 
 
+def setCFRArgumentsParser(group):
+    group.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
+                       help="# times to apply cfr", default=0)
+    group.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
+                       help="max tries to apply cfr on scc level", default=4)
+    group.add_argument("-cfr-st-before", "--cfr-strategy-before", action='store_true',
+                       help="")
+    group.add_argument("-cfr-st-scc", "--cfr-strategy-scc", action='store_true',
+                       help="")
+    group.add_argument("-cfr-st-after", "--cfr-strategy-after", action='store_true',
+                       help="")
+    group.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-head", "--cfr-head-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-head-var", "--cfr-head-var-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-call", "--cfr-call-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
+                       help="")
+    group.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
+                       help="CFR with Invariants.")
+    group.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
+                       default=[], help=".")
+    group.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
+                       default="all", choices=["john", "cyclecutnodes", "all", "user"], help=".")
+
+
 def setArgumentParser():
     desc = _name + ": a Ranking Function finder on python."
     dt_options = ["never", "iffail", "always"]
+    domains = ["Z", "Q", "user"]
     dt_scheme_options = ["default", "inhomogeneous"]
     absdomains = ["none", "interval", "polyhedra"]
+    output_formats = ["fc", "dot", "svg", "koat", "pl", "smt2"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
+    setCFRArgumentsParser(argParser.add_argument_group('cfr', "CFR parameters"))
     # Output Parameters
     argParser.add_argument("-v", "--verbosity", type=int, choices=range(0, 5),
                            help="increase output verbosity", default=0)
@@ -70,7 +108,7 @@ def setArgumentParser():
     argParser.add_argument("-od", "--output-destination", required=False,
                            help="Folder to save output files.")
     argParser.add_argument("-of", "--output-formats", required=False, nargs='+',
-                           choices=["fc", "dot", "koat", "pl", "svg"], default=["fc", "dot", "svg"],
+                           choices=output_formats, default=output_formats[:3],
                            help="Formats to print the graphs.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
@@ -81,6 +119,9 @@ def setArgumentParser():
     argParser.add_argument("--print-graphs", required=False, action='store_true',
                            help="Shows the output in fc and svg format")
     # Algorithm Parameters
+    argParser.add_argument("-d", "--domain", required=False,
+                           choices=domains, default=domains[0],
+                           help="Domain of the variables")
     argParser.add_argument("-dt", "--different-template", required=False,
                            choices=dt_options, default=dt_options[0],
                            help="Use different templates on each node")
@@ -101,39 +142,6 @@ def setArgumentParser():
                            help="Check Invariants with the assertions defined")
     argParser.add_argument("-rfs-as-cfr-props", "--rfs-as-cfr-props", action='store_true',
                            help="Print a graph with rfs as user props.")
-    # CFR Parameters
-    argParser.add_argument("-cfr-it", "--cfr-iterations", type=int, choices=range(0, 5),
-                           help="# times to apply cfr", default=0)
-    argParser.add_argument("-cfr-mx-t", "--cfr-max-tries", type=int, choices=range(0, 5),
-                           help="max tries to apply cfr on scc level", default=4)
-    argParser.add_argument("-cfr-st-before", "--cfr-strategy-before", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-st-scc", "--cfr-strategy-scc", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-st-after", "--cfr-strategy-after", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-usr", "--cfr-user-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-cone", "--cfr-cone-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-head", "--cfr-head-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-head-var", "--cfr-head-var-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-call", "--cfr-call-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
-                           help="")
-    argParser.add_argument("-cfr-inv", "--cfr-invariants", action='store_true',
-                           help="CFR with Invariants.")
-    argParser.add_argument("-cfr-nodes", "--cfr-nodes", required=False, nargs="*",
-                           default=[], help=".")
-    argParser.add_argument("-cfr-nodes-mode", "--cfr-nodes-mode", required=False,
-                           default="all", choices=["john", "cyclecutnodes", "all", "user"], help=".")
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
@@ -142,6 +150,9 @@ def setArgumentParser():
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
                            nargs='*', required=False, default=[],
                            help=nontermination_alg_desc())
+    argParser.add_argument("-nt-reach", "--nt-reachability", required=False,
+                           default=False, action='store_true',
+                           help="Analyse reachability when NT algorithms says NO.")
     argParser.add_argument("-t", "--termination", type=termination_alg, default=[],
                            nargs='*', required=False,
                            help=termination_alg_desc())
@@ -188,7 +199,8 @@ def parse_file(f):
     return genericparser.parse(f)
 
 
-def launch_file(config, f, out):
+def launch_file(gconfig, f, out):
+    config = dict(gconfig)
     aux_p = f.split('/')
     aux_c = len(aux_p) - 1
     while aux_c > 0:
@@ -210,6 +222,8 @@ def launch_file(config, f, out):
             OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
             # raise Exception() from e
         return
+    if "domain" in config and config["domain"] == "user":
+        config["domain"] = cfg.get_info("domain")
     nodeproperties.invariant.set_configuration(config)
     OM.restart(odest=out, cdest=r)
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
@@ -305,6 +319,7 @@ def check_assertions(config, cfg):
         OM.printf("Refining graph...")
         from partialevaluation import control_flow_refinement
         cfg = control_flow_refinement(cfg, config)
+        cfg.remove_unsat_edges()
         OM.printf("Computing and checking invariants...")
         nodeproperties.invariant.compute_invariants(cfg, check=True, add_to_polyhedron=False)
         showgraph(cfg, config, sufix="cfr_before", console=config["print_graphs"], writef=False, output_formats=["fc", "svg"])

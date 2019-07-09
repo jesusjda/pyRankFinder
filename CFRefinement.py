@@ -21,6 +21,7 @@ def threshold_type(value):
 def setArgumentParser():
     desc = _name + ": Control Flow refinement."
     absdomains = ["none", "interval", "polyhedra"]
+    output_formats = ["fc", "dot", "svg", "koat", "pl", "smt2"]
     argParser = argparse.ArgumentParser(
         description=desc,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -31,8 +32,8 @@ def setArgumentParser():
                            action='store_true', help="Shows the version.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
-    argParser.add_argument("-of", "--output_formats", required=False, nargs='+',
-                           choices=["fc", "dot", "koat", "pl", "svg"], default=["fc", "dot", "svg"],
+    argParser.add_argument("-of", "--output-formats", required=False, nargs='+',
+                           choices=output_formats, default=output_formats[:3],
                            help="Formats to print the graphs.")
     argParser.add_argument("-od", "--output-destination", required=False,
                            help="Folder to save output files.")
