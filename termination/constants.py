@@ -32,7 +32,7 @@ class cfr:
         head_var = "cfr_head_var_properties"
         call = "cfr_call_properties"
         call_var = "cfr_call_var_properties"
-        john = "cfr_john_properties"
+        john = "cfr_head_deep_properties"
 
 
 class config:
@@ -83,5 +83,5 @@ class config:
             head_var = "cfr_head_var_properties"
             call = "cfr_call_properties"
             call_var = "cfr_call_var_properties"
-            john = "cfr_john_properties"
+            john = "cfr_head_deep_properties"
             split = "cfr_split_properties"

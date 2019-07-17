@@ -11,7 +11,6 @@ class Output:
     verbosity = 0
     _ei_commands = None
     _ei_actions = None
-    destination = None
     outtxt = ""
 
     def __init__(self):
@@ -24,14 +23,12 @@ class Output:
         self.prevproctime = self.initproctime
         self.ei = False
         self.verbosity = 0
-        self.destination = None
         self.cdest = None
         self.restart()
 
-    def restart(self, ei=None, odest=None, cdest=None, vars_name=[], verbosity=None):
+    def restart(self, ei=None, cdest=None, vars_name=[], verbosity=None):
         if ei is not None:
             self.ei = ei
-        self.destination = odest
         if self.ei:
             if cdest is None:
                 self._ei_commands = eiol.eicommands()
@@ -90,8 +87,6 @@ class Output:
             kkwargs["consoleid"] = consoleid
             kkwargs["consoletitle"] = consoletitle
             self._ei_commands.append(eiol.command_print(content=c, **kkwargs))
-        elif self.destination is not None:
-            self.outtxt += msg + '\n'
         elif msg != "":
             print(msg)
 
@@ -135,11 +130,7 @@ class Output:
             out = re.sub(r'<\?.*\?>', '', out)
         else:
             out = self.outtxt
-        if self.destination is not None:
-            tmpfile = os.path.join(os.path.curdir, self.destination)
-            with open(tmpfile, "w") as f:
-                f.write(out)
-        elif out != "":
+        if out != "":
             print(out)
         return
 

@@ -144,19 +144,19 @@ def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, i
     open(propsfile, 'a').close()
     from nodeproperties.cfrprops import compute_cfrprops
     in_nodes_to_refine = nodes_to_refine
-    if "cfr_john_properties" in props_methods:
+    if "cfr_head_deep_properties" in props_methods:
         jh_p = johns_props1(cfg, pl_file, entry, propsfile, nodes_to_refine)
         if only_john:
             in_nodes_to_refine = [n for n in jh_p if len(jh_p[n]) > 0]
-            OM.printif(1, "johns nodes: ", in_nodes_to_refine)
+            OM.printif(1, "head deep nodes: ", in_nodes_to_refine)
     props = compute_cfrprops(cfg, in_nodes_to_refine, modes=props_methods, invariant_type=invariant_type)
 
     _add_props(propsfile, props, gvars, pvars)
 
     # SAVE PROPS
     OM.printif(2, "CFR with props: {}".format(props))
-    if "cfr_john_properties" in props_methods:
-        OM.printif(2, "CFR john props: {}".format(jh_p))
+    if "cfr_head_deep_properties" in props_methods:
+        OM.printif(2, "CFR head deep props: {}".format(jh_p))
     return propsfile
 
 

@@ -52,7 +52,7 @@ def setArgumentParser():
                            help="")
     argParser.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
                            help="")
-    argParser.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+    argParser.add_argument("-cfr-head-deep", "--cfr-head-deep-properties", action='store_true',
                            help="")
     argParser.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
                            help="")
@@ -74,8 +74,7 @@ def setArgumentParser():
     argParser.add_argument("-inv-wide-nodes-mode", "--invariant-widening-nodes-mode", required=False,
                            default="all", choices=["cyclecutnodes", "all", "user"], help=".")
     # IMPORTANT PARAMETERS
-    argParser.add_argument("-f", "--files", nargs='+', required=True,
-                           help="File to be analysed.")
+    argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
     argParser.add_argument("--tmpdir", required=False, default="/tmp",
                            help="Temporary directory.")
     return argParser
@@ -88,12 +87,7 @@ def extractname(filename):
 
 
 def launch(config):
-    for f in config["files"]:
-        launch_file(config, f)
-        OM.show_output()
-
-
-def launch_file(config, f):
+    f = config["file"]
     writef = config["output_destination"] is not None
     console = not writef or config["ei_out"]
     invariant.set_configuration(config)
@@ -112,6 +106,7 @@ def launch_file(config, f):
                 sufix += "_cfr" + str(config["cfr_iterations"])
             sufix += "_with_inv" + str(config["invariants"])
             showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef)
+        OM.show_output()
     except Exception as e:
         OM.printf("Exception  -> " + str(e))
         raise Exception() from e

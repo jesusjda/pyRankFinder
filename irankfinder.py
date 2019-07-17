@@ -77,7 +77,7 @@ def setCFRArgumentsParser(group):
                        help="")
     group.add_argument("-cfr-call-var", "--cfr-call-var-properties", action='store_true',
                        help="")
-    group.add_argument("-cfr-john", "--cfr-john-properties", action='store_true',
+    group.add_argument("-cfr-head-deep", "--cfr-head-deep-properties", action='store_true',
                        help="")
     group.add_argument("-cfr-split", "--cfr-split-properties", action='store_true',
                        help="")
@@ -145,8 +145,9 @@ def setArgumentParser():
     argParser.add_argument("-scc-pl", "--print-scc-prolog", required=False,
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
-    argParser.add_argument("-f", "--files", nargs='+', required=True,
-                           help="File to be analysed.")
+    argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
+    argParser.add_argument("-npf", "--node-properties-file", required=False,
+                           help="File with the properties of nodes.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
                            nargs='*', required=False, default=[],
                            help=nontermination_alg_desc())
@@ -180,56 +181,35 @@ def extractname(filename):
     return os.path.join(b[1], c[0])
 
 
-def launch(config):
-    files = config["files"]
-    outs = config.get("outs", [])
-    for i in range(len(files)):
-        if(len(files) > 1):
-            OM.printf(files[i])
-        if len(outs) <= i:
-            o = None
-        else:
-            o = outs[i]
-        config["name"] = extractname(files[i])
-        launch_file(config, files[i], o)
-
-
-def parse_file(f):
+def parse_file(f, npf=None):
     import genericparser
-    return genericparser.parse(f)
+    cfg = genericparser.parse(f)
+    if npf is not None:
+        node_props = genericparser.parse_node_props(npf, cfg.get_nodes())
+        for k in node_props:
+            cfg.set_nodes_info(node_props[k], k)
+    return cfg
 
 
-def launch_file(gconfig, f, out):
-    config = dict(gconfig)
-    aux_p = f.split('/')
-    aux_c = len(aux_p) - 1
-    while aux_c > 0:
-        if aux_p[aux_c] == "examples":
-            break
-        if aux_p[aux_c] == "User_Projects":
-            break
-        aux_c -= 1
-    r = None
+def launch(config):
+    f = config["file"]
+    npf = config["node_properties_file"]
+    config["name"] = extractname(f)
     try:
-        cfg = parse_file(f)
+        cfg = parse_file(f, npf)
     except Exception as e:
-        OM.restart(odest=out, cdest=r, vars_name=[])
-        if out is not None:
-            tmpfile = os.path.join(os.path.curdir, out)
-            with open(tmpfile, "w") as f:
-                f.write(e)
-        else:
-            OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
-            # raise Exception() from e
+        OM.restart(vars_name=[])
+        OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+        raise Exception() from e
         return
     if "domain" in config and config["domain"] == "user":
         config["domain"] = cfg.get_info("domain")
     nodeproperties.invariant.set_configuration(config)
-    OM.restart(odest=out, cdest=r)
+    OM.restart()
     remove_no_important_variables(cfg, doit=config["remove_no_important_variables"])
     OM.show_output()
     config["vars_name"] = cfg.get_info("global_vars")
-    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
+    OM.restart(vars_name=config["vars_name"])
     # Rechability
     compute_reachability(cfg, abstract_domain=config["reachability"], do=config["user_reachability"], user_props=True,
                          threshold_modes=config["invariants_threshold"])
@@ -250,7 +230,7 @@ def launch_file(gconfig, f, out):
         print_scc_prolog(config, unk_sccs)
     # Show
     OM.show_output()
-    OM.restart(odest=out, cdest=r, vars_name=config["vars_name"])
+    OM.restart(vars_name=config["vars_name"])
     showgraph(cfg, config, sufix="_node_notes_added", invariant_type=config["invariants"], console=config["print_graphs"],
               writef=False, output_formats=["fc"])
     return termination_result
