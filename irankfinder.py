@@ -182,23 +182,25 @@ def extractname(filename):
 
 
 def parse_file(f, cfgpf=None):
-    import genericparser
-    cfg = genericparser.parse(f)
-    if cfgpf is not None:
-        genericparser.parse_cfg_props(cfgpf, cfg)
-    return cfg
+    try:
+        import genericparser
+        cfg = genericparser.parse(f)
+        if cfgpf is not None:
+            genericparser.parse_cfg_props(cfgpf, cfg)
+        return cfg
+    except Exception as e:
+        OM.restart(vars_name=[])
+        OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+        raise Exception() from e
+        return None
 
 
 def launch(config):
     f = config["file"]
     cfgpf = config["cfg_properties_file"]
     config["name"] = extractname(f)
-    try:
-        cfg = parse_file(f, cfgpf)
-    except Exception as e:
-        OM.restart(vars_name=[])
-        OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
-        raise Exception() from e
+    cfg = parse_file(f, cfgpf)
+    if cfg is None:
         return
     if "domain" in config and config["domain"] == "user":
         config["domain"] = cfg.get_info("domain")

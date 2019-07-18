@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-import genericparser
 from termination import Output_Manager as OM
 from partialevaluation import control_flow_refinement
 from nodeproperties import invariant
@@ -75,6 +74,8 @@ def setArgumentParser():
                            default="all", choices=["cyclecutnodes", "all", "user"], help=".")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
+    argParser.add_argument("-cfgpf", "--cfg-properties-file", required=False,
+                           help="File with the properties of the cfg.")
     argParser.add_argument("--tmpdir", required=False, default="/tmp",
                            help="Temporary directory.")
     return argParser
@@ -86,15 +87,32 @@ def extractname(filename):
     return c[0]
 
 
+def parse_file(f, cfgpf=None):
+    try:
+        import genericparser
+        cfg = genericparser.parse(f)
+        if cfgpf is not None:
+            genericparser.parse_cfg_props(cfgpf, cfg)
+        return cfg
+    except Exception as e:
+        OM.restart(vars_name=[])
+        OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
+        raise Exception() from e
+        return None
+
+
 def launch(config):
     f = config["file"]
+    cfgpf = config["cfg_properties_file"]
     writef = config["output_destination"] is not None
     console = not writef or config["ei_out"]
     invariant.set_configuration(config)
     sufix = ""
     try:
         config["name"] = extractname(f)
-        cfg = genericparser.parse(f)
+        cfg = parse_file(f, cfgpf)
+        if cfg is None:
+            return
         cfg.build_polyhedrons()
         invariant.compute_invariants(cfg, add_to_polyhedron=True)
         pe_cfg = control_flow_refinement(cfg, config,
