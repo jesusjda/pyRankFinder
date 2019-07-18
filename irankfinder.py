@@ -146,7 +146,7 @@ def setArgumentParser():
                            help="File where print, on certain format, sccs that we don't know if terminate.")
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
-    argParser.add_argument("-npf", "--node-properties-file", required=False,
+    argParser.add_argument("-cfgpf", "--cfg-properties-file", required=False,
                            help="File with the properties of nodes.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
                            nargs='*', required=False, default=[],
@@ -181,22 +181,20 @@ def extractname(filename):
     return os.path.join(b[1], c[0])
 
 
-def parse_file(f, npf=None):
+def parse_file(f, cfgpf=None):
     import genericparser
     cfg = genericparser.parse(f)
-    if npf is not None:
-        node_props = genericparser.parse_node_props(npf, cfg.get_nodes())
-        for k in node_props:
-            cfg.set_nodes_info(node_props[k], k)
+    if cfgpf is not None:
+        genericparser.parse_cfg_props(cfgpf, cfg)
     return cfg
 
 
 def launch(config):
     f = config["file"]
-    npf = config["node_properties_file"]
+    cfgpf = config["cfg_properties_file"]
     config["name"] = extractname(f)
     try:
-        cfg = parse_file(f, npf)
+        cfg = parse_file(f, cfgpf)
     except Exception as e:
         OM.restart(vars_name=[])
         OM.printerrf("Parser Error: {}\n{}".format(type(e).__name__, str(e)))
