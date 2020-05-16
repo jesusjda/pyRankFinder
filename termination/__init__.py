@@ -228,12 +228,12 @@ def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", 
             if response.get_status().is_nonterminate():
                 return response
     if len(cw_algs) > 0:
-        for cw in scc.get_close_walks(close_walk_depth, 1, linear=True):
+        for cw in scc.get_close_walks(close_walk_depth, 1, linear=True, deterministic=(domain=="Z")):
             OM.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
-            determ = check_determinism(cw, scc.get_info("global_vars"))
-            if not determ and domain == "Z":
-                OM.printif(1, "\t- Skiping because is not DET and domain is Z.")
-                continue
+            # determ = check_determinism(cw, scc.get_info("global_vars"))
+            # if not determ and domain == "Z":
+            #     OM.printif(1, "\t- Skiping because is not DET and domain is Z.")
+            #     continue
             for a in cw_algs:
                 response = a.run(scc, cw, domain)
                 response.set_response(reachability=False)
