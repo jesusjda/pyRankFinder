@@ -205,42 +205,16 @@ def compute_way_nodes(cfg, target_nodes):
     return way_nodes
 
 
-def is_notdeterministic_1(cons, gvars, usedvs):
+def is_notdeterministic(cons, gvars, usedvs):
     N = int(len(gvars) / 2)
     _vars, _pvars = gvars[:N], gvars[N:]
-    pending = [v for v in _pvars if usedvs[v]]
+    pending = [v for v in _pvars if usedvs.get(v,True)]
     for c in cons:
         pv = False
         vs = c.get_variables()
         for v in vs:
             if not usedvs.get(v, True):
                 continue
-            if v in _pvars:
-                if not c.is_equality():
-                    return True
-                if v in pending:
-                    pending.remove(v)
-                if pv:
-                    return True
-                pv = True
-                cf = c.get_coefficient(v)
-                if cf != 1 and cf != -1:
-                    return True
-            elif v not in _vars:
-                return True
-    if len(pending) > 0:
-        return True
-    return False
-
-
-def is_notdeterministic_0(cons, gvars):
-    N = int(len(gvars) / 2)
-    _vars, _pvars = gvars[:N], gvars[N:]
-    pending = _pvars[:]
-    for c in cons:
-        pv = False
-        vs = c.get_variables()
-        for v in vs:
             if v in _pvars:
                 if not c.is_equality():
                     return True
@@ -296,13 +270,10 @@ def used_vars(trs, gvars):
 
 def check_determinism(trs, gvars, mode=1):
     from genericparser import constants
-    usedvs = used_vars(trs, gvars) if mode == 1 else []
+    usedvs = used_vars(trs, gvars) if mode == 1 else {}
 
     def is_not(cons, mode):
-        if mode == 0:
-            return is_notdeterministic_0(cons, gvars)
-        elif mode == 1:
-            return is_notdeterministic_1(cons, gvars, usedvs)
+        return is_notdeterministic(cons, gvars, usedvs)
 
     def is_deterministic(tr):
         const_det = constants.transition.isdeterministic
