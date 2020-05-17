@@ -112,7 +112,7 @@ def setArgumentParser():
                            help="Formats to print the graphs.")
     argParser.add_argument("-si", "--show-with-invariants", required=False, default=False,
                            action='store_true', help="add invariants to the output formats")
-    argParser.add_argument("--tmpdir", required=False, default=None,
+    argParser.add_argument("--tmpdir", required=False, default="",
                            help="Temporary directory.")
     argParser.add_argument("--ei-out", required=False, action='store_true',
                            help="Shows the output supporting ei")
@@ -147,7 +147,7 @@ def setArgumentParser():
     # IMPORTANT PARAMETERS
     argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
     argParser.add_argument("-cfgpf", "--cfg-properties-file", required=False,
-                           help="File with the properties of the cfg.")
+                           help="File with the properties of nodes.")
     argParser.add_argument("-nt", "--nontermination", type=nontermination_alg,
                            nargs='*', required=False, default=[],
                            help=nontermination_alg_desc())

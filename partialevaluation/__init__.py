@@ -67,9 +67,13 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
 
 
 def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, only_john=False, nodes_to_refine=None):
-    import tempfile
-    tmpdirname = tempfile.mkdtemp(dir=tmpdir)
-    tmpplfile = os.path.join(tmpdirname, "source.pl")
+    if tmpdir is None or tmpdir == "":
+        import tempfile
+        tmpdirname = tempfile.mkdtemp()
+    else:
+        tmpdirname = tmpdir
+    import random
+    tmpplfile = os.path.join(tmpdirname, "source_%06x.pl" % random.randrange(16**6))
     OM.printif(3, "system prolog file ", tmpplfile)
     cfg.toProlog(path=tmpplfile, invariant_type=invariant_type)
     N = int(len(cfg.get_info("global_vars")) / 2)
@@ -133,7 +137,7 @@ def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, i
     gvars = cfg.get_info("global_vars")
     gvars = gvars[:int(len(gvars) / 2)]
     pvars = _plVars(len(gvars))
-    propsfile = os.path.join(tmpdirname, "source.props")
+    propsfile = os.path.join(tmpdirname, "source_output/source.props")
     basedir = os.path.dirname(propsfile)
     if not os.path.exists(basedir):
         os.makedirs(basedir)
@@ -200,8 +204,8 @@ def prepare_scc(cfg, scc, invariant_type):
     from copy import deepcopy
     entries = scc.get_info("entry_nodes")
     gvars = scc.get_info("global_vars")
-    N = int(len(gvars) / 2)
-    identity = [Expression(gvars[i + N]) == Expression(gvars[i]) for i in range(N)]
+    N = int(len(gvars)/2)
+    identity = [Expression(gvars[i+N])==Expression(gvars[i]) for i in range(N)]
     for entry in entries:
         num_t = 0
         for t in []:  # cfg.get_edges(target=entry):
@@ -241,7 +245,7 @@ def prepare_scc(cfg, scc, invariant_type):
             except Exception:
                 inv = []
             new_t["local_vars"] = []
-            new_t["constraints"] = inv + identity
+            new_t["constraints"] = inv+identity
             new_t["polyhedron"] = C_Polyhedron(new_t["constraints"], variables=gvars[:])
             new_t["linear"] = True
             scc_copy.add_edge(**new_t)

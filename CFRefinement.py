@@ -76,7 +76,7 @@ def setArgumentParser():
     argParser.add_argument("-f", "--file", required=True, help="File to be analysed.")
     argParser.add_argument("-cfgpf", "--cfg-properties-file", required=False,
                            help="File with the properties of the cfg.")
-    argParser.add_argument("--tmpdir", required=False, default=None,
+    argParser.add_argument("--tmpdir", required=False, default="/tmp",
                            help="Temporary directory.")
     return argParser
 
