@@ -235,7 +235,7 @@ def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", 
                     continue
             OM.printif(1, "\nAnalysing Close Walk: {}.".format([t["name"] for t in cw]))
             for a in cw_algs:
-                response = a.run(scc, cw, domain)
+                response = a.run(scc, cw, domain, sample_nodeterm_vars)
                 response.set_response(reachability=False)
                 if do_reachability:
                     response = analyse_reachability(cfg, cw, response, domain)

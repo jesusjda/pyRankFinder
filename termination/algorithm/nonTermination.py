@@ -21,7 +21,7 @@ class FixPoint(Algorithm):
     def use_close_walk(cls):
         return True
 
-    def run(self, cfg, close_walk=[], domain="Z"):
+    def run(self, cfg, close_walk=[], domain="Z", sample_nodeterm_vars=False):
         """
         looking for a fixpoint in a close walk:
         [n0] -(x, xP)-> [n1] -(xP, x2)-> [n2] -(x2, x)-> [n0]
@@ -95,7 +95,7 @@ class MonotonicRecurrentSets(Algorithm):
             return cls(properties)
         return None
 
-    def run(self, cfg, close_walk=[], domain="Z"):
+    def run(self, cfg, close_walk=[], domain="Z", sample_nodeterm_vars=False):
         """
         looking for a Monotonic Recurrent Set in a close walk:
         [n0] -(x0, x1)-> [n1] -(x1, x2)-> [n2] -(x2, xP)-> [n0]
@@ -117,12 +117,12 @@ class MonotonicRecurrentSets(Algorithm):
         cons = []
         nodet_vars = []
         nodet_vars_tr = {}
-        if domain == "Z":
+        if sample_nodeterm_vars:
             nodet_vars_tr = get_nodeterministic_variables(close_walk, global_vars)
         for tr in close_walk:
             local_vars = get_free_name(taken_vars, name="Local", num=len(tr["local_vars"]))
             tr_vars = all_vars[tr_idx:tr_idx + 2 * Nvars] + local_vars
-            if domain == "Z":
+            if sample_nodeterm_vars:
                 for v in nodet_vars_tr[tr["name"]][0]:
                     nodet_vars.append(all_vars[tr_idx+v])
                 for v in nodet_vars_tr[tr["name"]][1]:
@@ -131,7 +131,7 @@ class MonotonicRecurrentSets(Algorithm):
             cons += [c for c in tr["polyhedron"].get_constraints(tr_vars)
                      if c.is_linear()]
             tr_idx += Nvars
-        if domain == "Z":
+        if sample_nodeterm_vars:
             if len(nodet_vars) > 0:
                 response.set_response(deterministic="Forced for: "+", ".join(nodet_vars))
             cons = make_deterministic(cons, nodet_vars)
