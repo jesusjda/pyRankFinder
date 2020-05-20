@@ -6,7 +6,8 @@ from .utils import get_free_name
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
-
+from .utils import make_deterministic
+from .utils import get_nodeterministic_variables
 
 class FixPoint(Algorithm):
     ID = "fixpoint"
@@ -102,6 +103,7 @@ class MonotonicRecurrentSets(Algorithm):
         from lpi import Expression
         from ppl import Variable
         OM.printif(1, "--> with " + self.NAME)
+        response = Result()
         global_vars = cfg.get_info("global_vars")
         Nvars = int(len(global_vars) / 2)
         vs = global_vars[:Nvars]
@@ -113,23 +115,42 @@ class MonotonicRecurrentSets(Algorithm):
         taken_vars = all_vars
         tr_idx = 0
         cons = []
+        nodet_vars = []
+        nodet_vars_tr = {}
+        if domain == "Z":
+            nodet_vars_tr = get_nodeterministic_variables(close_walk, global_vars)
         for tr in close_walk:
             local_vars = get_free_name(taken_vars, name="Local", num=len(tr["local_vars"]))
             tr_vars = all_vars[tr_idx:tr_idx + 2 * Nvars] + local_vars
+            if domain == "Z":
+                for v in nodet_vars_tr[tr["name"]][0]:
+                    nodet_vars.append(all_vars[tr_idx+v])
+                for v in nodet_vars_tr[tr["name"]][1]:
+                    nodet_vars.append(local_vars[v])
             taken_vars += local_vars
             cons += [c for c in tr["polyhedron"].get_constraints(tr_vars)
                      if c.is_linear()]
             tr_idx += Nvars
+        if domain == "Z":
+            if len(nodet_vars) > 0:
+                response.set_response(deterministic="Forced for: "+", ".join(nodet_vars))
+            cons = make_deterministic(cons, nodet_vars)
+            if cons is None:
+                OM.printif(1, "Empty polyhedron.")
+                response.set_response(status=TerminationResult.UNKNOWN,
+                                      close_walk=close_walk,
+                                      deterministic=False,
+                                      info="No Recurrent Set Found. Empty Polyhedron.")
+                return response
         tr_poly_p = None
         tr_poly = C_Polyhedron(constraints=cons, variables=taken_vars)
-        response = Result()
         depth = 0
         while depth < self.get_prop("max_depth"):
             if tr_poly.is_empty():
                 OM.printif(1, "Empty polyhedron.")
                 response.set_response(status=TerminationResult.UNKNOWN,
                                       close_walk=close_walk,
-                                      info="No Recurrent Set Found. Empty Polyhedron.")
+                                      info="No Recurrent Set Found. Empty Polyhedron. Before start.")
                 return response
             Mcons = len(tr_poly.get_constraints())
             f = get_free_name(taken_vars, name="a_", num=Nvars + 1)

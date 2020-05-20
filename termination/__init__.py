@@ -98,7 +98,7 @@ def analyse(config, cfg):
                 if not R or not R.get_status().is_terminate():
                     # analyse NON-termination
                     if can_be_nonterminate:
-                        R_nt = analyse_scc_nontermination(nt_algs, cfg, scc, domain=config["domain"], do_reachability=config["nt_reachability"])
+                        R_nt = analyse_scc_nontermination(nt_algs, cfg, scc, domain=config["domain"], do_reachability=config["nt_reachability"], sample_nodeterm_vars=config["sample_nodeterm_vars"])
                         if R_nt and R_nt.get_status().is_nonterminate():
                             R_nt.set_response(graph=scc)
                             nonterminating_sccs.append(R_nt)
@@ -219,7 +219,7 @@ def prepare_cfr_config(config):
     return cfr, cfr_before, cfr_scc, cfr_after
 
 
-def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", do_reachability=False):
+def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", do_reachability=False, sample_nodeterm_vars=True):
     cw_algs = [a for a in algs if a.use_close_walk()]
     nt_algs = [a for a in algs if not a.use_close_walk()]
     if len(nt_algs) > 0:
@@ -229,7 +229,7 @@ def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", 
                 return response
     if len(cw_algs) > 0:
         for cw in scc.get_close_walks(close_walk_depth, 1, linear=True):
-            if domain == "Z":
+            if domain == "Z" and not sample_nodeterm_vars:
                 determ = check_determinism(cw, scc.get_info("global_vars"))
                 if not determ:
                     continue
@@ -240,7 +240,7 @@ def analyse_scc_nontermination(algs, cfg, scc, close_walk_depth=20, domain="Z", 
                 if do_reachability:
                     response = analyse_reachability(cfg, cw, response, domain)
                 if response.get_status().is_nonterminate():
-                    response.set_response(deterministic=determ)
+                    # response.set_response(deterministic=determ)
                     return response
     return False
 

@@ -154,6 +154,9 @@ def setArgumentParser():
     argParser.add_argument("-nt-reach", "--nt-reachability", required=False,
                            default=False, action='store_true',
                            help="Analyse reachability when NT algorithms says NO.")
+    argParser.add_argument("-sample-nd-vars", "--sample-nodeterm-vars", required=False,
+                           default=False, action='store_true',
+                           help="Give values to variables that are not deterministic.")
     argParser.add_argument("-t", "--termination", type=termination_alg, default=[],
                            nargs='*', required=False,
                            help=termination_alg_desc())

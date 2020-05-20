@@ -209,6 +209,7 @@ def is_notdeterministic(cons, gvars, usedvs):
     N = int(len(gvars) / 2)
     _vars, _pvars = gvars[:N], gvars[N:]
     pending = [v for v in _pvars if usedvs.get(v,True)]
+    nodet_vars = []
     for c in cons:
         pv = False
         vs = c.get_variables()
@@ -217,20 +218,27 @@ def is_notdeterministic(cons, gvars, usedvs):
                 continue
             if v in _pvars:
                 if not c.is_equality():
-                    return True
+                    nodet_vars.append(v)
+                    # return True
+                    continue
                 if v in pending:
                     pending.remove(v)
                 if pv:
-                    return True
+                    nodet_vars.append(v)
+                    # return True
+                    continue
                 pv = True
                 cf = c.get_coefficient(v)
                 if cf != 1 and cf != -1:
-                    return True
+                    nodet_vars.append(v)
+                    # return True
+                    continue
             elif v not in _vars:
-                return True
-    if len(pending) > 0:
-        return True
-    return False
+                nodet_vars.append(v)
+                # return True
+                continue
+    return nodet_vars + pending
+
 
 
 def used_vars(trs, gvars):
@@ -272,16 +280,50 @@ def check_determinism(trs, gvars, mode=1):
     from genericparser import constants
     usedvs = used_vars(trs, gvars) if mode == 1 else {}
 
-    def is_not(cons, mode):
-        return is_notdeterministic(cons, gvars, usedvs)
+    def is_not(cons):
+        return len(is_notdeterministic(cons, gvars, usedvs))> 0
 
     def is_deterministic(tr):
         const_det = constants.transition.isdeterministic
         if const_det not in tr or tr[const_det] is None:
-            tr[const_det] = not is_not(tr[constants.transition.constraints], mode)
+            tr[const_det] = not is_not(tr[constants.transition.constraints])
         return tr[const_det]
 
     determ = True
     for tr in trs:
         determ = determ and is_deterministic(tr)
     return determ
+
+def get_nodeterministic_variables(trs, gvars):
+    from genericparser import constants
+    usedvs = used_vars(trs, gvars)
+
+    def no_determ_vars(cons):
+        return is_notdeterministic(cons, gvars, usedvs)
+
+    def vs2index(vs, lvars):
+        gvidx = []
+        lvidx = []
+        for v in vs:
+            if v in gvars:
+                gvidx.append(gvars.index(v))
+            else:
+                lvidx.append(lvars.index(v))
+        return (gvidx,lvidx)
+    nodet_vars_tr = {}
+    for tr in trs:
+        vs = no_determ_vars(tr[constants.transition.constraints])
+        nodet_vars_tr[tr["name"]] = vs2index(vs, tr["local_vars"])
+    return nodet_vars_tr
+
+def make_deterministic(cons, nodet_vars):
+    from lpi import Solver
+    from lpi import Expression
+    s = Solver(variable_type="int", coefficient_type="int")
+    s.add(cons)
+    if s.is_sat():
+        point, _ = s.get_point(nodet_vars)
+        cons += [Expression(v) == point[v] for v in nodet_vars]
+        return cons
+    else:
+        return None
