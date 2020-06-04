@@ -1,5 +1,17 @@
-v1.2 2019/01/23 (remove ppl dependecy at this level)
-- invariants and all nodeproperties are now independent from ppl.
+v1.3 2020/06/04
+- non-termination reachability
+- allowing C as entry
+- renaming a parameter
+- optimizing close walks
+- sampling non-deterministic variables
+- give properties of nodes through a different file
+v1.2.1 2019/06/09
+- variables domain via parameter
+- smt2 as output format
+- close walks
+- analyse non determinism of close walks
+v1.2 2019/01/23 (remove ppl dependency at this level)
+- invariants and all node-properties are now independent from ppl.
 - all the algorithms are now independent from ppl.
 - minor other improvements.
 - pep8.
@@ -7,11 +19,11 @@ v1.1 2018/12/19
 - check assertions of cfgs and refined cfgs
 - properties of projection are computed now on python side
 - remove no important variables has been moved.
-- partialevaluation now can handle simple sccs calling "prepare" first.
-- analyse termination and nontermination in one single call.
+- partial-evaluation now can handle simple sccs calling "prepare" first.
+- analyse termination and non-termination in one single call.
 - three possible strategies to apply CFR. After, at scc level and Before.
 - algorithm to compute nodes on the way to a set of nodes.
-- 'print-graphs' argument to print the fc and svg of the cfg and their correspoinding refined graphs.
+- 'print-graphs' argument to print the fc and svg of the cfg and their corresponding refined graphs.
 v0.5 2018/10/02
 
 v0.2 2018/09/19
