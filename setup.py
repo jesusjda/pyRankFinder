@@ -11,7 +11,7 @@ requires = ['pyLPi', 'genericparser', 'pyinterval', 'crlibm']
 dependency_links = [
     'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7.1',
     'git+https://github.com/jesusjda/pyLPi.git#egg=pyLPi',
-    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser'
+    'git+https://github.com/jesusjda/pyParser.git#egg=genericparser-1.2'
 ]
 
 ter_dir = os.path.join(base, 'termination')
