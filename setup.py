@@ -6,7 +6,7 @@ base = os.path.dirname(os.path.abspath(__file__))
 
 VERSION = open(os.path.join(base, 'version.txt')).read()[:-1]
 
-requires = ['pyLPi', 'genericparser', 'pyinterval', 'crlibm']
+requires = ['pyinterval', 'crlibm']
 
 dependency_links = [
     'git+https://github.com/jesusjda/pplpy.git#egg=pplpy-0.7.1',
