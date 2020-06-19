@@ -19,6 +19,8 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     cfr_inv_type = config["invariants"] if cfr_inv else "none"
     cfr_nodes_mode = config["cfr_nodes_mode"]
     cfr_nodes = config["cfr_nodes"]
+    for_cost = config.get("for_cost",False)
+    nounfold = config.get("no_unfold","none")
     OM.printseparator(1)
     OM.printif(1, "CFR({})".format(cfr_ite))
     from nodeproperties.cfrprops import cfrprops_options
@@ -54,19 +56,19 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
             invariant.compute_invariants(pe_cfg)
         pe_cfg.remove_unsat_edges()
         only_john, nodes_to_refine = get_nodes_to_refine(pe_cfg, cfr_nodes_mode, cfr_nodes, only_nodes)
-        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)
+        showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef, with_cost=for_cost)
         pe_cfg = partialevaluate(pe_cfg, props_methods=props_methods, tmpdir=tmpdir, invariant_type=cfr_inv_type,
-                                 only_john=only_john, nodes_to_refine=nodes_to_refine)
+                                 only_john=only_john, nodes_to_refine=nodes_to_refine, for_cost=for_cost, nounfold=nounfold)
         sufix = "_cfr" + str(it + 1)
         OM.lazy_printif(1, lambda: summary("CFG({})".format(it + 1), pe_cfg))
         if config.get("show_with_invariants", False) and cfr_inv:
             sufix += "_with_inv_" + str(cfr_inv_type)
     OM.printseparator(1)
-    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef)
+    showgraph(pe_cfg, config, sufix=sufix, invariant_type=cfr_inv_type, console=console, writef=writef, with_cost=for_cost)
     return pe_cfg
 
 
-def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, only_john=False, nodes_to_refine=None):
+def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, only_john=False, nodes_to_refine=None, for_cost=False, nounfold="none"):
     if tmpdir is None or tmpdir == "":
         import tempfile
         tmpdirname = tempfile.mkdtemp()
@@ -75,8 +77,10 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
     import random
     tmpplfile = os.path.join(tmpdirname, "source_%06x.pl" % random.randrange(16**6))
     OM.printif(3, "system prolog file ", tmpplfile)
-    cfg.toProlog(path=tmpplfile, invariant_type=invariant_type)
+    c_var, c_pvar = cfg.toProlog(path=tmpplfile, invariant_type=invariant_type, with_cost=for_cost)
     N = int(len(cfg.get_info("global_vars")) / 2)
+    if for_cost:
+        N = N+1
     vs = ""
     if N > 0:
         vs = "(_"
@@ -108,6 +112,8 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
     from genericparser.Parser_fc import Parser_fc
     pfc = Parser_fc()
     pe_cfg = pfc.parse_string(fcpeprogram.decode("utf-8"))
+    if for_cost:
+        update_cost(pe_cfg, c_var, c_pvar)
     pe_cfg.build_polyhedrons()
     rmded = pe_cfg.remove_unsat_edges()
     if len(rmded) > 0:
@@ -132,6 +138,27 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
             pe_cfg.set_nodes_info(p_dict, p)
     return pe_cfg
 
+
+def update_cost(cfg, c_var, c_pvar):
+    if c_var is None:
+        return
+    gvars = cfg.get_info("global_vars")
+    if c_var in gvars:
+        gvars.remove(c_var)
+    if p_var in gvars:
+        gvars.remove(c_pvar)
+    cfg.set_info("global_vars", gvars)
+
+    for tr in cfg.get_edges():
+        cons = tr[constants.transition.constraints]
+        cost = 1
+        for c in cons:
+            if c_var in c.get_variables():
+                cost = c.get_independent_term()
+                tr[constants.transition.constraints].remove(c)
+                break
+        tr["cost"] = cost
+    
 
 def set_props(cfg, tmpdirname, props_methods, pl_file, entry, nodes_to_refine, invariant_type, only_john):
     gvars = cfg.get_info("global_vars")

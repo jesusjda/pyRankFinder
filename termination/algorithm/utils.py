@@ -92,7 +92,7 @@ def merge(base, to_add):
     return result
 
 
-def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False, output_formats=None):
+def showgraph(cfg, config, sufix="", invariant_type="none", console=False, writef=False, output_formats=None, with_cost=False):
     import os
     from termination.output import Output_Manager as OM
     if not console and not writef:
@@ -144,7 +144,7 @@ def showgraph(cfg, config, sufix="", invariant_type="none", console=False, write
             if writef:
                 OM.writefile(0, completename + ".svg", svgstr)
     if "koat" in output_formats:
-        cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type)
+        cfg.toKoat(path=stream, goal_complexity=True, invariant_type=invariant_type, with_cost=with_cost)
         koatstr = stream.getvalue()
         if console:
             OM.printif(0, "Graph {}".format(name), consoleid="koat", consoletitle="koat Source")

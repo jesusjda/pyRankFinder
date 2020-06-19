@@ -78,6 +78,10 @@ def setArgumentParser():
                            help="File with the properties of the cfg.")
     argParser.add_argument("--tmpdir", required=False, default="/tmp",
                            help="Temporary directory.")
+
+    # COST PARAMETERS
+    argParser.add_argument("-c", "--cost", required=False, help="Preserves cost of transitions",  action='store_true')
+    argParser.add_argument("--no-unfold", required=False, default="none", choices=["none", "asserts", "all"], help="Prevents PE from unfolding chains")
     return argParser
 
 
