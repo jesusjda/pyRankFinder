@@ -19,7 +19,7 @@ def control_flow_refinement(cfg, config, console=False, writef=False, only_nodes
     cfr_inv_type = config["invariants"] if cfr_inv else "none"
     cfr_nodes_mode = config["cfr_nodes_mode"]
     cfr_nodes = config["cfr_nodes"]
-    for_cost = config.get("for_cost",False)
+    for_cost = config.get("cost",False)
     nounfold = config.get("no_unfold","none")
     OM.printseparator(1)
     OM.printif(1, "CFR({})".format(cfr_ite))
@@ -140,12 +140,13 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
 
 
 def update_cost(cfg, c_var, c_pvar):
+    from genericparser import constants
     if c_var is None:
         return
     gvars = cfg.get_info("global_vars")
     if c_var in gvars:
         gvars.remove(c_var)
-    if p_var in gvars:
+    if c_pvar in gvars:
         gvars.remove(c_pvar)
     cfg.set_info("global_vars", gvars)
 
