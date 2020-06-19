@@ -127,7 +127,7 @@ def launch(config):
             if config["cfr_iterations"] > 0:
                 sufix += "_cfr" + str(config["cfr_iterations"])
             sufix += "_with_inv" + str(config["invariants"])
-            showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef)
+            showgraph(pe_cfg, config, sufix=sufix, invariant_type=config["invariants"], console=console, writef=writef, with_cost=config.get("cost",False))
         OM.show_output()
     except Exception as e:
         OM.printf("Exception  -> " + str(e))
