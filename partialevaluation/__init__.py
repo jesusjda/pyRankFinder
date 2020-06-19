@@ -101,8 +101,8 @@ def partialevaluate(cfg, props_methods=[], tmpdir=None, invariant_type=None, onl
                           nodes_to_refine=nodes_to_refine, invariant_type=invariant_type, only_john=only_john)
 
     # PE
-    pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'pe.sh')
-    pipe = Popen([pepath, tmpplfile, initNode, '-s', '-p', (propsfile), '-r', tmpdirname],
+    pepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'pecfg.sh')
+    pipe = Popen([pepath, tmpplfile, initNode, '-s', '-p', (propsfile), '-r', tmpdirname, '-u', nounfold],
                  stdout=PIPE, stderr=PIPE)
     fcpeprogram, err = pipe.communicate()
     if err is not None and err:
