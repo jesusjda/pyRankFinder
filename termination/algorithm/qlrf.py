@@ -192,7 +192,7 @@ class QLRF_BG(Algorithm):
         dfs = {}
         for tr in transitions:
             rf_s = rfs[tr["source"]]
-            rf_t = rfs[tr["target"]]
+            rf_t = rfs[tr["target"]].renamed(gvs[:Nvars], gvs[Nvars:])
             poly = tr["polyhedron"]
             df = rf_s - rf_t  # ExprTerm(0)
             constant = (rf_s.get_coeff() - rf_t.get_coeff())
@@ -211,8 +211,8 @@ class QLRF_BG(Algorithm):
             for tr in transitions:
                 poly = tr["polyhedron"]
                 cons = poly.get_constraints()
-                cons.insert(dfs[tr["name"]] == 0)
-                newpoly = C_Polyhedron(cons)
+                cons.append(dfs[tr["name"]] == 0)
+                newpoly = C_Polyhedron(constraints=cons, variables=gvs+tr["local_vars"])
                 if not newpoly.is_empty():
                     tr["polyhedron"] = newpoly
                     no_ranked.append(tr)
