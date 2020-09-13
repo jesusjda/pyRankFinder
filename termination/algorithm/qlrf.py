@@ -151,12 +151,12 @@ class QLRF_BG(Algorithm):
         rf_vars = []
         # 1.1 - store rfs variables
         rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
-        if different_template:
-            accum = 1
-            for _n in nodes:
-                freeConsts.append(taken_vars[accum - 1])
-                rf_vars += taken_vars[accum: accum + Nvars]
-                accum += Nvars + 1
+        for node in rfvars:
+            freeConsts.append(str(rfvars[node][0][0]))
+            rf_vars += [str(v) for v in rfvars[node][0][1:]]
+
+        freeConsts = list(set(freeConsts))
+        rf_vars = list(set(rf_vars))
         from lpi import Expression
 
         for tr in transitions:
