@@ -1,4 +1,4 @@
-from lpi import C_Polyhedron
+from lpi import Expression
 from termination import farkas
 from termination.result import Result
 from termination.result import TerminationResult
@@ -30,7 +30,6 @@ class QLRF_ADFG(Algorithm):
         no_ranked = []  # transitions sets no ranked by rfs
         # 1.1 - store rfs variables
         rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
-        from lpi import Expression
 
         # 1.2 - store delta variables
         ds = get_free_name(taken_vars, name="d", num=len(transitions))
@@ -71,6 +70,7 @@ class QLRF_ADFG(Algorithm):
                                       info="No point found for non-optimal adfg.")
                 return response
         else:
+            from lpi import C_Polyhedron
             farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
             result = farkas_poly.maximize(exp)
             if not result['bounded']:
@@ -157,7 +157,6 @@ class QLRF_BG(Algorithm):
 
         freeConsts = list(set(freeConsts))
         rf_vars = list(set(rf_vars))
-        from lpi import Expression
 
         for tr in transitions:
             rf_s = rfvars[tr["source"]][0]
@@ -174,7 +173,7 @@ class QLRF_BG(Algorithm):
                                              [[Expression(v) for v in lambdas],
                                               [Expression(v) for v in lambdas2]],
                                              rf_s, rf_t, 0)
-
+        from lpi import C_Polyhedron
         farkas_poly = C_Polyhedron(constraints=farkas_constraints, variables=taken_vars)
 
         variables = rf_vars + freeConsts
@@ -227,6 +226,81 @@ class QLRF_BG(Algorithm):
         return response
 
 
+class QLRF_BMS(Algorithm):
+    ID = "bms"
+    NAME = "qlrf_bms"
+    DESC = "Quasi Linear Ranking Function via QLRF_BMS method"
+
+    def __init__(self, properties={}):
+        self.props = properties
+
+    def run(self, cfg, different_template=False, dt_scheme="default"):
+        response = Result()
+        transitions = cfg.get_edges()
+        gvs = cfg.get_info("global_vars")
+        nodes = cfg.get_nodes()
+        Nvars = int(len(gvs) / 2)
+        # farkas constraints
+        farkas_constraints = []
+        # return objects
+        rfs = {}  # rfs coefficients (result)
+        no_ranked = []  # transitions sets no ranked by rfs
+        freeConsts = []
+        rf_vars = []
+        # 1.1 - store rfs variables
+        rfvars, taken_vars = create_rfs(nodes, Nvars, 1, different_template=different_template, dt_scheme=dt_scheme)
+        for tr in transitions:
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
+            poly = tr["polyhedron"]
+            Mcons = len(poly.get_constraints())
+            # f_s - f_t >= 0
+            lambdas = get_free_name(taken_vars, name="l", num=Mcons)
+            taken_vars += lambdas
+            farkas_constraints += farkas.df(poly,[Expression(v) for v in lambdas],
+                                            rf_s, rf_t, 0)
+        from lpi import Solver
+        for i in range(len(transitions)):
+            tr = transitions[i]
+            act_taken_vars = []+taken_vars
+            rf_s = rfvars[tr["source"]][0]
+            rf_t = rfvars[tr["target"]][0]
+            poly = tr["polyhedron"]
+            Mcons = len(poly.get_constraints())
+            # f_s >= 0
+            # f_s - f_t >= 1
+            lambdas = get_free_name(act_taken_vars, name="L", num=Mcons)
+            act_taken_vars += lambdas
+            lambdas2 = get_free_name(act_taken_vars, name="L", num=Mcons)
+            act_taken_vars += lambdas2
+            local_farkas_constraints = farkas.LRF(poly, 
+                                                  [[Expression(v) for v in lambdas],
+                                                   [Expression(v) for v in lambdas2]],
+                                                  rf_s, rf_t, 1)
+            s = Solver()
+            s.add(farkas_constraints+local_farkas_constraints)
+            point = s.get_point(act_taken_vars)
+            if point[0] is None:
+                continue
+            iszero = True
+            for k in point[0]:
+                if point[0][k] != 0:
+                    iszero = False
+                    break
+            if iszero:
+                continue
+            for node in rfvars:
+                rfs[node] = get_rf(rfvars[node][0], gvs, point)
+
+                response.set_response(status=TerminationResult.TERMINATE,
+                                      info="found",
+                                      rfs=rfs,
+                                      pending_trs=transitions[:i]+transitions[i+1:])
+                return response
+        response.set_response(status=TerminationResult.UNKNOWN,
+                              info="Not found .")
+        return response
+
 class QuasiLinearRF(Manager):
-    ALGORITHMS = [QLRF_ADFG, QLRF_BG]
+    ALGORITHMS = [QLRF_ADFG, QLRF_BG, QLRF_BMS]
     ID = "qlrf"
